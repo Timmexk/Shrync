@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.05 — entrypoint met automatische GPU-detectie
+# Shrync v0.06 — entrypoint met automatische GPU-detectie
 # ══════════════════════════════════════════════════════════════════════════════
 
 set -e
@@ -66,15 +66,16 @@ if [ "${GPU_MODE}" = "nvidia" ]; then
     else
         # Test daadwerkelijk of NVENC werkt met een minimale encode
         # Dit vangt driver-incompatibiliteit op (bijv. driver te oud voor deze ffmpeg build)
+        # Test met voldoende frames (Pascal vereist min. 16) en correcte rc-mode
         NVENC_TEST=$(ffmpeg -hide_banner \
-            -f lavfi -i color=c=black:s=64x64:r=1:d=1 \
+            -f lavfi -i color=c=black:s=128x128:r=25:d=2 \
             -vf format=yuv420p \
-            -c:v hevc_nvenc -preset fast -cq 28 \
+            -c:v hevc_nvenc -preset fast -rc vbr -cq 28 -b:v 0 \
             -f null /dev/null 2>&1 || true)
 
-        if echo "$NVENC_TEST" | grep -qE "No capable devices|Cannot load|not supported|Operation not permitted|Invalid argument|Could not open encoder"; then
-            echo "  WAARSCHUWING: NVENC test mislukt"
-            echo "  Fout: $(echo "$NVENC_TEST" | grep -E 'Error|error|Cannot|Could not' | head -2)"
+        if echo "$NVENC_TEST" | grep -qE "No capable devices|Cannot load|not supported|Operation not permitted|no decoder|No such"; then
+            echo "  WAARSCHUWING: NVENC niet beschikbaar"
+            echo "  Fout: $(echo "$NVENC_TEST" | grep -Ei 'error|cannot|no capable' | head -1)"
             echo "  → Terugvallen op CPU encoding"
             export GPU_MODE=cpu
         else

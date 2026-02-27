@@ -20,7 +20,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.05")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.06")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -351,9 +351,10 @@ def run_conversion(job_id: str):
             "-i", src,
             "-c:v", effective_codec,
             "-preset", preset,        # slow/medium/fast — werkt op alle GPU gen.
-            "-cq", quality,           # kwaliteitsgestuurd, geen bitrate limiet
-            "-b:v", "0",              # pure CQ mode
-            "-spatial-aq", "1",       # adaptieve kwantisatie — werkt op Pascal+
+            "-rc", "vbr",             # VBR mode — vereist voor -cq op Pascal+
+            "-cq", quality,           # kwaliteitsgestuurd
+            "-b:v", "0",              # geen bitrate limiet
+            "-spatial-aq", "1",       # adaptieve kwantisatie — Pascal+
             "-c:a", audio_codec,
             "-c:s", "copy",
             "-progress", "pipe:1",

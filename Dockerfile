@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.05 — Universele image (CPU + Nvidia GPU auto-detectie)
+# Shrync v0.06 — Universele image (CPU + Nvidia GPU auto-detectie)
 # ══════════════════════════════════════════════════════════════════════════════
 #
 # ffmpeg met NVENC ondersteuning — compatibel met Nvidia driver 570+
@@ -10,12 +10,12 @@ FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.title="Shrync"
 LABEL org.opencontainers.image.description="Zelf-gehoste H.265 media converter — automatische GPU-detectie"
-LABEL org.opencontainers.image.version="0.05"
+LABEL org.opencontainers.image.version="0.06"
 LABEL org.opencontainers.image.authors="timmexk"
 LABEL org.opencontainers.image.source="https://github.com/timmexk/Shrync"
 
 # Build-time variabelen — niet zichtbaar als configuratie in Unraid CA
-ARG SHRYNC_VERSION=0.05
+ARG SHRYNC_VERSION=0.06
 ENV SHRYNC_VERSION=${SHRYNC_VERSION}
 ENV PYTHONUNBUFFERED=1
 # GPU_MODE en CACHE_DIR worden ingesteld via de Unraid template / docker-compose
