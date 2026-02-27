@@ -1,0 +1,155 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>Shrync</Name>
+  <Repository>Timmex91/shrync:latest</Repository>
+  <Registry>https://hub.docker.com/r/Timmex91/shrync</Registry>
+  <Network>bridge</Network>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Timmexk/shrync</Support>
+  <Project>https://github.com/Timmexk/shrync</Project>
+  <Overview>
+    Shrync v0.01 — Zelf-gehoste H.265 media converter.
+
+    EEN IMAGE VOOR IEDEREEN: Dezelfde image werkt op CPU en Nvidia GPU.
+    De container detecteert automatisch of een GPU beschikbaar is.
+    CPU-gebruikers hoeven niets extra in te stellen.
+    GPU-gebruikers voegen alleen de Nvidia GPU toe via de Unraid GPU-selector.
+
+    MEDIAMAPPEN: Gebruik de velden Mediamap 1/2/3 hieronder.
+    Voeg extra mappen toe via Voeg pad toe onderaan de template.
+    Gebruik het containerpad (/media/map1 etc.) in de Shrync webinterface.
+
+    CACHE: Leeg laten is prima. Optioneel een snel SSD-pad instellen.
+  </Overview>
+  <Category>MediaApp:Video Tools:</Category>
+  <WebUI>http://[IP]:[PORT:8988]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Timmexk/shrync/main/shrync.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Timmexk/shrync/main/static/icon.svg</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Description>
+    Shrync v0.01 — H.265 media converter met automatische GPU-detectie.
+    Één image voor CPU en Nvidia GPU. Voeg mediamappen toe als volumes.
+  </Description>
+
+  <Networking>
+    <Mode>bridge</Mode>
+    <Publish>
+      <Port>
+        <HostPort>8988</HostPort>
+        <ContainerPort>8000</ContainerPort>
+        <Protocol>tcp</Protocol>
+      </Port>
+    </Publish>
+  </Networking>
+
+  <Data>
+    <Volume>
+      <HostDir>/mnt/user/appdata/shrync/config</HostDir>
+      <ContainerDir>/config</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+  </Data>
+
+  <Environment>
+    <Variable>
+      <Value></Value>
+      <Name>GPU_MODE</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value></Value>
+      <Name>CACHE_DIR</Name>
+      <Mode/>
+    </Variable>
+  </Environment>
+
+  <!-- ── Poort ── -->
+  <Config Name="WebUI poort"
+    Target="8000"
+    Default="8988"
+    Mode="tcp"
+    Description="Poort voor de Shrync webinterface"
+    Type="Port"
+    Display="always"
+    Required="true"
+    Mask="false">8988</Config>
+
+  <!-- ── Paden ── -->
+  <Config Name="Configuratie map"
+    Target="/config"
+    Default="/mnt/user/appdata/shrync/config"
+    Mode="rw"
+    Description="Verplicht. Hier slaat Shrync de database en instellingen op."
+    Type="Path"
+    Display="always"
+    Required="true"
+    Mask="false">/mnt/user/appdata/shrync/config</Config>
+
+  <Config Name="Cache map (optioneel)"
+    Target="/cache"
+    Default=""
+    Mode="rw"
+    Description="Optioneel. Pad voor tijdelijk bestand tijdens conversie. Leeg laten = naast het bronbestand. Als je dit instelt: zet CACHE_DIR ook op /cache."
+    Type="Path"
+    Display="always"
+    Required="false"
+    Mask="false"></Config>
+
+  <Config Name="Mediamap 1"
+    Target="/media/map1"
+    Default="/mnt/user/NAS/Films"
+    Mode="rw"
+    Description="Eerste mediamap. Gebruik /media/map1 als bibliotheekpad in de Shrync UI."
+    Type="Path"
+    Display="always"
+    Required="false"
+    Mask="false">/mnt/user/NAS/Films</Config>
+
+  <Config Name="Mediamap 2"
+    Target="/media/map2"
+    Default=""
+    Mode="rw"
+    Description="Tweede mediamap (optioneel). Gebruik /media/map2 in de Shrync UI."
+    Type="Path"
+    Display="always"
+    Required="false"
+    Mask="false"></Config>
+
+  <Config Name="Mediamap 3"
+    Target="/media/map3"
+    Default=""
+    Mode="rw"
+    Description="Derde mediamap (optioneel). Gebruik /media/map3 in de Shrync UI."
+    Type="Path"
+    Display="always"
+    Required="false"
+    Mask="false"></Config>
+
+  <!-- ── Omgevingsvariabelen ── -->
+  <Config Name="GPU modus"
+    Target="GPU_MODE"
+    Default=""
+    Mode=""
+    Description="Leeg laten = automatische detectie (aanbevolen). De container detecteert zelf of een Nvidia GPU beschikbaar is. Vul 'cpu' in om GPU-gebruik te forceren uitschakelen, ook als een GPU aanwezig is."
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false"></Config>
+
+  <Config Name="Cache pad"
+    Target="CACHE_DIR"
+    Default=""
+    Mode=""
+    Description="Leeg laten = tijdelijk bestand naast bronbestand. Vul /cache in als je de Cache map hierboven hebt ingesteld."
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false"></Config>
+
+</Container>

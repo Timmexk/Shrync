@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shrync</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --glass:  rgba(255,255,255,.075);
+  --glass-h:rgba(255,255,255,.115);
+  --border: rgba(255,255,255,.13);
+  --bhi:    rgba(255,255,255,.26);
+  --text:   rgba(255,255,255,.94);
+  --text-s: rgba(255,255,255,.52);
+  --text-t: rgba(255,255,255,.28);
+  --blue:#3b82f6;--green:#34d399;--cyan:#67e8f9;--orange:#fb923c;
+  --danger:#f87171;--success:#34d399;--muted:rgba(255,255,255,.52);
+  --r:20px;--rsm:14px;--rxs:10px;
+  --blur:blur(64px) saturate(200%);
+  --sh: 0 8px 40px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
+  --shl:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);
+}
+html,body{height:100%}
+body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
+  background:#060a14;color:var(--text);display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden}
+
+/* ── Background ── */
+.bg{position:fixed;inset:0;z-index:0;background:linear-gradient(145deg,#06091a 0%,#0c1528 50%,#060d1c 100%)}
+.bg-orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none}
+.bg-orb-1{width:700px;height:500px;top:-10%;left:-10%;background:radial-gradient(circle,rgba(59,130,246,.22) 0%,transparent 70%);animation:orb1 18s ease-in-out infinite}
+.bg-orb-2{width:600px;height:600px;bottom:-15%;right:-10%;background:radial-gradient(circle,rgba(139,92,246,.18) 0%,transparent 70%);animation:orb2 22s ease-in-out infinite}
+.bg-orb-3{width:500px;height:400px;top:40%;left:30%;background:radial-gradient(circle,rgba(52,211,153,.10) 0%,transparent 70%);animation:orb3 26s ease-in-out infinite}
+.bg-grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
+  background-size:40px 40px;
+  mask-image:radial-gradient(ellipse 85% 85% at 50% 50%,black 20%,transparent 100%)}
+@keyframes orb1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(80px,60px) scale(1.1)}66%{transform:translate(-40px,80px) scale(.95)}}
+@keyframes orb2{0%,100%{transform:translate(0,0)}40%{transform:translate(-70px,-50px) scale(1.08)}70%{transform:translate(50px,30px)}}
+@keyframes orb3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,-40px) scale(1.15)}}
+
+/* ── App shell ── */
+.app{position:relative;z-index:1;display:flex;flex:1;padding:14px;gap:12px;min-height:calc(100vh - 14px);align-items:flex-start}
+
+/* ── Sidebar ── */
+.sidebar{width:218px;flex-shrink:0;display:flex;flex-direction:column;
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);
+  overflow:hidden;position:sticky;top:14px;height:calc(100vh - 28px);z-index:99}
+.sidebar-top{padding:22px 18px 16px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%)}
+.logo-name{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1;
+  background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,.7) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-tag{font-size:9px;font-weight:700;color:rgba(59,130,246,.9);padding:2px 7px;border-radius:20px;
+  background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.25);
+  letter-spacing:.8px;text-transform:uppercase;vertical-align:middle;margin-left:7px}
+.logo-sub{font-size:10px;color:var(--text-t);margin-top:6px}
+.nav{padding:8px;flex:1;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:var(--rsm);
+  cursor:pointer;font-size:13px;font-weight:500;color:var(--text-s);
+  transition:all .2s cubic-bezier(.4,0,.2,1);border:1px solid transparent;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,.07);color:var(--text);border-color:rgba(255,255,255,.1)}
+.nav-item.active{background:rgba(59,130,246,.16);color:#fff;border-color:rgba(59,130,246,.28);box-shadow:0 2px 16px rgba(59,130,246,.18)}
+.nav-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);flex-shrink:0;transition:all .2s}
+.nav-item.active .nav-icon{background:rgba(59,130,246,.25);border-color:rgba(59,130,246,.35)}
+.nav-label{flex:1}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--success);margin-left:auto;
+  box-shadow:0 0 0 2px rgba(52,211,153,.3),0 0 10px rgba(52,211,153,.6);
+  animation:breathe 2s ease-in-out infinite;display:none;flex-shrink:0}
+@keyframes breathe{0%,100%{opacity:1;box-shadow:0 0 0 2px rgba(52,211,153,.3),0 0 10px rgba(52,211,153,.5)}50%{opacity:.5;box-shadow:0 0 0 2px rgba(52,211,153,.1),0 0 4px rgba(52,211,153,.2)}}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;gap:11px;min-width:0}
+
+/* ── Header ── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;
+  background:rgba(255,255,255,.07);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);
+  background-image:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%)}
+.page-title{font-size:17px;font-weight:700;letter-spacing:-.4px}
+.page-sub{font-size:11px;color:var(--text-s);margin-top:2px}
+
+/* ── Buttons ── */
+.btn{padding:8px 16px;border-radius:var(--rxs);font-size:13px;font-weight:500;
+  border:1px solid var(--border);background:rgba(255,255,255,.08);color:var(--text);
+  cursor:pointer;backdrop-filter:blur(20px);transition:all .18s;white-space:nowrap;font-family:inherit}
+.btn:hover{background:rgba(255,255,255,.13);border-color:var(--bhi);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.btn:active{transform:scale(.97)}
+.btn-accent{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.35);color:#fff}
+.btn-accent:hover{background:rgba(59,130,246,.32);border-color:rgba(59,130,246,.5);box-shadow:0 4px 20px rgba(59,130,246,.3)}
+.btn-danger{background:rgba(248,113,113,.14);border-color:rgba(248,113,113,.28);color:#fca5a5}
+.btn-danger:hover{background:rgba(248,113,113,.24)}
+.btn-pause {background:rgba(251,146,60,.14);border-color:rgba(251,146,60,.28);color:#fdba74}
+.btn-pause:hover{background:rgba(251,146,60,.24)}
+.btn-paused{background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.28);color:#6ee7b7}
+.btn-paused:hover{background:rgba(52,211,153,.24)}
+.btn-sm{padding:5px 11px;font-size:11px;border-radius:8px}
+
+/* ── Content ── */
+.content{flex:1;overflow-y:auto}
+.page{display:none}
+.page.active{display:block;animation:fade .22s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Glass panel ── */
+.panel,.table-wrap{
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);
+  overflow:hidden;margin-bottom:11px;position:relative}
+.panel::before,.table-wrap::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);pointer-events:none}
+.panel:hover,.table-wrap:hover{border-color:rgba(255,255,255,.2)}
+.panel-hdr,.table-hdr{
+  padding:13px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%)}
+.panel-title,.table-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-s)}
+
+/* ── Stats ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px;margin-bottom:11px}
+.stat-card{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:var(--r);padding:18px 18px 16px;
+  transition:all .2s;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent)}
+.stat-card:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);box-shadow:var(--shl)}
+.stat-label{font-size:10px;color:var(--text-s);font-weight:500;margin-bottom:10px}
+.stat-value{font-size:28px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+.c-blue{color:#60a5fa}.c-green{color:var(--green)}.c-cyan{color:var(--cyan)}
+
+/* ── Active conv ── */
+.active-card{background:linear-gradient(135deg,rgba(59,130,246,.1) 0%,rgba(139,92,246,.07) 100%);
+  border:1px solid rgba(59,130,246,.22);border-radius:var(--r);margin-bottom:11px;position:relative;overflow:hidden}
+.active-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(99,102,241,.6),rgba(139,92,246,.6),transparent);
+  animation:shimmer 3s ease-in-out infinite}
+@keyframes shimmer{0%,100%{opacity:.5}50%{opacity:1}}
+.active-hdr{padding:13px 18px 0;display:flex;align-items:center;justify-content:space-between}
+.active-body{padding:14px 18px 18px}
+.file-name{font-size:13px;font-weight:600;margin-bottom:3px;word-break:break-all}
+.file-dir {font-size:11px;color:var(--text-s);margin-bottom:14px}
+
+/* ── Progress ── */
+.progress-bar{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:9px}
+.progress-fill{height:100%;border-radius:3px;
+  background:linear-gradient(90deg,#3b82f6,#818cf8,#a78bfa);
+  box-shadow:0 0 16px rgba(99,102,241,.5);transition:width .6s ease}
+.progress-wrap{width:130px}
+.progress-text{font-size:10px;color:var(--text-s);margin-top:3px}
+
+/* ── Table ── */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:10px 16px;text-align:left;font-size:10px;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--text-t);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.038);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.025)}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600}
+.badge-processing{background:rgba(99,102,241,.16);color:#c4b5fd;border:1px solid rgba(99,102,241,.28)}
+.badge-done,.badge-success{background:rgba(52,211,153,.12);color:#6ee7b7;border:1px solid rgba(52,211,153,.22)}
+.badge-pending{background:rgba(255,255,255,.06);color:var(--text-s);border:1px solid var(--border)}
+.badge-error{background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.22)}
+
+/* ── Section header ── */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-title{font-size:20px;font-weight:700;letter-spacing:-.5px}
+
+/* ── Empty ── */
+.empty{text-align:center;padding:36px 20px}
+.empty-icon{font-size:28px;margin-bottom:10px;opacity:.25;display:block}
+.empty-text{color:var(--text-t);font-size:12px}
+
+/* ── Library cards ── */
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.lib-card{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:var(--r);padding:20px;
+  transition:all .2s;position:relative;overflow:hidden}
+.lib-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent)}
+.lib-card:hover{background:rgba(255,255,255,.095);border-color:rgba(255,255,255,.2);box-shadow:var(--shl)}
+.lib-card-add{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;min-height:160px;cursor:pointer;border:1px dashed rgba(255,255,255,.15);
+  background:rgba(255,255,255,.025)}
+.lib-card-add:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.26)}
+.lib-card-add .icon{font-size:30px;color:var(--text-t)}
+.lib-card-add .label{font-size:12px;color:var(--text-s);font-weight:500}
+.lib-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px}
+.lib-name{font-size:15px;font-weight:700;letter-spacing:-.2px;margin-bottom:4px}
+.lib-path{font-size:10px;color:var(--text-t);word-break:break-all;line-height:1.5}
+.lib-meta{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.lib-tag{padding:2px 9px;border-radius:20px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);font-size:10px;color:var(--text-s)}
+.lib-actions{display:flex;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap}
+/* Toggle */
+.toggle{position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.12);
+  border-radius:22px;transition:.22s;border:1px solid rgba(255,255,255,.15)}
+.toggle input:checked+.toggle-slider{background:rgba(59,130,246,.55);border-color:rgba(59,130,246,.65)}
+.toggle-slider::before{content:'';position:absolute;height:15px;width:15px;
+  left:3px;bottom:3px;background:rgba(255,255,255,.9);border-radius:50%;transition:.22s}
+.toggle input:checked+.toggle-slider::before{transform:translateX(16px);background:#fff}
+/* Scan progress */
+.scan-progress{margin-top:12px;padding:10px 12px;border-radius:var(--rxs);border:1px solid var(--border)}
+.scan-progress.scanning{background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.22)}
+.scan-progress.done   {background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.22)}
+.scan-progress.error  {background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.22)}
+.scan-label{font-weight:600;margin-bottom:7px;font-size:11px}
+.scan-label.scanning{color:#93c5fd}.scan-label.done{color:var(--green)}.scan-label.error{color:var(--danger)}
+.scan-file{font-size:10px;color:var(--text-t);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scan-counts{display:flex;flex-wrap:wrap;gap:10px}
+.scan-count{font-size:10px;color:var(--text-s)}
+
+/* ── History detail ── */
+.history-row{cursor:pointer}
+.history-row:hover td{background:rgba(255,255,255,.025)!important}
+.history-detail-row{display:none}
+.history-detail-row.open{display:table-row}
+.history-detail{padding:16px 18px;background:rgba(255,255,255,.022);border-top:1px solid var(--border);animation:fade .18s ease}
+.size-saved{color:var(--green);font-weight:600;font-size:11px}
+.expand-icon{display:inline-block;font-size:9px;color:var(--text-t);transition:transform .2s,color .2s;margin-right:7px;vertical-align:middle}
+.history-row.expanded .expand-icon{transform:rotate(90deg);color:#60a5fa}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;margin-bottom:16px}
+.detail-label{font-size:10px;color:var(--text-s);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.detail-value{font-size:22px;font-weight:700;letter-spacing:-.8px}
+.compare-label{display:flex;justify-content:space-between;font-size:10px;color:var(--text-t);margin-bottom:5px}
+.compare-track{position:relative;height:9px;background:rgba(255,255,255,.07);border-radius:5px;overflow:hidden}
+.compare-before{position:absolute;inset:0;background:rgba(255,255,255,.07);border-radius:5px}
+.compare-after{position:absolute;left:0;top:0;bottom:0;
+  background:linear-gradient(90deg,rgba(52,211,153,.7),rgba(52,211,153,.4));border-radius:5px;
+  display:flex;align-items:center;justify-content:flex-end;min-width:20px}
+.compare-pct-label{font-size:8px;color:rgba(0,0,0,.8);font-weight:800;padding-right:4px}
+
+/* ── Statistics ── */
+.sav-hero{background:linear-gradient(135deg,rgba(52,211,153,.08) 0%,rgba(59,130,246,.06) 100%);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid rgba(52,211,153,.16);border-radius:var(--r);
+  padding:26px 28px;margin-bottom:11px;position:relative;overflow:hidden}
+.sav-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(52,211,153,.5),rgba(99,102,241,.4),transparent)}
+.sav-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-s);margin-bottom:20px}
+.sav-nums{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;margin-bottom:24px}
+.sav-item-lbl{font-size:10px;color:var(--text-s);font-weight:500;margin-bottom:6px}
+.sav-item-val{font-size:34px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+.sav-div{width:1px;height:44px;background:var(--border);align-self:center}
+.sav-arrow{font-size:18px;color:var(--text-t);padding-bottom:6px}
+.sav-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-t);margin-bottom:6px}
+.sav-bar-bg{height:10px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden}
+.sav-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--success),#059669);
+  box-shadow:0 0 16px rgba(52,211,153,.3);transition:width 1.4s ease}
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:13px}
+.bar-label{font-size:12px;font-weight:500;width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:32px;background:rgba(255,255,255,.04);border-radius:9px;overflow:hidden;position:relative;border:1px solid var(--border)}
+.bar-before{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.06);border-radius:9px}
+.bar-after{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(52,211,153,.35),rgba(52,211,153,.18));
+  border-radius:9px;border-right:1px solid rgba(52,211,153,.4)}
+.bar-sizes{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:10px;font-weight:500;pointer-events:none}
+.bar-pct{font-size:12px;font-weight:700;color:var(--success);width:44px;text-align:right;flex-shrink:0}
+
+/* ── Settings ── */
+.seg-ctrl{display:inline-flex;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:12px;padding:3px;gap:2px}
+.seg-btn{padding:7px 20px;border-radius:10px;border:none;background:transparent;color:var(--text-s);
+  font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.seg-btn.active{background:rgba(255,255,255,.12);color:var(--text);box-shadow:0 2px 10px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.1)}
+.worker-btn{width:52px;height:52px;border-radius:13px;border:1px solid var(--border);
+  background:rgba(255,255,255,.07);color:var(--text-s);font-size:18px;font-weight:700;
+  cursor:pointer;transition:all .18s;font-family:inherit}
+.worker-btn:hover{background:rgba(255,255,255,.12);border-color:var(--bhi);color:var(--text)}
+.worker-btn.active{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4);color:#93c5fd;box-shadow:0 4px 16px rgba(59,130,246,.25)}
+.form-group{margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s);margin-bottom:8px;display:block}
+.form-input{width:100%;padding:10px 13px;background:rgba(255,255,255,.08);
+  border:1px solid var(--border);border-radius:var(--rxs);color:var(--text);
+  font-size:13px;font-family:inherit;transition:border-color .18s,background .18s}
+.form-input:focus{outline:none;border-color:rgba(59,130,246,.55);background:rgba(59,130,246,.07);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.form-input option{background:#121a2e;color:var(--text)}
+/* Profiles */
+.profile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px}
+.profile-card{padding:12px 14px;border-radius:var(--rxs);border:1px solid var(--border);
+  background:rgba(255,255,255,.05);cursor:pointer;transition:all .18s;user-select:none}
+.profile-card:hover{background:rgba(255,255,255,.09);border-color:var(--bhi)}
+.profile-card.selected{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4);box-shadow:0 0 0 2px rgba(59,130,246,.2)}
+.profile-name{font-size:13px;font-weight:600;margin-bottom:4px}
+.pbadge{display:inline-block;font-size:9px;font-weight:700;padding:1px 7px;border-radius:20px;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.pbadge.gpu{background:rgba(59,130,246,.2);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+.pbadge.cpu{background:rgba(52,211,153,.15);color:#6ee7b7;border:1px solid rgba(52,211,153,.25)}
+.profile-desc{font-size:10px;color:var(--text-t)}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex;animation:modalIn .22s ease}
+@keyframes modalIn{from{opacity:0}to{opacity:1}}
+.modal{background:rgba(14,22,42,.88);backdrop-filter:blur(64px) saturate(220%);-webkit-backdrop-filter:blur(64px) saturate(220%);
+  border:1px solid rgba(255,255,255,.18);border-radius:calc(var(--r) + 4px);
+  padding:28px;width:100%;max-width:440px;box-shadow:var(--shl);
+  background-image:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%)}
+.modal-title{font-size:17px;font-weight:700;letter-spacing:-.4px;margin-bottom:22px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+
+/* ── Hamburger ── */
+.hamburger{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:8px;
+  border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.07);flex-shrink:0}
+.hamburger span{display:block;width:16px;height:1.5px;background:var(--text-s);border-radius:1px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;backdrop-filter:blur(6px)}
+.sidebar-overlay.open{display:block}
+
+/* ── Toast ── */
+.toast-container{position:fixed;bottom:22px;right:22px;z-index:9000;display:flex;flex-direction:column;gap:8px}
+.toast{padding:11px 16px;border-radius:13px;font-size:13px;font-weight:500;
+  background:rgba(12,22,44,.92);backdrop-filter:blur(32px) saturate(200%);
+  border:1px solid rgba(255,255,255,.15);box-shadow:var(--shl);animation:toastIn .24s ease;color:var(--text)}
+.toast.success{border-color:rgba(52,211,153,.3)}
+.toast.error  {border-color:rgba(248,113,113,.3);color:#fca5a5}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .app{padding:9px;gap:9px}
+  .sidebar{position:fixed;left:-230px;top:0;height:100dvh;border-radius:0 var(--r) var(--r) 0;z-index:101;transition:left .3s cubic-bezier(.4,0,.2,1)}
+  .sidebar.open{left:0}
+  .hamburger{display:flex}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .lib-grid,.profile-grid{grid-template-columns:1fr}
+  .sav-nums{gap:14px}
+  .sav-item-val{font-size:26px}
+  .sav-div{display:none}
+  .table-wrap,.panel{overflow-x:auto}
+  table{min-width:440px}
+  .form-row{grid-template-columns:1fr}
+  .sec-hdr{flex-direction:column;align-items:flex-start;gap:8px}
+  .detail-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:380px){.stats-grid{grid-template-columns:1fr}}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}
+</style>
+</head>
+<body>
+<div class="bg">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+  <div class="bg-grid"></div>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app">
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-top">
+    <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:5px">
+      <span class="logo-name">Shrync</span><span class="logo-tag">H.265</span>
+    </div>
+    <div class="logo-sub">Media converter · <span id="app-version" style="color:rgba(59,130,246,.6)">v0.01</span></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="navigate('dashboard')">
+      <div class="nav-icon">⊞</div><span class="nav-label">Dashboard</span>
+      <span class="status-dot" id="nav-dot"></span>
+    </div>
+    <div class="nav-item" onclick="navigate('libraries')">
+      <div class="nav-icon">◫</div><span class="nav-label" id="nav-lbl-libraries">Bibliotheken</span>
+    </div>
+    <div class="nav-item" onclick="navigate('history')">
+      <div class="nav-icon">◷</div><span class="nav-label" id="nav-lbl-history">Geschiedenis</span>
+    </div>
+    <div class="nav-item" onclick="navigate('savings')">
+      <div class="nav-icon">◎</div><span class="nav-label" id="nav-lbl-savings">Statistieken</span>
+    </div>
+    <div class="nav-item" onclick="navigate('settings')">
+      <div class="nav-icon">⚙</div><span class="nav-label" id="nav-lbl-settings">Instellingen</span>
+    </div>
+  </nav>
+</aside>
+
+<div class="main">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:11px">
+      <button class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+      <div>
+        <div class="page-title" id="page-title">Dashboard</div>
+        <div class="page-sub"   id="page-sub">Systeem overzicht</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-pause" id="btn-pause" onclick="togglePause()" data-paused="0">⏸ <span id="btn-pause-label">Pauzeren</span></button>
+      <button class="btn" onclick="scanAll()">⟳ <span id="btn-scan-label">Alles scannen</span></button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label" id="lbl-stat-pending">In wachtrij</div><div class="stat-value c-blue"  id="stat-pending">—</div></div>
+        <div class="stat-card"><div class="stat-label" id="lbl-stat-processing">Bezig</div><div class="stat-value c-cyan"  id="stat-processing">—</div></div>
+        <div class="stat-card"><div class="stat-label" id="lbl-stat-done">Vandaag klaar</div><div class="stat-value c-green" id="stat-done">—</div></div>
+        <div class="stat-card"><div class="stat-label" id="lbl-stat-errors">Fouten</div><div class="stat-value" id="stat-errors" style="color:var(--danger)">—</div></div>
+        <div class="stat-card" onclick="navigate('savings')" style="cursor:pointer">
+          <div class="stat-label" id="lbl-stat-saved">Ruimte bespaard ↗</div>
+          <div class="stat-value c-green" id="stat-saved">—</div>
+        </div>
+        <div class="stat-card"><div class="stat-label" id="lbl-stat-libs">Bibliotheken</div><div class="stat-value" id="stat-libs">—</div></div>
+      </div>
+
+      <div class="active-card" id="active-job-section" style="display:none">
+        <div class="active-hdr">
+          <span class="panel-title" id="lbl-active-job">Actieve conversie</span>
+          <span class="badge badge-processing" style="animation:pulse 1.5s infinite">● Live</span>
+        </div>
+        <div class="active-body">
+          <div class="file-name" id="active-file-name">—</div>
+          <div class="file-dir"  id="active-file-dir"></div>
+          <div class="progress-bar"><div class="progress-fill" id="active-progress-fill" style="width:0%"></div></div>
+          <div style="display:flex;gap:20px;font-size:12px;color:var(--text-s)">
+            <span id="active-progress-pct">0%</span>
+            <span id="active-fps">— fps</span>
+            <span id="active-eta">ETA: —</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-hdr"><span class="table-title" id="dash-queue-title">Wachtrij</span></div>
+        <table><thead><tr>
+          <th id="dash-th-file">Bestand</th><th id="dash-th-lib">Bibliotheek</th>
+          <th id="dash-th-size">Grootte</th><th id="dash-th-status">Status</th>
+        </tr></thead>
+        <tbody id="dashboard-queue-body"><tr><td colspan="4"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-hdr"><span class="table-title" id="dash-recent-title">Recent verwerkt</span></div>
+        <table><thead><tr>
+          <th id="dash-th-rfile">Bestand</th><th id="dash-th-rlib">Bibliotheek</th>
+          <th id="dash-th-rsaved">Bespaard</th><th id="dash-th-rdur">Tijdsduur</th>
+          <th id="dash-th-rdate">Datum</th>
+        </tr></thead>
+        <tbody id="dashboard-recent-body"><tr><td colspan="5"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LIBRARIES -->
+    <div class="page" id="page-libraries">
+      <div class="sec-hdr">
+        <span class="sec-title" id="lbl-libraries-title">Bibliotheken</span>
+        <button class="btn btn-accent" onclick="openAddLib()">+ <span id="lbl-add-lib">Bibliotheek toevoegen</span></button>
+      </div>
+      <div class="lib-grid" id="lib-grid">
+        <div class="empty"><div class="empty-text">Laden…</div></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="page-history">
+      <div class="sec-hdr">
+        <span class="sec-title" id="lbl-history-title">Geschiedenis</span>
+        <button class="btn btn-sm" onclick="clearHistory()"><span id="lbl-clear-history">Geschiedenis wissen</span></button>
+      </div>
+      <div class="table-wrap" style="margin-bottom:0">
+        <table><thead><tr>
+          <th style="width:40%" id="hist-th-file">Bestand</th>
+          <th style="width:15%" id="hist-th-lib">Bibliotheek</th>
+          <th style="width:15%" id="hist-th-saved">Bespaard</th>
+          <th style="width:10%" id="hist-th-status">Status</th>
+          <th style="width:20%" id="hist-th-date">Datum</th>
+        </tr></thead>
+        <tbody id="history-body"><tr><td colspan="5"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
+        </table>
+      </div>
+      <div id="history-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:12px"></div>
+    </div>
+
+    <!-- STATISTICS -->
+    <div class="page" id="page-savings">
+      <div class="sec-hdr" style="margin-bottom:14px">
+        <span class="sec-title" id="lbl-savings-title">Statistieken</span>
+      </div>
+      <div class="sav-hero">
+        <div class="sav-label" id="sav-lbl-overview">Totaal overzicht</div>
+        <div class="sav-nums">
+          <div><div class="sav-item-lbl" id="sav-lbl-original">Voor conversie</div><div class="sav-item-val" id="sav-total-before">—</div></div>
+          <div class="sav-arrow">→</div>
+          <div><div class="sav-item-lbl" id="sav-lbl-after">Na conversie</div><div class="sav-item-val" style="color:var(--green)" id="sav-total-after">—</div></div>
+          <div class="sav-div"></div>
+          <div><div class="sav-item-lbl" id="sav-lbl-saved">Bespaard</div><div class="sav-item-val" style="color:var(--green)" id="sav-total-saved">—</div></div>
+          <div><div class="sav-item-lbl" id="sav-lbl-pct">Reductie</div><div class="sav-item-val" style="color:#60a5fa" id="sav-total-pct">—</div></div>
+          <div><div class="sav-item-lbl" id="sav-lbl-files">Bestanden</div><div class="sav-item-val" id="sav-total-files">—</div></div>
+        </div>
+        <div class="sav-bar-labels">
+          <span id="sav-lbl-after-bar">Na conversie</span>
+          <span id="sav-lbl-orig">Origineel (100%)</span>
+        </div>
+        <div class="sav-bar-bg"><div class="sav-bar-fill" id="sav-total-bar" style="width:0%"></div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-hdr"><span class="table-title" id="sav-lbl-perlib">Per bibliotheek</span></div>
+        <div style="padding:18px" id="sav-libs-bars"><div class="empty"><div class="empty-text">Laden…</div></div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+
+      <!-- Language -->
+      <div class="panel" style="max-width:580px">
+        <div class="panel-hdr"><span class="panel-title" id="lbl-lang-title">Taal / Language</span></div>
+        <div style="padding:18px">
+          <div class="seg-ctrl">
+            <button class="seg-btn" id="lang-en" onclick="setLanguage('en')">EN &nbsp; English</button>
+            <button class="seg-btn" id="lang-nl" onclick="setLanguage('nl')">NL &nbsp; Nederlands</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conversion profile -->
+      <div class="panel" style="max-width:700px">
+        <div class="panel-hdr"><span class="panel-title" id="lbl-profile-title">Conversieprofiel</span></div>
+        <div style="padding:18px">
+          <div id="gpu-status-banner" style="display:none;padding:9px 13px;border-radius:var(--rxs);border:1px solid;font-size:11px;font-weight:500;margin-bottom:14px"></div>
+          <div class="profile-grid" id="profile-grid"></div>
+          <input type="hidden" id="selected-profile" value="nvenc_max">
+          <div class="form-group" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <label class="form-label" id="lbl-audio-codec">Audio</label>
+            <select class="form-input" id="global-audio" style="max-width:260px">
+              <option value="copy">Kopiëren (origineel)</option>
+              <option value="aac">AAC</option>
+              <option value="ac3">AC3</option>
+            </select>
+          </div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+            <div class="form-label" id="lbl-cache-dir">Cache locatie</div>
+            <div style="font-size:12px;color:var(--text-s);margin-top:4px;font-family:monospace" id="cache-dir-display">—</div>
+            <div style="font-size:10px;color:var(--text-t);margin-top:4px">Stel in via de CACHE_DIR omgevingsvariabele in Docker.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diagnostics -->
+      <div class="panel" style="max-width:700px">
+        <div class="panel-hdr">
+          <span class="panel-title" id="lbl-diag-title">Diagnostiek — map toegang</span>
+          <button class="btn btn-sm" onclick="runDiagnostics()" id="btn-diag">⟳ <span id="lbl-diag-run">Controleren</span></button>
+        </div>
+        <div style="padding:18px" id="diag-results">
+          <div style="font-size:11px;color:var(--text-t)">Klik op "Controleren" om te zien of de container jouw media-mappen kan bereiken.</div>
+        </div>
+      </div>
+
+      <!-- Workers -->
+      <div class="panel" style="max-width:580px">
+        <div class="panel-hdr"><span class="panel-title" id="workers-title">Gelijktijdige conversies</span></div>
+        <div style="padding:18px">
+          <div style="font-size:10px;color:var(--text-s);text-transform:uppercase;letter-spacing:.8px;margin-bottom:11px" id="workers-label">Gelijktijdig</div>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+            <div style="display:flex;gap:8px">
+              <button class="worker-btn" id="w1" onclick="setWorkers(1)">1</button>
+              <button class="worker-btn" id="w2" onclick="setWorkers(2)">2</button>
+              <button class="worker-btn" id="w3" onclick="setWorkers(3)">3</button>
+            </div>
+            <div style="font-size:12px;color:var(--text-s)" id="worker-desc">—</div>
+          </div>
+          <div id="nvenc-warning" style="display:none;padding:12px 14px;background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.28);border-radius:var(--rxs);font-size:11px;color:var(--orange);margin-bottom:14px">
+            <span id="nvenc-warn-text"></span>
+          </div>
+          <button class="btn btn-accent" onclick="saveSettings()">&#128190; <span id="lbl-save-settings">Instellingen opslaan</span></button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+</div><!-- end main -->
+</div><!-- end app -->
+
+<!-- Modal: Library — name, path, interval only -->
+<div class="modal-overlay" id="lib-modal">
+  <div class="modal">
+    <div class="modal-title" id="lib-modal-title">Bibliotheek toevoegen</div>
+    <input type="hidden" id="lib-edit-id">
+    <div class="form-group">
+      <label class="form-label" id="lbl-lib-name">Naam</label>
+      <input class="form-input" id="lib-name" placeholder="Mijn Films">
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="lbl-lib-path">Pad (map)</label>
+      <input class="form-input" id="lib-path" placeholder="/media/films">
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="lbl-lib-interval">Scaninterval (seconden)</label>
+      <input class="form-input" id="lib-interval" type="number" value="3600" min="60">
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeLibModal()" id="lbl-modal-cancel">Annuleren</button>
+      <button class="btn btn-accent" onclick="saveLibrary()" id="lbl-modal-save">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ── Translations ───────────────────────────────────────────────────────────────
+const T = {
+  en: {
+    nav:  { libraries:'Libraries', history:'History', savings:'Statistics', settings:'Settings' },
+    page: {
+      dashboard: { title:'Dashboard',   sub:'System overview' },
+      libraries: { title:'Libraries',   sub:'Manage your media folders' },
+      history:   { title:'History',     sub:'Completed conversions' },
+      savings:   { title:'Statistics',  sub:'Storage saved by conversions' },
+      settings:  { title:'Settings',    sub:'Configure Shrync' },
+    },
+    stat:  { pending:'In queue', processing:'Converting', done:'Done today', errors:'Errors', saved:'Storage saved ↗', libs:'Libraries' },
+    dash:  { queue:'Queue', noQueue:'Queue is empty', recentDone:'Recently completed', noRecent:'No completed conversions yet',
+             file:'File', lib:'Library', size:'Size', status:'Status', saved:'Saved', duration:'Duration', date:'Date' },
+    hist:  { file:'File', lib:'Library', saved:'Saved', status:'Status', date:'Date' },
+    sav:   { overview:'Total overview', original:'Before conversion', after:'After conversion', saved:'Saved',
+             reduction:'Reduction', files:'Files', perLib:'Per library', noData:'No completed conversions yet', afterBar:'After', origBar:'Original (100%)' },
+    set:   { lang:'Language / Taal', profile:'Conversion profile', audio:'Audio', workers:'Concurrent conversions',
+             simultaneous:'Simultaneous', save:'Save settings', saved:'Settings saved',
+             workerDesc:{ 1:'Standard — one conversion at a time', 2:'Two conversions — higher load', 3:'Maximum — requires nvidia-patch' },
+             nvencWarn:'⚠ Nvidia GPUs have a default limit of 3 concurrent NVENC sessions. Install nvidia-patch to use >1 worker with NVENC.' },
+    lib:   { add:'Add library', edit:'Edit library', addBtn:'Add library', name:'Name', path:'Path (folder)',
+             interval:'Scan interval (seconds)', cancel:'Cancel', save:'Save',
+             scan:'Scan', edit:'Edit', delete:'Delete', lastScan:'Last scan', neverScanned:'Never scanned' },
+    btn:   { pause:'Pause', resume:'Resume', scanAll:'Scan all' },
+    misc:  { activeConv:'Active conversion', jobs:'jobs', jobRemoved:'Job removed',
+             libSaved:'Library saved', libUpdated:'Library updated', libAdded:'Library added', libDeleted:'Library deleted',
+             scanStarted:'Scan started', scanAllStarted:'Scanning all libraries',
+             histCleared:'History cleared', confirmDeleteLib:'Delete library? Files will not be deleted.',
+             confirmClearHistory:'Clear all history?', noHistory:'No history yet',
+             error:'Error', waiting:'Waiting', done:'Done', scanning:'Scanning…',
+             scanDone:'Scan complete', scanError:'Scan error', scanned:'Scanned',
+             toAdd:'To add', alreadyH265:'Already H.265', skipped:'Skipped', added:'Added',
+             afterConv:'After', beforeConv:'Before', savedLabel:'Saved', reduction:'Reduction',
+             convTime:'Duration', originalSize:'Original',
+             workersPaused:'Workers paused', workersResumed:'Workers resumed',
+             doneClear:'Completed jobs cleared', nameRequired:'Name and path are required',
+             noLib:'No library', clearDone:'Clear done', allJobs:'All jobs',
+             hour:'h', clearHistory:'Clear history' },
+    diag: { title:'Diagnostics — folder access', run:'Check', checking:'Checking…',
+            notFound:'Path does NOT exist in container', notDir:'Path is not a directory',
+            found:'video files found', topLevel:'Top-level items', sample:'Sample files',
+            noVideo:'No video files found — check volume mount', ok:'OK — files visible',
+            mediaRoot:'Contents of /media', noMedia:'/media does not exist',
+            hint:'If paths exist but show 0 files, the Docker volume mounts in docker-compose.yml need to match your library paths exactly.' },
+    profiles: {
+      nvenc_max:     { name:'NVENC H.265 — Max quality',    desc:'Highest quality, slowest GPU encode' },
+      nvenc_high:    { name:'NVENC H.265 — High quality',   desc:'High quality, efficient GPU encode' },
+      nvenc_balanced:{ name:'NVENC H.265 — Balanced',       desc:'Good quality, fast GPU encode' },
+      h264_nvenc:    { name:'NVENC H.264 — High quality',   desc:'H.264 GPU encode, broad compatibility' },
+      cpu_slow:      { name:'CPU H.265 — Max quality',      desc:'Best quality, very slow CPU encode' },
+      cpu_medium:    { name:'CPU H.265 — Balanced',         desc:'Good quality/speed balance' },
+      cpu_fast:      { name:'CPU H.265 — Fast',             desc:'Fast CPU encode, lower quality' },
+      h264_cpu:      { name:'CPU H.264 — Balanced',         desc:'H.264 CPU encode, broad compatibility' },
+    },
+  },
+  nl: {
+    nav:  { libraries:'Bibliotheken', history:'Geschiedenis', savings:'Statistieken', settings:'Instellingen' },
+    page: {
+      dashboard: { title:'Dashboard',     sub:'Systeem overzicht' },
+      libraries: { title:'Bibliotheken',  sub:'Beheer je mediamappen' },
+      history:   { title:'Geschiedenis',  sub:'Voltooide conversies' },
+      savings:   { title:'Statistieken',  sub:'Ruimte bespaard door conversies' },
+      settings:  { title:'Instellingen',  sub:'Configureer Shrync' },
+    },
+    stat:  { pending:'In wachtrij', processing:'Bezig', done:'Vandaag klaar', errors:'Fouten', saved:'Ruimte bespaard ↗', libs:'Bibliotheken' },
+    dash:  { queue:'Wachtrij', noQueue:'Wachtrij is leeg', recentDone:'Recent verwerkt', noRecent:'Nog geen voltooide conversies',
+             file:'Bestand', lib:'Bibliotheek', size:'Grootte', status:'Status', saved:'Bespaard', duration:'Tijdsduur', date:'Datum' },
+    hist:  { file:'Bestand', lib:'Bibliotheek', saved:'Bespaard', status:'Status', date:'Datum' },
+    sav:   { overview:'Totaal overzicht', original:'Voor conversie', after:'Na conversie', saved:'Bespaard',
+             reduction:'Reductie', files:'Bestanden', perLib:'Per bibliotheek', noData:'Nog geen voltooide conversies', afterBar:'Na conversie', origBar:'Origineel (100%)' },
+    set:   { lang:'Taal / Language', profile:'Conversieprofiel', audio:'Audio', workers:'Gelijktijdige conversies',
+             simultaneous:'Gelijktijdig', save:'Instellingen opslaan', saved:'Instellingen opgeslagen',
+             workerDesc:{ 1:'Standaard — één conversie tegelijk', 2:'Twee tegelijk — hogere belasting', 3:'Maximaal — vereist nvidia-patch' },
+             nvencWarn:"⚠ Nvidia GPU's hebben standaard een limiet van 3 NVENC-sessies. Installeer de nvidia-patch voor meer dan 1 worker." },
+    lib:   { add:'Bibliotheek toevoegen', edit:'Bibliotheek bewerken', addBtn:'Bibliotheek toevoegen',
+             name:'Naam', path:'Pad (map)', interval:'Scaninterval (seconden)', cancel:'Annuleren', save:'Opslaan',
+             scan:'Scannen', edit:'Bewerken', delete:'Verwijderen', lastScan:'Laatste scan', neverScanned:'Nog nooit gescand' },
+    btn:   { pause:'Pauzeren', resume:'Hervatten', scanAll:'Alles scannen' },
+    misc:  { activeConv:'Actieve conversie', jobs:'taken', jobRemoved:'Taak verwijderd',
+             libSaved:'Bibliotheek opgeslagen', libUpdated:'Bibliotheek bijgewerkt', libAdded:'Bibliotheek toegevoegd', libDeleted:'Bibliotheek verwijderd',
+             scanStarted:'Scan gestart', scanAllStarted:'Alle bibliotheken worden gescand',
+             histCleared:'Geschiedenis gewist', confirmDeleteLib:'Bibliotheek verwijderen? Bestanden blijven bewaard.',
+             confirmClearHistory:'Volledige geschiedenis wissen?', noHistory:'Geen geschiedenis',
+             error:'Fout', waiting:'Wachten', done:'Klaar', scanning:'Bezig met scannen…',
+             scanDone:'Scan voltooid', scanError:'Scanfout', scanned:'Gescand',
+             toAdd:'Toe te voegen', alreadyH265:'Al H.265', skipped:'Overgeslagen', added:'Toegevoegd',
+             afterConv:'Na', beforeConv:'Voor', savedLabel:'Bespaard', reduction:'Reductie',
+             convTime:'Tijdsduur', originalSize:'Origineel',
+             workersPaused:'Workers gepauzeerd', workersResumed:'Workers hervat',
+             doneClear:'Voltooide taken verwijderd', nameRequired:'Naam en pad zijn verplicht',
+             noLib:'Geen bibliotheek', clearDone:'Voltooide wissen', allJobs:'Alle taken',
+             hour:'u', clearHistory:'Geschiedenis wissen' },
+    diag: { title:'Diagnostiek — map toegang', run:'Controleren', checking:'Bezig…',
+            notFound:'Pad bestaat NIET in container', notDir:'Pad is geen map',
+            found:'videobestanden gevonden', topLevel:'Bovenliggende items', sample:'Voorbeeldbestanden',
+            noVideo:'Geen videobestanden — controleer volume mount', ok:'OK — bestanden zichtbaar',
+            mediaRoot:'Inhoud van /media', noMedia:'/media bestaat niet',
+            hint:'Als paden bestaan maar 0 bestanden tonen, kloppen de Docker volume mounts in docker-compose.yml niet met je bibliotheekmappen.' },
+    profiles: {
+      nvenc_max:     { name:'NVENC H.265 — Max kwaliteit',    desc:'Hoogste kwaliteit, langzaamste GPU-codering' },
+      nvenc_high:    { name:'NVENC H.265 — Hoge kwaliteit',   desc:'Hoge kwaliteit, efficiënte GPU-codering' },
+      nvenc_balanced:{ name:'NVENC H.265 — Gebalanceerd',     desc:'Goede kwaliteit, snelle GPU-codering' },
+      h264_nvenc:    { name:'NVENC H.264 — Hoge kwaliteit',   desc:'H.264 GPU-codering, brede compatibiliteit' },
+      cpu_slow:      { name:'CPU H.265 — Max kwaliteit',      desc:'Beste kwaliteit, zeer trage CPU-codering' },
+      cpu_medium:    { name:'CPU H.265 — Gebalanceerd',       desc:'Goede balans kwaliteit/snelheid' },
+      cpu_fast:      { name:'CPU H.265 — Snel',               desc:'Snelle CPU-codering, lagere kwaliteit' },
+      h264_cpu:      { name:'CPU H.264 — Gebalanceerd',       desc:'H.264 CPU-codering, brede compatibiliteit' },
+    },
+  },
+};
+
+let lang = 'nl';
+function t(key) {
+  const parts = key.split('.');
+  let obj = T[lang];
+  for (const p of parts) { obj = obj?.[p]; }
+  return obj ?? key;
+}
+
+// ── Apply language ─────────────────────────────────────────────────────────────
+function applyLanguage() {
+  // ── Nav items (Dashboard stays same in both languages)
+  const navMap = {
+    'nav-lbl-libraries': 'nav.libraries',
+    'nav-lbl-history':   'nav.history',
+    'nav-lbl-savings':   'nav.savings',
+    'nav-lbl-settings':  'nav.settings',
+  };
+  Object.entries(navMap).forEach(([id, key]) => { const el = document.getElementById(id); if (el) el.textContent = t(key); });
+
+  // ── Header page title + sub
+  if (currentPage) {
+    const titleEl = document.getElementById('page-title');
+    const subEl   = document.getElementById('page-sub');
+    if (titleEl) titleEl.textContent = t('page.' + currentPage + '.title');
+    if (subEl)   subEl.textContent   = t('page.' + currentPage + '.sub');
+  }
+
+  // ── Header buttons
+  const scanLbl  = document.getElementById('btn-scan-label');
+  if (scanLbl) scanLbl.textContent = t('btn.scanAll');
+  updatePauseBtn(document.getElementById('btn-pause')?.dataset.paused === '1');
+
+  // ── Stat card labels
+  setTexts({
+    'lbl-stat-pending':    'stat.pending',
+    'lbl-stat-processing': 'stat.processing',
+    'lbl-stat-done':       'stat.done',
+    'lbl-stat-errors':     'stat.errors',
+    'lbl-stat-saved':      'stat.saved',
+    'lbl-stat-libs':       'stat.libs',
+  });
+
+  // ── Dashboard
+  setTexts({
+    'dash-queue-title':  'dash.queue',
+    'dash-recent-title': 'dash.recentDone',
+    'dash-th-file':      'dash.file',
+    'dash-th-lib':       'dash.lib',
+    'dash-th-size':      'dash.size',
+    'dash-th-status':    'dash.status',
+    'dash-th-rfile':     'dash.file',
+    'dash-th-rlib':      'dash.lib',
+    'dash-th-rsaved':    'dash.saved',
+    'dash-th-rdur':      'dash.duration',
+    'dash-th-rdate':     'dash.date',
+    'lbl-active-job':    'misc.activeConv',
+  });
+
+  // ── History
+  setTexts({
+    'lbl-history-title': 'page.history.title',
+    'lbl-clear-history': 'misc.clearHistory',
+    'hist-th-file':      'hist.file',
+    'hist-th-lib':       'hist.lib',
+    'hist-th-saved':     'hist.saved',
+    'hist-th-status':    'hist.status',
+    'hist-th-date':      'hist.date',
+  });
+
+  // ── Libraries
+  setTexts({
+    'lbl-libraries-title': 'page.libraries.title',
+    'lbl-add-lib':         'lib.addBtn',
+  });
+
+  // ── Statistics
+  setTexts({
+    'lbl-savings-title':  'page.savings.title',
+    'sav-lbl-overview':   'sav.overview',
+    'sav-lbl-original':   'sav.original',
+    'sav-lbl-after':      'sav.after',
+    'sav-lbl-saved':      'sav.saved',
+    'sav-lbl-pct':        'sav.reduction',
+    'sav-lbl-files':      'sav.files',
+    'sav-lbl-perlib':     'sav.perLib',
+    'sav-lbl-after-bar':  'sav.afterBar',
+    'sav-lbl-orig':       'sav.origBar',
+  });
+
+  // ── Settings
+  setTexts({
+    'lbl-lang-title':     'set.lang',
+    'lbl-profile-title':  'set.profile',
+    'lbl-audio-codec':    'set.audio',
+    'workers-title':      'set.workers',
+    'workers-label':      'set.simultaneous',
+    'lbl-save-settings':  'set.save',
+  });
+  const nw = document.getElementById('nvenc-warn-text'); if (nw) nw.textContent = t('set.nvencWarn');
+
+  // ── Library modal
+  setTexts({
+    'lbl-lib-name':      'lib.name',
+    'lbl-lib-path':      'lib.path',
+    'lbl-lib-interval':  'lib.interval',
+    'lbl-modal-cancel':  'lib.cancel',
+    'lbl-modal-save':    'lib.save',
+  });
+  // Modal placeholders
+  const libNameInput = document.getElementById('lib-name');
+  const libPathInput = document.getElementById('lib-path');
+  if (libNameInput) libNameInput.placeholder = lang === 'nl' ? 'Mijn Films' : 'My Films';
+  if (libPathInput) libPathInput.placeholder = '/media/films';
+
+  // ── Diagnostics labels
+  const diagTitle = document.getElementById('lbl-diag-title'); if (diagTitle) diagTitle.textContent = t('diag.title');
+  const diagRun   = document.getElementById('lbl-diag-run');   if (diagRun) diagRun.textContent = t('diag.run');
+
+  // ── Language button active state
+  document.getElementById('lang-en')?.classList.toggle('active', lang === 'en');
+  document.getElementById('lang-nl')?.classList.toggle('active', lang === 'nl');
+
+  // ── Re-render dynamic content
+  updateWorkerUI(currentWorkers);
+  renderProfiles(document.getElementById('selected-profile')?.value || 'nvenc_max');
+}
+
+// Helper: set textContent for a map of id -> translation key
+function setTexts(map) {
+  Object.entries(map).forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = t(key);
+  });
+}
+
+
+async function setLanguage(l) {
+  lang = l;
+  applyLanguage();
+  await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ language: l }) });
+  loadPage(currentPage);
+}
+
+async function initLanguage() {
+  try {
+    const r = await fetch('/api/settings');
+    const s = await r.json();
+    lang = (s.language === 'nl') ? 'nl' : 'en';
+  } catch(e) { lang = 'nl'; }
+  applyLanguage();
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────────
+let currentPage = 'dashboard';
+let historyPage = 1;
+let currentWorkers = 1;
+
+function navigate(page) {
+  if (window.innerWidth <= 767) closeSidebar();
+  // Stop any active scan polling when leaving libraries page
+  if (page !== 'libraries' && _libScanInterval) { clearInterval(_libScanInterval); _libScanInterval = null; }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const navPages = ['dashboard','libraries','history','savings','settings'];
+  const idx = navPages.indexOf(page);
+  if (idx >= 0) document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  document.getElementById('page-title').textContent = t('page.' + page + '.title');
+  document.getElementById('page-sub').textContent   = t('page.' + page + '.sub');
+  currentPage = page;
+  loadPage(page);
+}
+
+function loadPage(page) {
+  if (page === 'dashboard') loadDashboard();
+  else if (page === 'libraries') loadLibraries();
+  else if (page === 'history') loadHistory();
+  else if (page === 'savings') loadSavings();
+  else if (page === 'settings') loadSettings();
+}
+
+// ── Mobile sidebar ─────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  const s = document.getElementById('sidebar'), o = document.getElementById('sidebar-overlay');
+  const open = s.classList.contains('open');
+  s.classList.toggle('open', !open); o.classList.toggle('open', !open);
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+window.addEventListener('resize', () => { if (window.innerWidth > 767) closeSidebar(); });
+
+// ── Stats ──────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const d = await fetch('/api/stats').then(r => r.json());
+    document.getElementById('stat-pending').textContent    = d.pending;
+    document.getElementById('stat-processing').textContent = d.processing;
+    document.getElementById('stat-done').textContent       = d.done_today;
+    document.getElementById('stat-errors').textContent     = d.errors;
+    document.getElementById('stat-saved').textContent      = formatBytes(d.saved_bytes);
+    document.getElementById('stat-libs').textContent       = d.active_libraries;
+    // Status dot
+    const dot = document.getElementById('nav-dot');
+    dot.style.display = d.processing > 0 ? 'block' : 'none';
+  } catch(e) {}
+}
+
+// ── Pause/resume ───────────────────────────────────────────────────────────────
+function updatePauseBtn(paused) {
+  const btn = document.getElementById('btn-pause');
+  const lbl = document.getElementById('btn-pause-label');
+  if (!btn) return;
+  if (paused) {
+    btn.className = 'btn btn-paused';
+    if (lbl) lbl.textContent = t('btn.resume');
+  } else {
+    btn.className = 'btn btn-pause';
+    if (lbl) lbl.textContent = t('btn.pause');
+  }
+  btn.dataset.paused = paused ? '1' : '0';
+}
+
+async function loadWorkerStatus() {
+  try {
+    const d = await fetch('/api/workers/status').then(r => r.json());
+    updatePauseBtn(d.paused);
+  } catch(e) {}
+}
+
+async function togglePause() {
+  const isPaused = document.getElementById('btn-pause').dataset.paused === '1';
+  await fetch('/api/workers/' + (isPaused ? 'resume' : 'pause'), { method: 'POST' });
+  await loadWorkerStatus();
+  toast(isPaused ? t('misc.workersResumed') : t('misc.workersPaused'), 'success');
+}
+
+// ── Active job ─────────────────────────────────────────────────────────────────
+async function loadActiveJob() {
+  try {
+    const jobs = await fetch('/api/queue?status=processing').then(r => r.json());
+    const sec = document.getElementById('active-job-section');
+    if (!jobs || !jobs.length) { sec.style.display = 'none'; return; }
+    const j = jobs[0];
+    sec.style.display = '';
+    document.getElementById('active-file-name').textContent = basename(j.file_path);
+    document.getElementById('active-file-dir').textContent  = dirname(j.file_path);
+    document.getElementById('active-progress-fill').style.width = (j.progress || 0) + '%';
+    document.getElementById('active-progress-pct').textContent  = (j.progress || 0) + '%';
+    document.getElementById('active-fps').textContent = (j.fps || 0).toFixed(1) + ' fps';
+    document.getElementById('active-eta').textContent = 'ETA: ' + (j.eta || '—');
+  } catch(e) {}
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  await loadStats();
+  await loadWorkerStatus();
+  await loadActiveJob();
+  await loadDashboardQueue();
+  await loadRecent();
+}
+
+async function loadDashboardQueue() {
+  try {
+    const jobs = await fetch('/api/queue').then(r => r.json());
+    const tbody = document.getElementById('dashboard-queue-body');
+    if (!jobs || !jobs.length) {
+      tbody.innerHTML = `<tr><td colspan="4"><div class="empty"><span class="empty-icon">◈</span><div class="empty-text">${t('dash.noQueue')}</div></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = jobs.slice(0, 20).map(j => `
+      <tr>
+        <td><div class="file-name">${basename(j.file_path)}</div><div class="file-dir">${dirname(j.file_path)}</div></td>
+        <td style="font-size:11px;color:var(--muted)">${j.library_name || '—'}</td>
+        <td style="font-size:11px">${formatBytes(j.file_size)}</td>
+        <td>${j.status === 'processing'
+          ? `<div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${j.progress}%"></div></div><div class="progress-text">${j.progress}% · ${(j.fps||0).toFixed(1)} fps · ${j.eta||'—'}</div></div>`
+          : statusBadge(j.status, j.progress)}</td>
+      </tr>`).join('');
+  } catch(e) {}
+}
+
+async function loadRecent() {
+  try {
+    const items = await fetch('/api/recent').then(r => r.json());
+    const tbody = document.getElementById('dashboard-recent-body');
+    if (!items || !items.length) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);font-size:11px;padding:20px">${t('dash.noRecent')}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = items.map(h => {
+      const saved = (h.original_size || 0) - (h.new_size || 0);
+      const pct   = h.original_size > 0 ? ((saved / h.original_size) * 100).toFixed(1) : 0;
+      const dur   = h.duration_seconds ? `${Math.floor(h.duration_seconds/60)}m${h.duration_seconds%60}s` : '—';
+      return `<tr>
+        <td><div class="file-name">${basename(h.file_path)}</div></td>
+        <td style="font-size:11px;color:var(--muted)">${h.library_name || '—'}</td>
+        <td><span style="color:var(--success);font-weight:600;font-size:11px">−${formatBytes(saved)} <span style="color:var(--muted);font-weight:400">(${pct}%)</span></span></td>
+        <td style="font-size:11px;color:var(--muted)">${dur}</td>
+        <td style="font-size:11px;color:var(--muted)">${formatDate(h.finished_at)}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── Libraries ──────────────────────────────────────────────────────────────────
+// Render scan status HTML for a given scan object (no full re-render)
+function scanStatusHtml(scan) {
+  if (!scan || scan.status === 'idle') return '';
+  if (scan.status === 'scanning') {
+    return `<div class="scan-progress scanning">
+      <div class="scan-label scanning">⟳ ${t('misc.scanning')}</div>
+      ${scan.current_file ? `<div class="scan-file">📄 ${scan.current_file}</div>` : ''}
+      <div class="scan-counts">
+        <div class="scan-count">${t('misc.scanned')}: <strong>${scan.scanned}</strong></div>
+        <div class="scan-count" style="color:var(--green)">${t('misc.toAdd')}: <strong>${scan.added}</strong></div>
+        <div class="scan-count">${t('misc.alreadyH265')}: <strong>${scan.already_converted||0}</strong></div>
+        <div class="scan-count">${t('misc.skipped')}: <strong>${scan.skipped}</strong></div>
+      </div></div>`;
+  }
+  if (scan.status === 'done') {
+    return `<div class="scan-progress done">
+      <div class="scan-label done">✓ ${t('misc.scanDone')}</div>
+      <div class="scan-counts">
+        <div class="scan-count">${t('misc.scanned')}: <strong>${scan.scanned}</strong></div>
+        <div class="scan-count" style="color:var(--green)">${t('misc.added')}: <strong>${scan.added}</strong></div>
+        <div class="scan-count">${t('misc.alreadyH265')}: <strong>${scan.already_converted||0}</strong></div>
+        <div class="scan-count">${t('misc.skipped')}: <strong>${scan.skipped}</strong></div>
+      </div></div>`;
+  }
+  if (scan.status === 'error') {
+    return `<div class="scan-progress error">
+      <div class="scan-label error">✕ ${t('misc.scanError')}</div>
+      <div class="scan-file" style="color:var(--danger)">${scan.error||''}</div>
+    </div>`;
+  }
+  return '';
+}
+
+let _libScanInterval = null;
+
+async function loadLibraries() {
+  try {
+    const [libs, scans] = await Promise.all([
+      fetch('/api/libraries').then(r => r.json()),
+      fetch('/api/scan-status').then(r => r.json()),
+    ]);
+    const grid = document.getElementById('lib-grid');
+    if (!libs.length) {
+      grid.innerHTML = `<div class="lib-card lib-card-add" onclick="openAddLib()"><div class="icon">＋</div><div class="label">${t('lib.addBtn')}</div></div>`;
+      return;
+    }
+
+    // Check if grid already has the right library cards (avoid full re-render)
+    const existingIds = [...grid.querySelectorAll('.lib-card[data-lib-id]')].map(el => el.dataset.libId);
+    const newIds = libs.map(l => l.id);
+    const needsFullRender = JSON.stringify(existingIds) !== JSON.stringify(newIds);
+
+    if (needsFullRender) {
+      // Full render — only when lib list changes
+      grid.innerHTML = libs.map(l => {
+        const scan = scans[l.id];
+        return `<div class="lib-card" data-lib-id="${l.id}">
+          <div class="lib-hdr">
+            <div>
+              <div class="lib-name">${l.name}</div>
+              <div class="lib-path">${l.path}</div>
+            </div>
+            <label class="toggle"><input type="checkbox" ${l.enabled ? 'checked' : ''} onchange="toggleLib('${l.id}', this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="lib-meta">
+            <span class="lib-tag">⟳ ${formatInterval(l.scan_interval)}</span>
+            ${l.last_scan ? `<span class="lib-tag lib-lastscan-${l.id}">${t('lib.lastScan')}: ${formatDate(l.last_scan)}</span>` : `<span class="lib-tag lib-lastscan-${l.id}" style="color:var(--text-t)">${t('lib.neverScanned')}</span>`}
+          </div>
+          <div class="lib-scan-status" data-lib-id="${l.id}">${scanStatusHtml(scan)}</div>
+          <div class="lib-actions">
+            <button class="btn btn-sm" onclick="scanLib('${l.id}')">${t('lib.scan')}</button>
+            <button class="btn btn-sm" onclick="editLib(${JSON.stringify(l).replace(/"/g,'&quot;')})">${t('lib.edit')}</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteLib('${l.id}')">${t('lib.delete')}</button>
+          </div>
+        </div>`;
+      }).join('') + `<div class="lib-card lib-card-add" onclick="openAddLib()"><div class="icon">＋</div><div class="label">${t('lib.addBtn')}</div></div>`;
+    } else {
+      // Selective update — only update scan status areas, no flicker
+      for (const lib of libs) {
+        const statusEl = grid.querySelector(`.lib-scan-status[data-lib-id="${lib.id}"]`);
+        if (statusEl) {
+          const scan = scans[lib.id];
+          const newHtml = scanStatusHtml(scan);
+          if (statusEl.innerHTML !== newHtml) statusEl.innerHTML = newHtml;
+        }
+      }
+    }
+
+    // Start/stop live polling based on whether any scan is active
+    const anyScanning = Object.values(scans).some(s => s.status === 'scanning');
+    if (anyScanning && !_libScanInterval) {
+      _libScanInterval = setInterval(async () => {
+        if (currentPage !== 'libraries') { clearInterval(_libScanInterval); _libScanInterval = null; return; }
+        try {
+          const s = await fetch('/api/scan-status').then(r => r.json());
+          const stillScanning = Object.values(s).some(x => x.status === 'scanning');
+          // Update only scan status divs
+          for (const [lid, scan] of Object.entries(s)) {
+            const el = document.querySelector(`.lib-scan-status[data-lib-id="${lid}"]`);
+            if (el) { const h = scanStatusHtml(scan); if (el.innerHTML !== h) el.innerHTML = h; }
+          }
+          if (!stillScanning) { clearInterval(_libScanInterval); _libScanInterval = null; }
+        } catch(e) {}
+      }, 800); // update every 800ms for smooth live feel
+    } else if (!anyScanning && _libScanInterval) {
+      clearInterval(_libScanInterval);
+      _libScanInterval = null;
+    }
+  } catch(e) { console.error('loadLibraries:', e); }
+}
+
+function openAddLib() {
+  document.getElementById('lib-modal-title').textContent = t('lib.add');
+  document.getElementById('lib-edit-id').value   = '';
+  document.getElementById('lib-name').value      = '';
+  document.getElementById('lib-path').value      = '';
+  document.getElementById('lib-interval').value  = '3600';
+  // Apply current language to modal labels
+  document.getElementById('lbl-lib-name').textContent     = t('lib.name');
+  document.getElementById('lbl-lib-path').textContent     = t('lib.path');
+  document.getElementById('lbl-lib-interval').textContent = t('lib.interval');
+  document.getElementById('lbl-modal-cancel').textContent = t('lib.cancel');
+  document.getElementById('lbl-modal-save').textContent   = t('lib.save');
+  document.getElementById('lib-modal').classList.add('open');
+}
+
+function editLib(l) {
+  document.getElementById('lib-modal-title').textContent = t('lib.edit');
+  document.getElementById('lib-edit-id').value  = l.id;
+  document.getElementById('lib-name').value     = l.name;
+  document.getElementById('lib-path').value     = l.path;
+  document.getElementById('lib-interval').value = l.scan_interval;
+  document.getElementById('lbl-lib-name').textContent     = t('lib.name');
+  document.getElementById('lbl-lib-path').textContent     = t('lib.path');
+  document.getElementById('lbl-lib-interval').textContent = t('lib.interval');
+  document.getElementById('lbl-modal-cancel').textContent = t('lib.cancel');
+  document.getElementById('lbl-modal-save').textContent   = t('lib.save');
+  document.getElementById('lib-modal').classList.add('open');
+}
+
+function closeLibModal() { document.getElementById('lib-modal').classList.remove('open'); }
+
+async function saveLibrary() {
+  const id   = document.getElementById('lib-edit-id').value;
+  const name = document.getElementById('lib-name').value;
+  const path = document.getElementById('lib-path').value;
+  const intv = parseInt(document.getElementById('lib-interval').value) || 3600;
+  if (!name || !path) { toast(t('misc.nameRequired'), 'error'); return; }
+  const data = { name, path, scan_interval: intv };
+  if (id) {
+    await fetch('/api/libraries/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...data, enabled: true}) });
+    toast(t('misc.libUpdated'), 'success');
+  } else {
+    await fetch('/api/libraries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    toast(t('misc.libAdded'), 'success');
+  }
+  closeLibModal();
+  loadLibraries();
+}
+
+async function toggleLib(id, enabled) {
+  const libs = await fetch('/api/libraries').then(r => r.json());
+  const lib  = libs.find(l => l.id === id);
+  if (!lib) return;
+  await fetch('/api/libraries/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...lib, enabled}) });
+}
+
+async function deleteLib(id) {
+  if (!confirm(t('misc.confirmDeleteLib'))) return;
+  await fetch('/api/libraries/' + id, { method:'DELETE' });
+  loadLibraries();
+  toast(t('misc.libDeleted'));
+}
+
+async function scanLib(id) {
+  await fetch('/api/libraries/' + id + '/scan', { method:'POST' });
+  toast(t('misc.scanStarted'), 'success');
+  // Reload after short delay to pick up scanning status and start live polling
+  setTimeout(loadLibraries, 600);
+}
+
+async function scanAll() {
+  const libs = await fetch('/api/libraries').then(r => r.json());
+  for (const l of libs) if (l.enabled) await fetch('/api/libraries/' + l.id + '/scan', { method:'POST' });
+  toast(t('misc.scanAllStarted'), 'success');
+  if (currentPage === 'libraries') setTimeout(loadLibraries, 600);
+}
+
+// Modal close on overlay click
+document.getElementById('lib-modal').addEventListener('click', function(e) { if (e.target === this) closeLibModal(); });
+
+// ── History ────────────────────────────────────────────────────────────────────
+async function loadHistory(page = 1) {
+  historyPage = page;
+  try {
+    const d = await fetch('/api/history?page=' + page).then(r => r.json());
+    const tbody = document.getElementById('history-body');
+    if (!d.items.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><span class="empty-icon">◷</span><div class="empty-text">${t('misc.noHistory')}</div></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = d.items.map(h => {
+      const saved   = (h.original_size||0) - (h.new_size||0);
+      const pct     = h.original_size > 0 ? ((saved/h.original_size)*100).toFixed(1) : 0;
+      const afterPct= h.original_size > 0 ? ((h.new_size/h.original_size)*100).toFixed(1) : 100;
+      const rid     = 'detail-' + h.id;
+      return `
+        <tr class="history-row" onclick="toggleHistoryDetail('${h.id}')">
+          <td><span class="expand-icon">▶</span><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
+          <td style="font-size:11px;color:var(--muted)">${h.library_name||'—'}</td>
+          <td>${saved > 0 ? `<span class="size-saved">−${formatBytes(saved)} (${pct}%)</span>` : '—'}</td>
+          <td>${h.status === 'success' ? '<span class="badge badge-success">✓ OK</span>' : `<span class="badge badge-error">✕ ${t('misc.error')}</span>`}</td>
+          <td style="font-size:10px;color:var(--muted)">${formatDate(h.finished_at)}</td>
+        </tr>
+        <tr class="history-detail-row" id="${rid}">
+          <td colspan="5">
+            <div class="history-detail">
+              <div class="detail-grid">
+                <div><div class="detail-label">${t('misc.originalSize')}</div><div class="detail-value">${formatBytes(h.original_size)}</div></div>
+                <div><div class="detail-label">${t('misc.afterConv')}</div><div class="detail-value" style="color:var(--green)">${h.new_size ? formatBytes(h.new_size) : '—'}</div></div>
+                <div><div class="detail-label">${t('misc.savedLabel')}</div><div class="detail-value" style="color:var(--green)">${saved > 0 ? formatBytes(saved) : '—'}</div></div>
+                <div><div class="detail-label">${t('misc.reduction')}</div><div class="detail-value" style="color:var(--green)">${pct > 0 ? '−' + pct + '%' : '—'}</div></div>
+                <div><div class="detail-label">${t('misc.convTime')}</div><div class="detail-value">${h.duration_seconds ? formatDuration(h.duration_seconds) : '—'}</div></div>
+              </div>
+              ${h.original_size > 0 && h.new_size ? `
+              <div class="compare-label"><span>${t('misc.afterConv')}</span><span>${t('misc.originalSize')} (100%)</span></div>
+              <div class="compare-track">
+                <div class="compare-before"></div>
+                <div class="compare-after" style="width:${afterPct}%">
+                  <span class="compare-pct-label">${afterPct}%</span>
+                </div>
+              </div>` : ''}
+              ${h.error_msg ? `<div style="margin-top:10px;font-size:10px;color:var(--danger);background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:6px;padding:8px 10px">${h.error_msg}</div>` : ''}
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+
+    const totalPages = Math.ceil(d.total / 50);
+    const pag = document.getElementById('history-pagination');
+    pag.innerHTML = '';
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm' + (i === page ? ' btn-accent' : '');
+      btn.textContent = i;
+      btn.onclick = () => loadHistory(i);
+      pag.appendChild(btn);
+    }
+  } catch(e) {}
+}
+
+function toggleHistoryDetail(id) {
+  const row    = document.querySelector(`.history-row[onclick="toggleHistoryDetail('${id}')"]`);
+  const detail = document.getElementById('detail-' + id);
+  if (!row || !detail) return;
+  const isOpen = detail.classList.contains('open');
+  detail.classList.toggle('open', !isOpen);
+  row.classList.toggle('expanded', !isOpen);
+}
+
+async function clearHistory() {
+  if (!confirm(t('misc.confirmClearHistory'))) return;
+  await fetch('/api/history', { method:'DELETE' });
+  loadHistory();
+  toast(t('misc.histCleared'), 'success');
+}
+
+// ── Statistics ─────────────────────────────────────────────────────────────────
+async function loadSavings() {
+  try {
+    const d = await fetch('/api/savings').then(r => r.json());
+    const tot = d.totals;
+    if (!tot || !tot.total_files) {
+      document.getElementById('sav-libs-bars').innerHTML = `<div class="empty"><span class="empty-icon">◎</span><div class="empty-text">${t('sav.noData')}</div></div>`;
+      return;
+    }
+    document.getElementById('sav-total-before').textContent = formatBytes(tot.total_original);
+    document.getElementById('sav-total-after').textContent  = formatBytes(tot.total_new);
+    document.getElementById('sav-total-saved').textContent  = formatBytes(tot.total_saved);
+    const pct = tot.total_original > 0 ? ((tot.total_new/tot.total_original)*100).toFixed(1) : 100;
+    document.getElementById('sav-total-pct').textContent   = '−' + (100-parseFloat(pct)).toFixed(1) + '%';
+    document.getElementById('sav-total-files').textContent = tot.total_files;
+    document.getElementById('sav-total-bar').style.width   = pct + '%';
+
+    const barsEl = document.getElementById('sav-libs-bars');
+    if (!d.per_library || !d.per_library.length) {
+      barsEl.innerHTML = `<div class="empty-text" style="color:var(--text-t);font-size:12px">${t('sav.noData')}</div>`;
+      return;
+    }
+    barsEl.innerHTML = d.per_library.map(lib => {
+      const libPct = lib.original > 0 ? ((lib.new_size/lib.original)*100).toFixed(1) : 100;
+      const savedPct = (100-parseFloat(libPct)).toFixed(1);
+      return `<div class="bar-row">
+        <div class="bar-label">${lib.library_name}</div>
+        <div class="bar-track">
+          <div class="bar-before"></div>
+          <div class="bar-after" style="width:${libPct}%"></div>
+          <div class="bar-sizes">
+            <span>${formatBytes(lib.new_size)}</span>
+            <span style="color:var(--text-t)">${formatBytes(lib.original)}</span>
+          </div>
+        </div>
+        <div class="bar-pct">−${savedPct}%</div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────────
+const PROFILE_IDS = ['nvenc_max','nvenc_high','nvenc_balanced','h264_nvenc','cpu_slow','cpu_medium','cpu_fast','h264_cpu'];
+const PROFILE_GPU = { nvenc_max:true, nvenc_high:true, nvenc_balanced:true, h264_nvenc:true, cpu_slow:false, cpu_medium:false, cpu_fast:false, h264_cpu:false };
+
+// Runtime GPU beschikbaarheid — wordt ingesteld vanuit /api/config bij opstarten
+let gpuAvailable = false;
+
+function renderProfiles(selected) {
+  const grid = document.getElementById('profile-grid');
+  if (!grid) return;
+
+  // Toon alleen GPU-profielen als de container met GPU-modus is gestart
+  const visibleIds = gpuAvailable
+    ? PROFILE_IDS
+    : PROFILE_IDS.filter(id => !PROFILE_GPU[id]);
+
+  // Als het geselecteerde profiel een GPU-profiel is maar geen GPU beschikbaar:
+  // selecteer automatisch het eerste CPU-profiel
+  let effectiveSelected = selected;
+  if (!gpuAvailable && PROFILE_GPU[selected]) {
+    effectiveSelected = 'cpu_medium';
+    document.getElementById('selected-profile').value = effectiveSelected;
+  }
+
+  grid.innerHTML = visibleIds.map(id => {
+    const isGpu = PROFILE_GPU[id];
+    const pName = t('profiles.' + id + '.name');
+    const pDesc = t('profiles.' + id + '.desc');
+    return `<div class="profile-card${effectiveSelected === id ? ' selected' : ''}" onclick="selectProfile('${id}')">
+      <div class="pbadge ${isGpu ? 'gpu' : 'cpu'}">${isGpu ? 'GPU' : 'CPU'}</div>
+      <div class="profile-name">${pName}</div>
+      <div class="profile-desc">${pDesc}</div>
+    </div>`;
+  }).join('');
+
+  // Verberg de NVENC-waarschuwing als er geen GPU is
+  const warn = document.getElementById('nvenc-warning');
+  if (warn && !gpuAvailable) warn.style.display = 'none';
+
+  // Toon GPU-status banner in de instellingenpagina
+  const banner = document.getElementById('gpu-status-banner');
+  if (banner) {
+    if (gpuAvailable) {
+      banner.style.display = '';
+      banner.style.background = 'rgba(52,211,153,.08)';
+      banner.style.borderColor = 'rgba(52,211,153,.25)';
+      banner.style.color = 'var(--success)';
+      banner.textContent = '✓ Nvidia GPU beschikbaar — NVENC profielen ingeschakeld';
+    } else {
+      banner.style.display = '';
+      banner.style.background = 'rgba(255,255,255,.04)';
+      banner.style.borderColor = 'rgba(255,255,255,.1)';
+      banner.style.color = 'var(--text-s)';
+      banner.textContent = 'ℹ CPU modus — GPU_MODE is niet ingesteld op nvidia. Alleen CPU-profielen beschikbaar.';
+    }
+  }
+}
+
+function selectProfile(id) {
+  document.getElementById('selected-profile').value = id;
+  renderProfiles(id);
+}
+
+async function loadSettings() {
+  try {
+    const [s, cfg] = await Promise.all([
+      fetch('/api/settings').then(r => r.json()),
+      fetch('/api/config').then(r => r.json()),
+    ]);
+    gpuAvailable = cfg.gpu_available === true;
+    currentWorkers = parseInt(s.max_workers || 1);
+    updateWorkerUI(currentWorkers);
+    const profile = s.conversion_profile || (gpuAvailable ? 'nvenc_max' : 'cpu_medium');
+    document.getElementById('selected-profile').value = profile;
+    renderProfiles(profile);
+    const audio = document.getElementById('global-audio');
+    if (audio) audio.value = s.audio_codec || 'copy';
+    // Cache dir info tonen
+    const cacheLbl = document.getElementById('cache-dir-display');
+    if (cacheLbl) cacheLbl.textContent = cfg.cache_dir || '(naast bronbestand)';
+    // Language buttons
+    document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+    document.getElementById('lang-nl').classList.toggle('active', lang === 'nl');
+  } catch(e) {}
+}
+
+function setWorkers(n) { currentWorkers = n; updateWorkerUI(n); }
+
+function updateWorkerUI(n) {
+  [1,2,3].forEach(i => { const btn = document.getElementById('w' + i); if(btn) btn.classList.toggle('active', i === n); });
+  const desc = document.getElementById('worker-desc');
+  if (desc) desc.textContent = t('set.workerDesc.' + n);
+  const warn = document.getElementById('nvenc-warning');
+  if (warn) warn.style.display = n > 1 ? '' : 'none';
+}
+
+async function saveSettings() {
+  const profile = document.getElementById('selected-profile')?.value || 'nvenc_max';
+  const audio   = document.getElementById('global-audio')?.value    || 'copy';
+  await fetch('/api/settings', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ max_workers: currentWorkers, conversion_profile: profile, audio_codec: audio }),
+  });
+  toast(t('set.saved') + ' — ' + currentWorkers + ' worker(s)', 'success');
+}
+
+// ── Diagnostics ────────────────────────────────────────────────────────────────
+async function runDiagnostics() {
+  const el = document.getElementById('diag-results');
+  const btn = document.getElementById('btn-diag');
+  if (btn) btn.disabled = true;
+  el.innerHTML = `<div style="font-size:12px;color:var(--text-s)">⟳ ${t('diag.checking')}</div>`;
+
+  try {
+    const d = await fetch('/api/diagnostics').then(r => r.json());
+
+    let html = '';
+
+    // /media root
+    html += `<div style="margin-bottom:14px;padding:10px 12px;background:rgba(255,255,255,.04);border-radius:var(--rxs);border:1px solid var(--border)">`;
+    html += `<div style="font-size:10px;font-weight:700;color:var(--text-t);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">${t('diag.mediaRoot')}</div>`;
+    if (d.media_root.error) {
+      html += `<div style="color:var(--danger);font-size:11px">✕ ${d.media_root.error}</div>`;
+    } else {
+      html += `<div style="font-size:11px;color:var(--text-s)">${(d.media_root.contents || []).join(', ') || '(leeg)'}</div>`;
+    }
+    html += `</div>`;
+
+    // Per library
+    for (const lib of d.libraries) {
+      const hasError   = !!lib.error;
+      const hasFiles   = (lib.video_files_found || 0) > 0;
+      const borderCol  = hasError ? 'rgba(248,113,113,.3)' : hasFiles ? 'rgba(52,211,153,.25)' : 'rgba(251,146,60,.3)';
+      const bgCol      = hasError ? 'rgba(248,113,113,.06)' : hasFiles ? 'rgba(52,211,153,.05)' : 'rgba(251,146,60,.06)';
+      const icon       = hasError ? '✕' : hasFiles ? '✓' : '⚠';
+      const iconColor  = hasError ? 'var(--danger)' : hasFiles ? 'var(--success)' : 'var(--orange)';
+
+      html += `<div style="margin-bottom:10px;padding:12px 14px;background:${bgCol};border-radius:var(--rxs);border:1px solid ${borderCol}">`;
+      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="color:${iconColor};font-weight:700">${icon}</span>
+        <span style="font-size:13px;font-weight:600">${lib.name}</span>
+        <span style="font-size:10px;color:var(--text-t);font-family:monospace">${lib.path}</span>
+      </div>`;
+
+      if (lib.error) {
+        html += `<div style="font-size:11px;color:var(--danger);margin-bottom:4px">${lib.error}</div>`;
+      } else {
+        const fileColor = hasFiles ? 'var(--success)' : 'var(--orange)';
+        html += `<div style="font-size:11px;color:${fileColor};font-weight:600;margin-bottom:4px">`;
+        html += hasFiles
+          ? `✓ ${lib.video_files_found} ${t('diag.found')}`
+          : `⚠ ${t('diag.noVideo')}`;
+        html += `</div>`;
+
+        if (lib.top_level_count !== undefined) {
+          html += `<div style="font-size:10px;color:var(--text-t)">${t('diag.topLevel')}: ${lib.top_level_count} — ${(lib.top_level_sample||[]).join(', ') || '(leeg)'}</div>`;
+        }
+        if (lib.video_sample && lib.video_sample.length) {
+          html += `<div style="font-size:10px;color:var(--text-t);margin-top:4px">${t('diag.sample')}: ${lib.video_sample.join('<br>&nbsp;&nbsp;')}</div>`;
+        }
+      }
+      html += `</div>`;
+    }
+
+    // Hint if any lib has 0 files but no error
+    const hasZeroNoError = d.libraries.some(l => !l.error && (l.video_files_found || 0) === 0);
+    if (hasZeroNoError) {
+      html += `<div style="padding:10px 12px;background:rgba(251,146,60,.07);border:1px solid rgba(251,146,60,.22);border-radius:var(--rxs);font-size:11px;color:var(--orange);line-height:1.6;margin-top:4px">
+        💡 ${t('diag.hint')}
+      </div>`;
+    }
+
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--danger);font-size:11px">Fout: ${e}</div>`;
+  }
+  if (btn) btn.disabled = false;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function basename(p) { return p ? p.split('/').pop() : '—'; }
+function dirname(p)  { if (!p) return ''; const parts = p.split('/'); parts.pop(); return parts.join('/'); }
+function formatBytes(b) {
+  if (!b || b === 0) return '—';
+  if (b > 1e9) return (b/1e9).toFixed(1) + ' GB';
+  if (b > 1e6) return (b/1e6).toFixed(1) + ' MB';
+  return (b/1e3).toFixed(0) + ' KB';
+}
+function formatDate(s) {
+  if (!s) return '—';
+  try { return new Date(s).toLocaleString('nl-NL', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+  catch { return s; }
+}
+function formatInterval(s) {
+  if (s >= 86400) return Math.round(s/86400) + 'd';
+  if (s >= 3600)  return Math.round(s/3600) + t('misc.hour');
+  return Math.round(s/60) + 'm';
+}
+function formatDuration(s) {
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  if (h) return `${h}${t('misc.hour')} ${m}m`;
+  if (m) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+function statusBadge(status, progress) {
+  const map = { pending:'badge-pending', processing:'badge-processing', done:'badge-done', error:'badge-error' };
+  const lbl = { pending:'⋯ ' + t('misc.waiting'), processing:`⟳ ${progress}%`, done:'✓ ' + t('misc.done'), error:'✕ ' + t('misc.error') };
+  return `<span class="badge ${map[status]||'badge-pending'}">${lbl[status]||status}</span>`;
+}
+function toast(msg, type = '') {
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── Auto-refresh ───────────────────────────────────────────────────────────────
+setInterval(() => {
+  if (currentPage === 'dashboard') loadDashboard();
+}, 5000);
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+(async () => {
+  await initLanguage();
+  // Haal runtime config op voor GPU-status en versienummer
+  try {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    gpuAvailable = cfg.gpu_available === true;
+    const verEl = document.getElementById('app-version');
+    if (verEl && cfg.version) verEl.textContent = 'v' + cfg.version;
+  } catch(e) {}
+  renderProfiles(gpuAvailable ? 'nvenc_max' : 'cpu_medium');
+  loadDashboard();
+})();
+</script>
+</body>
+</html>
