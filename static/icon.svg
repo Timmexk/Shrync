@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0f12"/>
+      <stop offset="100%" style="stop-color:#08080a"/>
+    </linearGradient>
+    <linearGradient id="stripGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8ff47"/>
+      <stop offset="100%" style="stop-color:#b0c800"/>
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#e8ff47"/>
+      <stop offset="100%" style="stop-color:#b0c800"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="clip">
+      <rect width="512" height="512" rx="88"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="88" fill="url(#bg)"/>
+
+  <!-- ── Left filmstrip ── -->
+  <!-- Main vertical bar -->
+  <rect x="54" y="88" width="44" height="290" rx="4" fill="#1a1a20"/>
+  <rect x="55" y="88" width="42" height="290" rx="4" fill="none" stroke="#2a2a35" stroke-width="1"/>
+
+  <!-- Sprocket holes left strip -->
+  <rect x="63" y="104" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="63" y="134" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="63" y="164" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="63" y="194" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="63" y="224" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="63" y="254" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="63" y="284" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="63" y="314" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="63" y="344" width="26" height="18" rx="3" fill="#0a0a0c"/>
+
+  <!-- ── Right filmstrip ── -->
+  <rect x="414" y="88" width="44" height="290" rx="4" fill="#1a1a20"/>
+  <rect x="415" y="88" width="42" height="290" rx="4" fill="none" stroke="#2a2a35" stroke-width="1"/>
+
+  <!-- Sprocket holes right strip -->
+  <rect x="423" y="104" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="423" y="134" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="423" y="164" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="423" y="194" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="423" y="224" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="423" y="254" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="423" y="284" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="423" y="314" width="26" height="18" rx="3" fill="#0a0a0c"/>
+  <rect x="423" y="344" width="26" height="18" rx="3" fill="#0a0a0c"/>
+
+  <!-- ── Compression arrows — the core concept ── -->
+  <!-- Left arrow pointing RIGHT (inward) -->
+  <!-- Arrow shaft left -->
+  <rect x="116" y="224" width="88" height="16" rx="3" fill="url(#arrowGrad)" filter="url(#glow)"/>
+  <!-- Arrow head left -->
+  <polygon points="196,208 228,232 196,256" fill="url(#arrowGrad)" filter="url(#glow)"/>
+
+  <!-- Right arrow pointing LEFT (inward) -->
+  <!-- Arrow shaft right -->
+  <rect x="308" y="224" width="88" height="16" rx="3" fill="url(#arrowGrad)" filter="url(#glow)"/>
+  <!-- Arrow head right -->
+  <polygon points="316,208 284,232 316,256" fill="url(#arrowGrad)" filter="url(#glow)"/>
+
+  <!-- Center compression zone — glowing core -->
+  <rect x="230" y="198" width="52" height="68" rx="6" fill="#e8ff47" opacity="0.08"/>
+  <rect x="232" y="200" width="48" height="64" rx="5" fill="none" stroke="#e8ff47" stroke-width="1.5" opacity="0.5" filter="url(#softglow)"/>
+
+  <!-- Center symbol: compressed lines suggesting data reduction -->
+  <rect x="242" y="214" width="28" height="3" rx="1.5" fill="#e8ff47" opacity="0.9"/>
+  <rect x="246" y="222" width="20" height="3" rx="1.5" fill="#e8ff47" opacity="0.7"/>
+  <rect x="249" y="230" width="14" height="3" rx="1.5" fill="#e8ff47" opacity="0.9"/>
+  <rect x="246" y="238" width="20" height="3" rx="1.5" fill="#e8ff47" opacity="0.7"/>
+  <rect x="242" y="246" width="28" height="3" rx="1.5" fill="#e8ff47" opacity="0.9"/>
+
+  <!-- ── Wordmark ── -->
+  <text
+    x="256" y="432"
+    text-anchor="middle"
+    font-family="'Helvetica Neue', 'Arial', sans-serif"
+    font-size="56"
+    font-weight="800"
+    letter-spacing="8"
+    fill="#e8ff47">SHRYNC</text>
+
+  <!-- Subtle tagline -->
+  <text
+    x="256" y="460"
+    text-anchor="middle"
+    font-family="'Courier New', monospace"
+    font-size="16"
+    letter-spacing="5"
+    fill="#e8ff47"
+    opacity="0.3">H.265 · NVENC</text>
+
+</svg>
