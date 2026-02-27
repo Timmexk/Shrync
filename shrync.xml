@@ -9,98 +9,52 @@
   <Support>https://github.com/timmexk/Shrync</Support>
   <Project>https://github.com/timmexk/Shrync</Project>
   <Overview>
-    Shrync v0.02 — Zelf-gehoste H.265 media converter.
+Shrync v0.03 — Zelf-gehoste H.265 media converter met automatische GPU-detectie.
 
-    EEN IMAGE VOOR IEDEREEN: Dezelfde image werkt op CPU en Nvidia GPU.
-    De container detecteert automatisch of een GPU beschikbaar is.
-    CPU-gebruikers hoeven niets extra in te stellen.
-    GPU-gebruikers voegen alleen de Nvidia GPU toe via de Unraid GPU-selector.
+EEN IMAGE VOOR IEDEREEN: Dezelfde image werkt op CPU en Nvidia GPU (driver 450+).
+De container detecteert automatisch of een GPU beschikbaar is bij elke start.
 
-    MEDIAMAPPEN: Gebruik de velden Mediamap 1/2/3 hieronder.
-    Voeg extra mappen toe via Voeg pad toe onderaan de template.
-    Gebruik het containerpad (/media/map1 etc.) in de Shrync webinterface.
+MEDIAMAPPEN: Stel hieronder Mediamap 1, 2 en 3 in. Gebruik het bijbehorende
+containerpad (/media/map1 etc.) als bibliotheekpad in de Shrync webinterface.
 
-    CACHE: Leeg laten is prima. Optioneel een snel SSD-pad instellen.
+GPU: Voeg --runtime=nvidia toe aan Extra Parameters voor Nvidia GPU-gebruik.
+Zet GPU_MODE leeg voor automatische detectie (aanbevolen).
   </Overview>
   <Category>MediaApp:Video Tools:</Category>
   <WebUI>http://[IP]:[PORT:8988]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/timmexk/Shrync/main/shrync.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/timmexk/Shrync/main/static/icon.png</Icon>
-  <ExtraParams/>
+  <ExtraParams></ExtraParams>
   <PostArgs/>
   <CPUset/>
   <DateInstalled/>
   <DonateText/>
   <DonateLink/>
-  <Description>
-    Shrync v0.02 — H.265 media converter met automatische GPU-detectie.
-    Één image voor CPU en Nvidia GPU. Voeg mediamappen toe als volumes.
-  </Description>
-
-  <Networking>
-    <Mode>bridge</Mode>
-    <Publish>
-      <Port>
-        <HostPort>8988</HostPort>
-        <ContainerPort>8000</ContainerPort>
-        <Protocol>tcp</Protocol>
-      </Port>
-    </Publish>
-  </Networking>
-
-  <Data>
-    <Volume>
-      <HostDir>/mnt/user/appdata/shrync/config</HostDir>
-      <ContainerDir>/config</ContainerDir>
-      <Mode>rw</Mode>
-    </Volume>
-  </Data>
-
-  <Environment>
-    <Variable>
-      <Value></Value>
-      <Name>GPU_MODE</Name>
-      <Mode/>
-    </Variable>
-    <Variable>
-      <Value></Value>
-      <Name>CACHE_DIR</Name>
-      <Mode/>
-    </Variable>
-  </Environment>
+  <Description>Shrync v0.03 — H.265 media converter met automatische Nvidia GPU-detectie. Eén image voor CPU en GPU.</Description>
 
   <!-- ── Poort ── -->
   <Config Name="WebUI poort"
     Target="8000"
     Default="8988"
     Mode="tcp"
-    Description="Poort voor de Shrync webinterface"
+    Description="Poort voor de Shrync webinterface. Standaard 8988."
     Type="Port"
     Display="always"
     Required="true"
     Mask="false">8988</Config>
 
-  <!-- ── Paden ── -->
+  <!-- ── Verplichte paden ── -->
   <Config Name="Configuratie map"
     Target="/config"
     Default="/mnt/user/appdata/shrync/config"
     Mode="rw"
-    Description="Verplicht. Hier slaat Shrync de database en instellingen op."
+    Description="Verplicht. Database en instellingen worden hier opgeslagen."
     Type="Path"
     Display="always"
     Required="true"
     Mask="false">/mnt/user/appdata/shrync/config</Config>
 
-  <Config Name="Cache map (optioneel)"
-    Target="/cache"
-    Default=""
-    Mode="rw"
-    Description="Optioneel. Pad voor tijdelijk bestand tijdens conversie. Leeg laten = naast het bronbestand. Als je dit instelt: zet CACHE_DIR ook op /cache."
-    Type="Path"
-    Display="always"
-    Required="false"
-    Mask="false"></Config>
-
+  <!-- ── Mediamappen ── -->
   <Config Name="Mediamap 1"
     Target="/media/map1"
     Default="/mnt/user/NAS/Films"
@@ -115,7 +69,7 @@
     Target="/media/map2"
     Default=""
     Mode="rw"
-    Description="Tweede mediamap (optioneel). Gebruik /media/map2 in de Shrync UI."
+    Description="Tweede mediamap (optioneel). Gebruik /media/map2 als bibliotheekpad in de Shrync UI."
     Type="Path"
     Display="always"
     Required="false"
@@ -125,7 +79,18 @@
     Target="/media/map3"
     Default=""
     Mode="rw"
-    Description="Derde mediamap (optioneel). Gebruik /media/map3 in de Shrync UI."
+    Description="Derde mediamap (optioneel). Gebruik /media/map3 als bibliotheekpad in de Shrync UI."
+    Type="Path"
+    Display="always"
+    Required="false"
+    Mask="false"></Config>
+
+  <!-- ── Cache ── -->
+  <Config Name="Cache map (optioneel)"
+    Target="/cache"
+    Default=""
+    Mode="rw"
+    Description="Optioneel. Pad voor tijdelijk bestand tijdens conversie. Leeg laten = naast het bronbestand. Als je dit instelt: zet CACHE_DIR ook op /cache hieronder."
     Type="Path"
     Display="always"
     Required="false"
@@ -136,7 +101,7 @@
     Target="GPU_MODE"
     Default=""
     Mode=""
-    Description="Leeg laten = automatische detectie (aanbevolen). De container detecteert zelf of een Nvidia GPU beschikbaar is. Vul 'cpu' in om GPU-gebruik te forceren uitschakelen, ook als een GPU aanwezig is."
+    Description="Leeg laten = automatische detectie (aanbevolen). De container detecteert zelf of een Nvidia GPU beschikbaar is. Vul 'cpu' in om GPU-gebruik te forceren uitschakelen."
     Type="Variable"
     Display="always"
     Required="false"
@@ -149,6 +114,27 @@
     Description="Leeg laten = tijdelijk bestand naast bronbestand. Vul /cache in als je de Cache map hierboven hebt ingesteld."
     Type="Variable"
     Display="always"
+    Required="false"
+    Mask="false"></Config>
+
+  <!-- ── Nvidia GPU (alleen invullen bij GPU gebruik) ── -->
+  <Config Name="Nvidia apparaten"
+    Target="NVIDIA_VISIBLE_DEVICES"
+    Default="all"
+    Mode=""
+    Description="Alleen nodig bij Nvidia GPU. Standaard 'all'. Vereist ook --runtime=nvidia in Extra Parameters."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"></Config>
+
+  <Config Name="Nvidia capabilities"
+    Target="NVIDIA_DRIVER_CAPABILITIES"
+    Default="video,compute,utility"
+    Mode=""
+    Description="Alleen nodig bij Nvidia GPU. Standaard: video,compute,utility"
+    Type="Variable"
+    Display="advanced"
     Required="false"
     Mask="false"></Config>
 

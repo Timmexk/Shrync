@@ -20,7 +20,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.02")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.03")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -351,8 +351,7 @@ def run_conversion(job_id: str):
             "-i", src,
             "-c:v", effective_codec,
             "-preset", preset,
-            "-rc", "constqp",
-            "-qp", quality,
+            "-cq", quality,
             "-b:v", "0",
             "-c:a", audio_codec,
             "-c:s", "copy",

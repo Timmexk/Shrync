@@ -62,6 +62,11 @@ fi
 # ── Stap 3: NVENC beschikbaarheid valideren ───────────────────────────────────
 if [ "${GPU_MODE}" = "nvidia" ]; then
     echo "  ffmpeg NVENC check..."
+
+    # Driver versie loggen
+    DRIVER_VER=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1 || echo "onbekend")
+    echo "  Nvidia driver : ${DRIVER_VER}"
+
     if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q "hevc_nvenc"; then
         echo "  NVENC (hevc_nvenc) beschikbaar ✓"
     else
