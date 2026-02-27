@@ -20,7 +20,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.04")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.05")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 

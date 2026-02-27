@@ -1,9 +1,7 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.01 — entrypoint met automatische GPU-detectie
+# Shrync v0.05 — entrypoint met automatische GPU-detectie
 # ══════════════════════════════════════════════════════════════════════════════
-# Draait elke keer als de container start. Detecteert GPU, stelt GPU_MODE in,
-# valideert ffmpeg NVENC beschikbaarheid, dan start de app.
 
 set -e
 
@@ -15,22 +13,24 @@ echo "└───────────────────────�
 GPU_DETECTED=false
 GPU_NAME="geen"
 
-# Methode A: nvidia-smi aanwezig en reageert (meest betrouwbaar)
+# Methode A: nvidia-smi
 if command -v nvidia-smi &>/dev/null 2>&1; then
     if nvidia-smi --query-gpu=name --format=csv,noheader &>/dev/null 2>&1; then
         GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)
-        echo "  GPU gedetecteerd via nvidia-smi: ${GPU_NAME}"
+        DRIVER_VER=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1 || echo "onbekend")
+        echo "  GPU gedetecteerd   : ${GPU_NAME}"
+        echo "  Nvidia driver      : ${DRIVER_VER}"
         GPU_DETECTED=true
     fi
 fi
 
-# Methode B: GPU device nodes aanwezig (werkt als nvidia-smi niet in image zit)
+# Methode B: /dev/nvidia0 device node
 if [ "$GPU_DETECTED" = false ] && [ -e /dev/nvidia0 ]; then
     echo "  GPU gedetecteerd via /dev/nvidia0"
     GPU_DETECTED=true
 fi
 
-# Methode C: CUDA_VISIBLE_DEVICES of NVIDIA_VISIBLE_DEVICES is ingesteld
+# Methode C: NVIDIA_VISIBLE_DEVICES runtime variabele
 if [ "$GPU_DETECTED" = false ] && \
    [ -n "${NVIDIA_VISIBLE_DEVICES}" ] && \
    [ "${NVIDIA_VISIBLE_DEVICES}" != "void" ]; then
@@ -41,38 +41,45 @@ fi
 # ── Stap 2: GPU_MODE bepalen ──────────────────────────────────────────────────
 if [ "$GPU_DETECTED" = true ]; then
     if [ "${GPU_MODE}" = "cpu" ]; then
-        # Gebruiker heeft CPU expliciet geforceerd
         echo "  GPU beschikbaar maar GPU_MODE=cpu geforceerd — CPU encoding actief"
         export GPU_MODE=cpu
     else
-        # Auto: GPU gevonden → nvidia mode
         export GPU_MODE=nvidia
         echo "  GPU_MODE automatisch ingesteld: nvidia"
     fi
 else
-    # Geen GPU → altijd CPU, ook als gebruiker per ongeluk 'nvidia' had ingevuld
     if [ "${GPU_MODE}" = "nvidia" ]; then
-        echo "  WAARSCHUWING: GPU_MODE=nvidia ingesteld maar geen GPU gevonden"
-        echo "  → Terugvallen op CPU encoding"
+        echo "  WAARSCHUWING: GPU_MODE=nvidia maar geen GPU gevonden — terugvallen op CPU"
     fi
     export GPU_MODE=cpu
-    echo "  Geen GPU — CPU encoding actief"
+    echo "  Geen GPU gevonden — CPU encoding actief"
 fi
 
-# ── Stap 3: NVENC beschikbaarheid valideren ───────────────────────────────────
+# ── Stap 3: NVENC valideren ───────────────────────────────────────────────────
 if [ "${GPU_MODE}" = "nvidia" ]; then
     echo "  ffmpeg NVENC check..."
 
-    # Driver versie loggen
-    DRIVER_VER=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1 || echo "onbekend")
-    echo "  Nvidia driver : ${DRIVER_VER}"
-
-    if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q "hevc_nvenc"; then
-        echo "  NVENC (hevc_nvenc) beschikbaar ✓"
-    else
-        echo "  WAARSCHUWING: hevc_nvenc niet beschikbaar in ffmpeg"
-        echo "  → Terugvallen op CPU encoding"
+    # Controleer of hevc_nvenc beschikbaar is in de ffmpeg binary
+    if ! ffmpeg -hide_banner -encoders 2>/dev/null | grep -q "hevc_nvenc"; then
+        echo "  WAARSCHUWING: hevc_nvenc niet beschikbaar — terugvallen op CPU"
         export GPU_MODE=cpu
+    else
+        # Test daadwerkelijk of NVENC werkt met een minimale encode
+        # Dit vangt driver-incompatibiliteit op (bijv. driver te oud voor deze ffmpeg build)
+        NVENC_TEST=$(ffmpeg -hide_banner \
+            -f lavfi -i color=c=black:s=64x64:r=1:d=1 \
+            -vf format=yuv420p \
+            -c:v hevc_nvenc -preset fast -cq 28 \
+            -f null /dev/null 2>&1 || true)
+
+        if echo "$NVENC_TEST" | grep -qE "No capable devices|Cannot load|not supported|Operation not permitted|Invalid argument|Could not open encoder"; then
+            echo "  WAARSCHUWING: NVENC test mislukt"
+            echo "  Fout: $(echo "$NVENC_TEST" | grep -E 'Error|error|Cannot|Could not' | head -2)"
+            echo "  → Terugvallen op CPU encoding"
+            export GPU_MODE=cpu
+        else
+            echo "  NVENC (hevc_nvenc) gevalideerd ✓"
+        fi
     fi
 fi
 
