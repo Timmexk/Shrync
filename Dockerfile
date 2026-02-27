@@ -16,9 +16,9 @@ FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.title="Shrync"
 LABEL org.opencontainers.image.description="Zelf-gehoste H.265 media converter — automatische GPU-detectie"
-LABEL org.opencontainers.image.version="0.01"
+LABEL org.opencontainers.image.version="0.02"
 LABEL org.opencontainers.image.authors="timmexk"
-LABEL org.opencontainers.image.source="https://github.com/timmexk/shrync"
+LABEL org.opencontainers.image.source="https://github.com/timmexk/Shrync"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
@@ -33,7 +33,7 @@ ENV GPU_MODE=
 # Leeg = naast het bronbestand. Stel in op /cache als je een snel SSD-pad wilt.
 ENV CACHE_DIR=
 
-ENV SHRYNC_VERSION=0.01
+ENV SHRYNC_VERSION=0.02
 
 # ── Systeem dependencies ──────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \

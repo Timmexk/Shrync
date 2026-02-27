@@ -1,0 +1,60 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# Shrync v0.02 — docker-compose.yml
+# ══════════════════════════════════════════════════════════════════════════════
+# Één image voor CPU én GPU. De container detecteert automatisch of een
+# Nvidia GPU beschikbaar is. Geen aparte image nodig, nooit van tag wisselen.
+
+services:
+  shrync:
+    image: timmex91/shrync:latest
+    container_name: shrync
+    restart: unless-stopped
+
+    # ── GPU (optioneel) ─────────────────────────────────────────────────────
+    # Verwijder het commentaar (#) van de onderstaande regels voor Nvidia GPU.
+    # Zonder deze regels gebruikt Shrync automatisch CPU encoding.
+    #
+    # runtime: nvidia
+    #
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu, video, compute]
+
+    environment:
+      # GPU_MODE: leeg laten = automatische detectie (aanbevolen)
+      # Stel in op 'cpu' om GPU-gebruik te forceren uitschakelen.
+      # Nooit handmatig op 'nvidia' zetten — de container regelt dit zelf.
+      - GPU_MODE=
+
+      # CACHE_DIR: pad voor tijdelijk bestand tijdens conversie
+      # Leeg laten = naast het bronbestand (geen extra schijf nodig)
+      # Voorbeeld met aparte cacheschijf: /cache
+      - CACHE_DIR=
+
+      # Nvidia: deze worden automatisch doorgegeven via de GPU runtime.
+      # Je hoeft ze niet handmatig in te stellen.
+      # - NVIDIA_VISIBLE_DEVICES=all
+      # - NVIDIA_DRIVER_CAPABILITIES=video,compute,utility
+
+    ports:
+      - "8988:8000"
+
+    volumes:
+      # Verplicht: database en configuratie
+      - /mnt/user/appdata/shrync/config:/config
+
+      # Cache (optioneel) — uncomment als CACHE_DIR=/cache is ingesteld
+      # Gebruik een snelle SSD of NVMe schijf
+      # - /mnt/user/appdata/shrync/cache:/cache
+
+      # Mediamappen — voeg zoveel toe als nodig
+      # Formaat: - /pad/op/host:/pad/in/container
+      - /mnt/user/NAS/Films:/media/films
+      - /mnt/user/NAS/Series:/media/series
+      - "/mnt/user/NAS/Kinder Films:/media/kinder-films"
+      # Meer mappen:
+      # - /mnt/user/NAS/Documentaires:/media/documentaires

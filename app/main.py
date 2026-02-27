@@ -20,7 +20,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.01")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.02")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -348,17 +348,12 @@ def run_conversion(job_id: str):
     if is_nvenc:
         cmd = [
             "ffmpeg", "-y",
-            "-hwaccel", "cuda",
             "-i", src,
             "-c:v", effective_codec,
             "-preset", preset,
-            "-rc", "vbr",
-            "-cq", quality,
+            "-rc", "constqp",
+            "-qp", quality,
             "-b:v", "0",
-            "-maxrate", "120M",
-            "-bufsize", "240M",
-            "-rc-lookahead", "32",
-            "-multipass", "fullres",
             "-c:a", audio_codec,
             "-c:s", "copy",
             "-progress", "pipe:1",
