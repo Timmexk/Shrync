@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Container version="2">
-  <Name>Shrync</Name>
+  <n>Shrync</n>
   <Repository>timmex91/shrync:latest</Repository>
   <Registry>https://hub.docker.com/r/timmex91/shrync</Registry>
   <Network>bridge</Network>
@@ -8,18 +8,7 @@
   <Privileged>false</Privileged>
   <Support>https://github.com/timmexk/Shrync</Support>
   <Project>https://github.com/timmexk/Shrync</Project>
-  <Overview>
-Shrync v0.03 — Zelf-gehoste H.265 media converter met automatische GPU-detectie.
-
-EEN IMAGE VOOR IEDEREEN: Dezelfde image werkt op CPU en Nvidia GPU (driver 450+).
-De container detecteert automatisch of een GPU beschikbaar is bij elke start.
-
-MEDIAMAPPEN: Stel hieronder Mediamap 1, 2 en 3 in. Gebruik het bijbehorende
-containerpad (/media/map1 etc.) als bibliotheekpad in de Shrync webinterface.
-
-GPU: Voeg --runtime=nvidia toe aan Extra Parameters voor Nvidia GPU-gebruik.
-Zet GPU_MODE leeg voor automatische detectie (aanbevolen).
-  </Overview>
+  <Overview>Shrync v0.04 — Zelf-gehoste H.265 media converter met automatische GPU-detectie.&#xA;&#xA;Dezelfde image werkt op CPU en Nvidia GPU (driver 570+). De container detecteert automatisch of een GPU beschikbaar is.&#xA;&#xA;MEDIAMAPPEN: Gebruik /media/map1, /media/map2, /media/map3 als bibliotheekpad in de Shrync webinterface.&#xA;GPU: Voeg --runtime=nvidia toe aan Extra Parameters voor Nvidia GPU-gebruik.</Overview>
   <Category>MediaApp:Video Tools:</Category>
   <WebUI>http://[IP]:[PORT:8988]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/timmexk/Shrync/main/shrync.xml</TemplateURL>
@@ -30,9 +19,9 @@ Zet GPU_MODE leeg voor automatische detectie (aanbevolen).
   <DateInstalled/>
   <DonateText/>
   <DonateLink/>
-  <Description>Shrync v0.03 — H.265 media converter met automatische Nvidia GPU-detectie. Eén image voor CPU en GPU.</Description>
+  <Description>Shrync v0.04 — H.265 media converter met automatische Nvidia GPU-detectie.</Description>
 
-  <!-- ── Poort ── -->
+  <!-- ══ POORT ══════════════════════════════════════════════════════════════ -->
   <Config Name="WebUI poort"
     Target="8000"
     Default="8988"
@@ -43,7 +32,7 @@ Zet GPU_MODE leeg voor automatische detectie (aanbevolen).
     Required="true"
     Mask="false">8988</Config>
 
-  <!-- ── Verplichte paden ── -->
+  <!-- ══ VERPLICHTE PADEN ═══════════════════════════════════════════════════ -->
   <Config Name="Configuratie map"
     Target="/config"
     Default="/mnt/user/appdata/shrync/config"
@@ -54,12 +43,12 @@ Zet GPU_MODE leeg voor automatische detectie (aanbevolen).
     Required="true"
     Mask="false">/mnt/user/appdata/shrync/config</Config>
 
-  <!-- ── Mediamappen ── -->
+  <!-- ══ MEDIAMAPPEN ════════════════════════════════════════════════════════ -->
   <Config Name="Mediamap 1"
     Target="/media/map1"
     Default="/mnt/user/NAS/Films"
     Mode="rw"
-    Description="Eerste mediamap. Gebruik /media/map1 als bibliotheekpad in de Shrync UI."
+    Description="Eerste mediamap. Gebruik /media/map1 als bibliotheekpad in de Shrync webinterface."
     Type="Path"
     Display="always"
     Required="false"
@@ -69,7 +58,7 @@ Zet GPU_MODE leeg voor automatische detectie (aanbevolen).
     Target="/media/map2"
     Default=""
     Mode="rw"
-    Description="Tweede mediamap (optioneel). Gebruik /media/map2 als bibliotheekpad in de Shrync UI."
+    Description="Tweede mediamap (optioneel). Gebruik /media/map2 als bibliotheekpad in de Shrync webinterface."
     Type="Path"
     Display="always"
     Required="false"
@@ -79,29 +68,29 @@ Zet GPU_MODE leeg voor automatische detectie (aanbevolen).
     Target="/media/map3"
     Default=""
     Mode="rw"
-    Description="Derde mediamap (optioneel). Gebruik /media/map3 als bibliotheekpad in de Shrync UI."
+    Description="Derde mediamap (optioneel). Gebruik /media/map3 als bibliotheekpad in de Shrync webinterface."
     Type="Path"
     Display="always"
     Required="false"
     Mask="false"></Config>
 
-  <!-- ── Cache ── -->
+  <!-- ══ CACHE ══════════════════════════════════════════════════════════════ -->
   <Config Name="Cache map (optioneel)"
     Target="/cache"
     Default=""
     Mode="rw"
-    Description="Optioneel. Pad voor tijdelijk bestand tijdens conversie. Leeg laten = naast het bronbestand. Als je dit instelt: zet CACHE_DIR ook op /cache hieronder."
+    Description="Optioneel. Snelle SSD/NVMe schijf voor tijdelijk bestand tijdens conversie. Leeg laten = naast het bronbestand. Als je dit instelt: zet CACHE_DIR ook op /cache."
     Type="Path"
     Display="always"
     Required="false"
     Mask="false"></Config>
 
-  <!-- ── Omgevingsvariabelen ── -->
+  <!-- ══ OMGEVINGSVARIABELEN ════════════════════════════════════════════════ -->
   <Config Name="GPU modus"
     Target="GPU_MODE"
     Default=""
     Mode=""
-    Description="Leeg laten = automatische detectie (aanbevolen). De container detecteert zelf of een Nvidia GPU beschikbaar is. Vul 'cpu' in om GPU-gebruik te forceren uitschakelen."
+    Description="Leeg laten = automatische detectie (aanbevolen). De container detecteert zelf of een Nvidia GPU aanwezig is. Vul 'cpu' in om GPU uit te schakelen, ook als een GPU aanwezig is."
     Type="Variable"
     Display="always"
     Required="false"
@@ -117,25 +106,25 @@ Zet GPU_MODE leeg voor automatische detectie (aanbevolen).
     Required="false"
     Mask="false"></Config>
 
-  <!-- ── Nvidia GPU (alleen invullen bij GPU gebruik) ── -->
-  <Config Name="Nvidia apparaten"
+  <!-- ══ NVIDIA GPU (geavanceerd) ═══════════════════════════════════════════ -->
+  <Config Name="Nvidia — zichtbare apparaten"
     Target="NVIDIA_VISIBLE_DEVICES"
     Default="all"
     Mode=""
-    Description="Alleen nodig bij Nvidia GPU. Standaard 'all'. Vereist ook --runtime=nvidia in Extra Parameters."
+    Description="Alleen invullen bij Nvidia GPU gebruik. Standaard: all. Vergeet niet --runtime=nvidia toe te voegen aan Extra Parameters hierboven."
     Type="Variable"
     Display="advanced"
     Required="false"
-    Mask="false"></Config>
+    Mask="false">all</Config>
 
-  <Config Name="Nvidia capabilities"
+  <Config Name="Nvidia — driver capabilities"
     Target="NVIDIA_DRIVER_CAPABILITIES"
     Default="video,compute,utility"
     Mode=""
-    Description="Alleen nodig bij Nvidia GPU. Standaard: video,compute,utility"
+    Description="Alleen invullen bij Nvidia GPU gebruik. Standaard: video,compute,utility"
     Type="Variable"
     Display="advanced"
     Required="false"
-    Mask="false"></Config>
+    Mask="false">video,compute,utility</Config>
 
 </Container>

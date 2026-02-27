@@ -20,7 +20,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.03")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.04")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -167,13 +167,13 @@ VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".m4v", ".ts", ".wmv", ".flv
 # ── Conversion profiles ───────────────────────────────────────────────────────
 # profile_id -> (video_codec, preset, crf/cq)
 PROFILES = {
-    "nvenc_max":    ("hevc_nvenc", "p7", "19"),   # NVENC H.265 max quality
-    "nvenc_high":   ("hevc_nvenc", "p6", "23"),   # NVENC H.265 high quality
-    "nvenc_balanced":("hevc_nvenc","p4", "26"),   # NVENC H.265 balanced
+    "nvenc_max":    ("hevc_nvenc", "slow",   "19"),  # NVENC H.265 max kwaliteit
+    "nvenc_high":   ("hevc_nvenc", "medium", "23"),  # NVENC H.265 hoge kwaliteit
+    "nvenc_balanced":("hevc_nvenc","fast",   "26"),  # NVENC H.265 gebalanceerd
     "cpu_slow":     ("libx265",   "slow","22"),   # CPU H.265 max quality
     "cpu_medium":   ("libx265",   "medium","24"), # CPU H.265 balanced
     "cpu_fast":     ("libx265",   "fast","26"),   # CPU H.265 fast
-    "h264_nvenc":   ("h264_nvenc","p6", "20"),    # NVENC H.264 high quality
+    "h264_nvenc":   ("h264_nvenc","medium", "20"),  # NVENC H.264 hoge kwaliteit
     "h264_cpu":     ("libx264",   "medium","22"), # CPU H.264 balanced
 }
 
@@ -350,9 +350,10 @@ def run_conversion(job_id: str):
             "ffmpeg", "-y",
             "-i", src,
             "-c:v", effective_codec,
-            "-preset", preset,
-            "-cq", quality,
-            "-b:v", "0",
+            "-preset", preset,        # slow/medium/fast — werkt op alle GPU gen.
+            "-cq", quality,           # kwaliteitsgestuurd, geen bitrate limiet
+            "-b:v", "0",              # pure CQ mode
+            "-spatial-aq", "1",       # adaptieve kwantisatie — werkt op Pascal+
             "-c:a", audio_codec,
             "-c:s", "copy",
             "-progress", "pipe:1",

@@ -1,4 +1,4 @@
-# Shrync v0.03 — H.265 Media Converter
+# Shrync v0.04 — H.265 Media Converter
 
 Zelf-gehoste H.265/HEVC media converter met automatische bibliotheekbewaking.
 **Één image voor CPU én Nvidia GPU** — de container detecteert automatisch wat beschikbaar is.
@@ -113,7 +113,10 @@ services:
 | Tag | Beschrijving |
 |---|---|
 | `latest` | Meest recente versie — altijd CPU + automatische GPU-detectie |
-| `0.03` | Bugfix NVENC encoder parameters (aanbevolen) |
+| `0.04` | Template fix + NVENC preset fix + Dockerfile ENV opgeschoond |
+| `0.03` | Bugfix NVENC parameters (onvolledig) |
+| `0.02` | Eerste bugfix poging |
+| `0.01` | Eerste release |
 | `0.01` | Eerste release |
 
 Er is **geen aparte GPU-tag**. Dezelfde image werkt overal.
