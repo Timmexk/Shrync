@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.09 — entrypoint met automatische GPU-detectie
+# Shrync v0.10 — entrypoint met automatische GPU-detectie
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Geen set -e — we willen zelf foutafhandeling doen, niet vroegtijdig afbreken
@@ -81,8 +81,9 @@ if [ "${GPU_MODE}" = "nvidia" ]; then
     fi
 fi
 
-# ── Stap 4: Config map aanmaken ───────────────────────────────────────────────
+# ── Stap 4: Config map aanmaken en schrijfrechten zekerstellen ───────────────
 mkdir -p /config 2>/dev/null || true
+chmod 755 /config 2>/dev/null || true
 if [ -n "${CACHE_DIR}" ]; then
     mkdir -p "${CACHE_DIR}" 2>/dev/null || true
 fi

@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.09 — Multi-stage build op python:3.12-slim (Debian Bookworm)
+# Shrync v0.10 — Multi-stage build op python:3.12-slim (Debian Bookworm)
 # ══════════════════════════════════════════════════════════════════════════════
 #
 # Waarom python:3.12-slim?
@@ -27,11 +27,11 @@ FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="Shrync"
 LABEL org.opencontainers.image.description="Zelf-gehoste H.265 media converter — automatische GPU-detectie"
-LABEL org.opencontainers.image.version="0.09"
+LABEL org.opencontainers.image.version="0.10"
 LABEL org.opencontainers.image.authors="timmexk"
 LABEL org.opencontainers.image.source="https://github.com/timmexk/Shrync"
 
-ARG SHRYNC_VERSION=0.09
+ARG SHRYNC_VERSION=0.10
 ENV SHRYNC_VERSION=${SHRYNC_VERSION}
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -72,13 +72,9 @@ COPY templates/ ./templates/
 COPY static/ ./static/
 COPY entrypoint.sh ./entrypoint.sh
 
-# ── Non-root gebruiker ────────────────────────────────────────────────────────
-RUN useradd -m -u 1000 -s /bin/bash shrync \
-    && mkdir -p /config /cache /media \
-    && chmod 777 /config /cache /media \
-    && chmod +x /app/entrypoint.sh
-
-USER shrync
+# Mappen aanmaken voor Unraid volume mountpoints
+RUN mkdir -p /config /cache /media \
+    && chmod 755 /app/entrypoint.sh
 
 EXPOSE 8000
 
