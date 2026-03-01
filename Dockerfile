@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.08 — Multi-stage build op python:3.12-slim (Debian Bookworm)
+# Shrync v0.09 — Multi-stage build op python:3.12-slim (Debian Bookworm)
 # ══════════════════════════════════════════════════════════════════════════════
 #
 # Waarom python:3.12-slim?
@@ -27,15 +27,16 @@ FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="Shrync"
 LABEL org.opencontainers.image.description="Zelf-gehoste H.265 media converter — automatische GPU-detectie"
-LABEL org.opencontainers.image.version="0.08"
+LABEL org.opencontainers.image.version="0.09"
 LABEL org.opencontainers.image.authors="timmexk"
 LABEL org.opencontainers.image.source="https://github.com/timmexk/Shrync"
 
-ARG SHRYNC_VERSION=0.08
+ARG SHRYNC_VERSION=0.09
 ENV SHRYNC_VERSION=${SHRYNC_VERSION}
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app/deps
+ENV PATH="/app/deps/bin:${PATH}"
 ENV GPU_MODE=
 ENV CACHE_DIR=
 

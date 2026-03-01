@@ -1,21 +1,24 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.08 — entrypoint met automatische GPU-detectie
+# Shrync v0.09 — entrypoint met automatische GPU-detectie
 # ══════════════════════════════════════════════════════════════════════════════
 
-set -e
+# Geen set -e — we willen zelf foutafhandeling doen, niet vroegtijdig afbreken
 
 echo "┌─────────────────────────────────────────────┐"
 echo "│  Shrync v${SHRYNC_VERSION}  —  H.265 Media Converter  │"
 echo "└─────────────────────────────────────────────┘"
 
-# ── Stap 1: GPU aanwezigheid detecteren ───────────────────────────────────────
+# ── Executables uit deps/bin beschikbaar maken ────────────────────────────────
+# pip install --target plaatst scripts in /app/deps/bin (uvicorn, etc.)
+export PATH="/app/deps/bin:${PATH}"
+
+# ── Stap 1: GPU detecteren ────────────────────────────────────────────────────
 GPU_DETECTED=false
 GPU_NAME="geen"
 
-# Methode A: nvidia-smi
-if command -v nvidia-smi &>/dev/null 2>&1; then
-    if nvidia-smi --query-gpu=name --format=csv,noheader &>/dev/null 2>&1; then
+if command -v nvidia-smi >/dev/null 2>&1; then
+    if nvidia-smi --query-gpu=name --format=csv,noheader >/dev/null 2>&1; then
         GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)
         DRIVER_VER=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1 || echo "onbekend")
         echo "  GPU gedetecteerd   : ${GPU_NAME}"
@@ -24,13 +27,11 @@ if command -v nvidia-smi &>/dev/null 2>&1; then
     fi
 fi
 
-# Methode B: /dev/nvidia0 device node
 if [ "$GPU_DETECTED" = false ] && [ -e /dev/nvidia0 ]; then
     echo "  GPU gedetecteerd via /dev/nvidia0"
     GPU_DETECTED=true
 fi
 
-# Methode C: NVIDIA_VISIBLE_DEVICES runtime variabele
 if [ "$GPU_DETECTED" = false ] && \
    [ -n "${NVIDIA_VISIBLE_DEVICES}" ] && \
    [ "${NVIDIA_VISIBLE_DEVICES}" != "void" ]; then
@@ -59,14 +60,10 @@ fi
 if [ "${GPU_MODE}" = "nvidia" ]; then
     echo "  ffmpeg NVENC check..."
 
-    # Controleer of hevc_nvenc beschikbaar is in de ffmpeg binary
     if ! ffmpeg -hide_banner -encoders 2>/dev/null | grep -q "hevc_nvenc"; then
         echo "  WAARSCHUWING: hevc_nvenc niet beschikbaar — terugvallen op CPU"
         export GPU_MODE=cpu
     else
-        # Test daadwerkelijk of NVENC werkt met een minimale encode
-        # Dit vangt driver-incompatibiliteit op (bijv. driver te oud voor deze ffmpeg build)
-        # Test met voldoende frames (Pascal vereist min. 16) en correcte rc-mode
         NVENC_TEST=$(ffmpeg -hide_banner \
             -f lavfi -i color=c=black:s=128x128:r=25:d=2 \
             -vf format=yuv420p \
@@ -84,18 +81,26 @@ if [ "${GPU_MODE}" = "nvidia" ]; then
     fi
 fi
 
-# ── Stap 4: Samenvatting ──────────────────────────────────────────────────────
+# ── Stap 4: Config map aanmaken ───────────────────────────────────────────────
+mkdir -p /config 2>/dev/null || true
+if [ -n "${CACHE_DIR}" ]; then
+    mkdir -p "${CACHE_DIR}" 2>/dev/null || true
+fi
+
+# ── Stap 5: Samenvatting ──────────────────────────────────────────────────────
 echo ""
 echo "  Modus      : ${GPU_MODE}"
 echo "  GPU        : ${GPU_NAME}"
 echo "  Cache      : ${CACHE_DIR:-(naast bronbestand)}"
 echo "  Config     : /config"
+echo "  uvicorn    : $(which uvicorn 2>/dev/null || echo 'niet gevonden!')"
 echo ""
 echo "  Shrync v${SHRYNC_VERSION} is klaar"
 echo "───────────────────────────────────────────────"
 echo ""
 
-# ── Stap 5: Applicatie starten ────────────────────────────────────────────────
+# ── Stap 6: Applicatie starten ────────────────────────────────────────────────
+cd /app
 exec uvicorn app.main:app \
     --host 0.0.0.0 \
     --port 8000 \
