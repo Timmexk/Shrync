@@ -480,6 +480,7 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="page" id="page-savings">
       <div class="sec-hdr" style="margin-bottom:14px">
         <span class="sec-title" id="lbl-savings-title">Statistieken</span>
+        <button class="btn btn-sm" onclick="resetSavings()" id="lbl-reset-savings">Statistieken resetten</button>
       </div>
       <div class="sav-hero">
         <div class="sav-label" id="sav-lbl-overview">Totaal overzicht</div>
@@ -534,9 +535,7 @@ tr:hover td{background:rgba(255,255,255,.025)}
             </select>
           </div>
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-            <div class="form-label" id="lbl-cache-dir">Cache locatie</div>
-            <div style="font-size:12px;color:var(--text-s);margin-top:4px;font-family:monospace" id="cache-dir-display">—</div>
-            <div style="font-size:10px;color:var(--text-t);margin-top:4px">Stel in via de CACHE_DIR omgevingsvariabele in Docker.</div>
+
           </div>
         </div>
       </div>
@@ -630,6 +629,8 @@ const T = {
              scanStarted:'Scan started', scanAllStarted:'Scanning all libraries',
              histCleared:'History cleared', confirmDeleteLib:'Delete library? Files will not be deleted.',
              confirmClearHistory:'Clear all history?', noHistory:'No history yet',
+             confirmResetSavings:'Reset all statistics? This also clears conversion history.',
+             savingsReset:'Statistics reset',
              error:'Error', waiting:'Waiting', done:'Done', scanning:'Scanning…',
              scanDone:'Scan complete', scanError:'Scan error', scanned:'Scanned',
              toAdd:'To add', alreadyH265:'Already H.265', skipped:'Skipped', added:'Added',
@@ -684,6 +685,8 @@ const T = {
              scanStarted:'Scan gestart', scanAllStarted:'Alle bibliotheken worden gescand',
              histCleared:'Geschiedenis gewist', confirmDeleteLib:'Bibliotheek verwijderen? Bestanden blijven bewaard.',
              confirmClearHistory:'Volledige geschiedenis wissen?', noHistory:'Geen geschiedenis',
+             confirmResetSavings:'Alle statistieken resetten? Dit wist ook de conversiegeschiedenis.',
+             savingsReset:'Statistieken gereset',
              error:'Fout', waiting:'Wachten', done:'Klaar', scanning:'Bezig met scannen…',
              scanDone:'Scan voltooid', scanError:'Scanfout', scanned:'Gescand',
              toAdd:'Toe te voegen', alreadyH265:'Al H.265', skipped:'Overgeslagen', added:'Toegevoegd',
@@ -1289,6 +1292,14 @@ async function clearHistory() {
   toast(t('misc.histCleared'), 'success');
 }
 
+async function resetSavings() {
+  if (!confirm(t('misc.confirmResetSavings'))) return;
+  await fetch('/api/history', { method:'DELETE' });
+  loadSavings();
+  loadStats();
+  toast(t('misc.savingsReset'), 'success');
+}
+
 async function retryHistory(hid) {
   try {
     const r = await fetch('/api/history/' + hid + '/retry', { method: 'POST' });
@@ -1422,9 +1433,6 @@ async function loadSettings() {
     renderProfiles(profile);
     const audio = document.getElementById('global-audio');
     if (audio) audio.value = s.audio_codec || 'copy';
-    // Cache dir info tonen
-    const cacheLbl = document.getElementById('cache-dir-display');
-    if (cacheLbl) cacheLbl.textContent = cfg.cache_dir || '(naast bronbestand)';
     // Language buttons
     document.getElementById('lang-en').classList.toggle('active', lang === 'en');
     document.getElementById('lang-nl').classList.toggle('active', lang === 'nl');

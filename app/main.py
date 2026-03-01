@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.15")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.16")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -30,12 +30,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 DB_PATH = "/config/shrync.db"
-_CACHE_DIR_ENV = os.environ.get("CACHE_DIR", "").strip()
-# Als CACHE_DIR leeg is: gebruik de map van het bronbestand (ingesteld per conversie)
-CACHE_DIR = _CACHE_DIR_ENV if _CACHE_DIR_ENV else ""
 os.makedirs("/config", exist_ok=True)
-if CACHE_DIR:
-    os.makedirs(CACHE_DIR, exist_ok=True)
 
 # ── Database ──────────────────────────────────────────────────────────────────
 def get_db():
@@ -105,11 +100,10 @@ def cleanup_stale_conversions():
     conn = get_db()
     stale_jobs = conn.execute("SELECT * FROM queue WHERE status='processing'").fetchall()
     for job in stale_jobs:
-        src_name = Path(job["file_path"]).stem + "_shrync_" + job["id"][:8] + ".mkv"
-        # Gebruik dezelfde logica als run_conversion
-        _cache = CACHE_DIR if CACHE_DIR else str(Path(job["file_path"]).parent)
-        tmp_file = os.path.join(_cache, src_name)
-        if os.path.exists(tmp_file):
+        # Tijdelijk bestand altijd naast het bronbestand — zoek op shryncing-*.mkv
+        import glob
+        tmp_dir = str(Path(job["file_path"]).parent)
+        for tmp_file in glob.glob(os.path.join(tmp_dir, "shryncing-*.mkv")):
             try:
                 os.remove(tmp_file)
                 logger.info(f"Opruimen: tijdelijk bestand verwijderd: {tmp_file}")
@@ -246,11 +240,8 @@ def scan_library(library_id: str):
             if ext not in VIDEO_EXTENSIONS:
                 continue
             fpath = os.path.join(root, fname)
-            # Sla tijdelijke Shrync-bestanden over (herkenbaar aan _shrync_ in naam)
-            if "_shrync_" in fname:
-                continue
-            # Sla bestanden in de cache map over (als geconfigureerd)
-            if CACHE_DIR and CACHE_DIR in fpath:
+            # Sla tijdelijke Shrync-bestanden over (shryncing-*.mkv)
+            if fname.startswith("shryncing-"):
                 continue
             scanned += 1
             scan_status[library_id]["scanned"] = scanned
@@ -325,17 +316,10 @@ def run_conversion(job_id: str):
         conn.close()
         return
 
-    # Tijdelijk bestand in de cache map (niet naast het origineel)
-    src_name = Path(src).stem + "_shrync_" + job_id[:8] + ".mkv"
-    # Als geen aparte cache map: gebruik map van bronbestand
-    _cache = CACHE_DIR if CACHE_DIR else str(Path(src).parent)
-    # Zorg dat de cache map bestaat — kan ontbreken na herstart of mount issue
-    try:
-        os.makedirs(_cache, exist_ok=True)
-    except Exception as e:
-        logger.warning(f"Cache map aanmaken mislukt ({_cache}): {e} — val terug op map van bronbestand")
-        _cache = str(Path(src).parent)
-    tmp_out = os.path.join(_cache, src_name)
+    # Tijdelijk bestand altijd naast het bronbestand — zelfde map, willekeurige naam
+    _src_dir = str(Path(src).parent)
+    _rand    = str(uuid.uuid4()).replace("-", "")[:12]
+    tmp_out  = os.path.join(_src_dir, f"shryncing-{_rand}.mkv")
     logger.info(f"Tijdelijk bestand: {tmp_out}")
     # Lees conversie-instellingen uit globale settings (niet uit bibliotheek)
     profile = get_global_setting('conversion_profile', 'nvenc_max')
@@ -459,7 +443,7 @@ def run_conversion(job_id: str):
         new_size = os.path.getsize(tmp_out)
         try:
             os.remove(src)
-            shutil.move(tmp_out, src)
+            os.rename(tmp_out, src)
         except Exception as e:
             if os.path.exists(tmp_out):
                 try: os.remove(tmp_out)
@@ -522,9 +506,7 @@ class LibraryWatcher(FileSystemEventHandler):
         if Path(fpath).suffix.lower() not in VIDEO_EXTENSIONS:
             return
         # Bestanden in de cache map negeren
-        if "_shrync_" in Path(fpath).name:
-            return
-        if CACHE_DIR and CACHE_DIR in fpath:
+        if Path(fpath).name.startswith("shryncing-"):
             return
         with self._lock:
             self._pending[fpath] = time.time()
@@ -593,17 +575,47 @@ def start_watchers():
         _observers.append(observer)
         logger.info(f"Polling watcher gestart: {lib['path']}")
 
-# ── Worker pool ───────────────────────────────────────────────────────────────
-def worker_loop(slot_name: str):
-    logger.info(f"{slot_name} gereed.")
-    while worker_running:
+# ── Dynamische worker dispatcher ─────────────────────────────────────────────
+# Geen vaste worker-threads — een dispatcher controleert de wachtrij en start
+# per job een losse thread, maximaal get_max_workers() gelijktijdig.
+# Threads leven alleen zolang de conversie duurt en stoppen daarna automatisch.
+
+_dispatcher_running = False
+_job_semaphore = threading.Semaphore(1)  # wordt bijgewerkt via update_semaphore()
+_semaphore_lock = threading.Lock()
+
+def update_semaphore():
+    """Pas semaphore aan op de huidige max_workers instelling."""
+    global _job_semaphore
+    n = get_max_workers()
+    with _semaphore_lock:
+        _job_semaphore = threading.Semaphore(n)
+    logger.info(f"Worker limiet ingesteld op {n}")
+
+def run_job_thread(job_id: str):
+    """Voert één conversie uit en geeft de semaphore daarna vrij."""
+    try:
+        run_conversion(job_id)
+    finally:
+        _job_semaphore.release()
+        logger.debug(f"Job {job_id[:8]} klaar — slot vrijgegeven")
+
+def dispatcher_loop():
+    """
+    Centrale dispatcher — draait als één achtergrond-thread.
+    Polt de wachtrij en start per beschikbare job een losse thread,
+    begrensd door de semaphore (= max_workers).
+    """
+    logger.info("Dispatcher gestart.")
+    while _dispatcher_running:
         if workers_paused:
             time.sleep(1)
             continue
         try:
-            conn2 = get_db()
             with active_jobs_lock:
                 active_ids = [v["id"] for v in active_jobs.values()]
+
+            conn2 = get_db()
             if active_ids:
                 placeholders = ",".join("?" * len(active_ids))
                 job = conn2.execute(
@@ -615,35 +627,50 @@ def worker_loop(slot_name: str):
                     "SELECT id FROM queue WHERE status='pending' ORDER BY added_at ASC LIMIT 1"
                 ).fetchone()
             conn2.close()
+
             if job:
-                run_conversion(job["id"])
+                # Probeer een slot te bemachtigen (non-blocking)
+                acquired = _job_semaphore.acquire(blocking=False)
+                if acquired:
+                    logger.info(f"Dispatcher: start conversie {job['id'][:8]}")
+                    t = threading.Thread(
+                        target=run_job_thread,
+                        args=(job["id"],),
+                        name=f"Conversie-{job['id'][:8]}",
+                        daemon=True
+                    )
+                    t.start()
+                else:
+                    # Alle slots bezet — wacht tot er een vrijkomt
+                    time.sleep(1)
             else:
+                # Geen werk — rustig wachten
                 time.sleep(3)
         except Exception as e:
-            logger.error(f"{slot_name} fout: {e}")
+            logger.error(f"Dispatcher fout: {e}")
             time.sleep(5)
+    logger.info("Dispatcher gestopt.")
 
 
 def start_workers():
-    global worker_threads, worker_running
-    # Stop bestaande workers
+    global _dispatcher_running, worker_threads, worker_running
+    # Stop eventuele oude dispatcher
+    _dispatcher_running = False
     worker_running = False
     for t in worker_threads:
         t.join(timeout=2)
     worker_threads = []
-    # Start nieuwe workers met opgeslagen instelling
+
+    # Semaphore instellen op huidige max_workers
+    update_semaphore()
+
+    # Start één dispatcher thread
+    _dispatcher_running = True
     worker_running = True
-    n = get_max_workers()
-    logger.info(f"Starten met {n} worker(s)...")
-    for i in range(n):
-        t = threading.Thread(
-            target=worker_loop,
-            args=(f"Worker-{i+1}",),
-            name=f"Worker-{i+1}",
-            daemon=True
-        )
-        t.start()
-        worker_threads.append(t)
+    t = threading.Thread(target=dispatcher_loop, name="Dispatcher", daemon=True)
+    t.start()
+    worker_threads = [t]
+    logger.info(f"Dispatcher actief (max {get_max_workers()} gelijktijdige conversie(s))")
 
 
 def watcher_monitor():
@@ -905,7 +932,8 @@ def api_save_settings(data: dict):
     conn.commit()
     conn.close()
     if "max_workers" in data:
-        threading.Thread(target=start_workers, daemon=True).start()
+        # Semaphore bijwerken — loopt direct door zonder workers te herstarten
+        threading.Thread(target=update_semaphore, daemon=True).start()
     return {"ok": True}
 
 @app.post("/api/workers/pause")
@@ -1008,7 +1036,7 @@ def api_diagnostics():
     else:
         media_root["error"] = "/media bestaat niet"
 
-    return {"libraries": results, "media_root": media_root, "cache_dir": CACHE_DIR}
+    return {"libraries": results, "media_root": media_root}
 
 @app.get("/api/config")
 def api_config():
@@ -1019,7 +1047,6 @@ def api_config():
     return {
         "gpu_available": gpu_available,
         "gpu_mode": gpu_mode,
-        "cache_dir": CACHE_DIR or "(naast bronbestand)",
         "version": SHRYNC_VERSION,
     }
 
