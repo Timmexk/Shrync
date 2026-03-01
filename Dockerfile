@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.11 — Multi-stage build op python:3.12-slim (Debian Bookworm)
+# Shrync v0.12 — Multi-stage build op python:3.12-slim (Debian Bookworm)
 # ══════════════════════════════════════════════════════════════════════════════
 #
 # Waarom python:3.12-slim?
@@ -27,11 +27,11 @@ FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="Shrync"
 LABEL org.opencontainers.image.description="Zelf-gehoste H.265 media converter — automatische GPU-detectie"
-LABEL org.opencontainers.image.version="0.11"
+LABEL org.opencontainers.image.version="0.12"
 LABEL org.opencontainers.image.authors="timmexk"
 LABEL org.opencontainers.image.source="https://github.com/timmexk/Shrync"
 
-ARG SHRYNC_VERSION=0.11
+ARG SHRYNC_VERSION=0.12
 ENV SHRYNC_VERSION=${SHRYNC_VERSION}
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -48,7 +48,8 @@ RUN apt-get update \
         ca-certificates \
         curl \
         xz-utils \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --upgrade pip
 
 # ── ffmpeg statische build (GPL, NVENC + libx265 + libx264) ──────────────────
 # Statische binary — geen extra libraries nodig, werkt op elke Linux distro.
