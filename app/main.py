@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.12")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.14")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -101,12 +101,14 @@ init_db()
 
 # ── Cleanup stale conversions on startup ──────────────────────────────────────
 def cleanup_stale_conversions():
-    """Ruim loshangende .converting.mkv bestanden op en zet taken terug naar pending."""
+    """Ruim loshangende tijdelijke bestanden op en zet taken terug naar pending."""
     conn = get_db()
     stale_jobs = conn.execute("SELECT * FROM queue WHERE status='processing'").fetchall()
     for job in stale_jobs:
-        src_name = Path(job["file_path"]).stem + "_" + job["id"][:8] + ".mkv"
-        tmp_file = os.path.join(CACHE_DIR, src_name)
+        src_name = Path(job["file_path"]).stem + "_shrync_" + job["id"][:8] + ".mkv"
+        # Gebruik dezelfde logica als run_conversion
+        _cache = CACHE_DIR if CACHE_DIR else str(Path(job["file_path"]).parent)
+        tmp_file = os.path.join(_cache, src_name)
         if os.path.exists(tmp_file):
             try:
                 os.remove(tmp_file)
@@ -327,7 +329,14 @@ def run_conversion(job_id: str):
     src_name = Path(src).stem + "_shrync_" + job_id[:8] + ".mkv"
     # Als geen aparte cache map: gebruik map van bronbestand
     _cache = CACHE_DIR if CACHE_DIR else str(Path(src).parent)
+    # Zorg dat de cache map bestaat — kan ontbreken na herstart of mount issue
+    try:
+        os.makedirs(_cache, exist_ok=True)
+    except Exception as e:
+        logger.warning(f"Cache map aanmaken mislukt ({_cache}): {e} — val terug op map van bronbestand")
+        _cache = str(Path(src).parent)
     tmp_out = os.path.join(_cache, src_name)
+    logger.info(f"Tijdelijk bestand: {tmp_out}")
     # Lees conversie-instellingen uit globale settings (niet uit bibliotheek)
     profile = get_global_setting('conversion_profile', 'nvenc_max')
     video_codec, preset, quality = profile_to_ffmpeg(profile)

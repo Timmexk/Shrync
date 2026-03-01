@@ -577,7 +577,7 @@ tr:hover td{background:rgba(255,255,255,.025)}
 </div><!-- end main -->
 </div><!-- end app -->
 
-<!-- Modal: Library — name, path, interval only -->
+<!-- Modal: Library — naam en pad -->
 <div class="modal-overlay" id="lib-modal">
   <div class="modal">
     <div class="modal-title" id="lib-modal-title">Bibliotheek toevoegen</div>
@@ -589,10 +589,6 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="form-group">
       <label class="form-label" id="lbl-lib-path">Pad (map)</label>
       <input class="form-input" id="lib-path" placeholder="/media/films">
-    </div>
-    <div class="form-group">
-      <label class="form-label" id="lbl-lib-interval">Scaninterval (seconden)</label>
-      <input class="form-input" id="lib-interval" type="number" value="3600" min="60">
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeLibModal()" id="lbl-modal-cancel">Annuleren</button>
@@ -626,7 +622,7 @@ const T = {
              workerDesc:{ 1:'Standard — one conversion at a time', 2:'Two conversions — higher load', 3:'Maximum — requires nvidia-patch' },
              nvencWarn:'⚠ Nvidia GPUs have a default limit of 3 concurrent NVENC sessions. Install nvidia-patch to use >1 worker with NVENC.' },
     lib:   { add:'Add library', edit:'Edit library', addBtn:'Add library', name:'Name', path:'Path (folder)',
-             interval:'Scan interval (seconds)', cancel:'Cancel', save:'Save',
+             cancel:'Cancel', save:'Save',
              scan:'Scan', edit:'Edit', delete:'Delete', lastScan:'Last scan', neverScanned:'Never scanned' },
     btn:   { pause:'Pause', resume:'Resume', scanAll:'Scan all' },
     misc:  { activeConv:'Active conversion', jobs:'jobs', jobRemoved:'Job removed',
@@ -680,7 +676,7 @@ const T = {
              workerDesc:{ 1:'Standaard — één conversie tegelijk', 2:'Twee tegelijk — hogere belasting', 3:'Maximaal — vereist nvidia-patch' },
              nvencWarn:"⚠ Nvidia GPU's hebben standaard een limiet van 3 NVENC-sessies. Installeer de nvidia-patch voor meer dan 1 worker." },
     lib:   { add:'Bibliotheek toevoegen', edit:'Bibliotheek bewerken', addBtn:'Bibliotheek toevoegen',
-             name:'Naam', path:'Pad (map)', interval:'Scaninterval (seconden)', cancel:'Annuleren', save:'Opslaan',
+             name:'Naam', path:'Pad (map)', cancel:'Annuleren', save:'Opslaan',
              scan:'Scannen', edit:'Bewerken', delete:'Verwijderen', lastScan:'Laatste scan', neverScanned:'Nog nooit gescand' },
     btn:   { pause:'Pauzeren', resume:'Hervatten', scanAll:'Alles scannen' },
     misc:  { activeConv:'Actieve conversie', jobs:'taken', jobRemoved:'Taak verwijderd',
@@ -820,7 +816,6 @@ function applyLanguage() {
   setTexts({
     'lbl-lib-name':      'lib.name',
     'lbl-lib-path':      'lib.path',
-    'lbl-lib-interval':  'lib.interval',
     'lbl-modal-cancel':  'lib.cancel',
     'lbl-modal-save':    'lib.save',
   });
@@ -1092,7 +1087,6 @@ async function loadLibraries() {
             <label class="toggle"><input type="checkbox" ${l.enabled ? 'checked' : ''} onchange="toggleLib('${l.id}', this.checked)"><span class="toggle-slider"></span></label>
           </div>
           <div class="lib-meta">
-            <span class="lib-tag">⟳ ${formatInterval(l.scan_interval)}</span>
             ${l.last_scan ? `<span class="lib-tag lib-lastscan-${l.id}">${t('lib.lastScan')}: ${formatDate(l.last_scan)}</span>` : `<span class="lib-tag lib-lastscan-${l.id}" style="color:var(--text-t)">${t('lib.neverScanned')}</span>`}
           </div>
           <div class="lib-scan-status" data-lib-id="${l.id}">${scanStatusHtml(scan)}</div>
@@ -1143,11 +1137,9 @@ function openAddLib() {
   document.getElementById('lib-edit-id').value   = '';
   document.getElementById('lib-name').value      = '';
   document.getElementById('lib-path').value      = '';
-  document.getElementById('lib-interval').value  = '3600';
   // Apply current language to modal labels
   document.getElementById('lbl-lib-name').textContent     = t('lib.name');
   document.getElementById('lbl-lib-path').textContent     = t('lib.path');
-  document.getElementById('lbl-lib-interval').textContent = t('lib.interval');
   document.getElementById('lbl-modal-cancel').textContent = t('lib.cancel');
   document.getElementById('lbl-modal-save').textContent   = t('lib.save');
   document.getElementById('lib-modal').classList.add('open');
@@ -1158,10 +1150,8 @@ function editLib(l) {
   document.getElementById('lib-edit-id').value  = l.id;
   document.getElementById('lib-name').value     = l.name;
   document.getElementById('lib-path').value     = l.path;
-  document.getElementById('lib-interval').value = l.scan_interval;
   document.getElementById('lbl-lib-name').textContent     = t('lib.name');
   document.getElementById('lbl-lib-path').textContent     = t('lib.path');
-  document.getElementById('lbl-lib-interval').textContent = t('lib.interval');
   document.getElementById('lbl-modal-cancel').textContent = t('lib.cancel');
   document.getElementById('lbl-modal-save').textContent   = t('lib.save');
   document.getElementById('lib-modal').classList.add('open');
@@ -1173,9 +1163,8 @@ async function saveLibrary() {
   const id   = document.getElementById('lib-edit-id').value;
   const name = document.getElementById('lib-name').value;
   const path = document.getElementById('lib-path').value;
-  const intv = parseInt(document.getElementById('lib-interval').value) || 3600;
   if (!name || !path) { toast(t('misc.nameRequired'), 'error'); return; }
-  const data = { name, path, scan_interval: intv };
+  const data = { name, path };
   if (id) {
     await fetch('/api/libraries/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...data, enabled: true}) });
     toast(t('misc.libUpdated'), 'success');
@@ -1549,11 +1538,6 @@ function formatDate(s) {
   if (!s) return '—';
   try { return new Date(s).toLocaleString('nl-NL', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
   catch { return s; }
-}
-function formatInterval(s) {
-  if (s >= 86400) return Math.round(s/86400) + 'd';
-  if (s >= 3600)  return Math.round(s/3600) + t('misc.hour');
-  return Math.round(s/60) + 'm';
 }
 function formatDuration(s) {
   const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
