@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.16")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.17")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -514,21 +514,35 @@ class LibraryWatcher(FileSystemEventHandler):
         logger.info(f"Watcher: nieuw bestand gedetecteerd: {fpath}")
 
     def _delayed_queue(self, fpath: str):
-        time.sleep(10)
+        # Wacht tot het bestand stabiel is (klaar met kopiëren)
+        # Maximaal 30 minuten wachten, check elke 15 seconden
+        max_wait = 30 * 60
+        waited = 0
+        time.sleep(10)  # eerste wacht
+        while waited < max_wait:
+            with self._lock:
+                if fpath not in self._pending:
+                    return  # geannuleerd door een nieuwer event
+            try:
+                size1 = os.path.getsize(fpath)
+                time.sleep(15)
+                size2 = os.path.getsize(fpath)
+                if size1 == size2 and size1 > 0:
+                    break  # bestand is stabiel
+                waited += 15
+                logger.debug(f"Watcher: bestand nog bezig ({size1} → {size2}): {fpath}")
+            except Exception as e:
+                logger.warning(f"Watcher: bestand niet leesbaar: {fpath} — {e}")
+                return
+        else:
+            logger.warning(f"Watcher: timeout wachten op stabiel bestand: {fpath}")
+            return
+
         with self._lock:
             if fpath not in self._pending:
                 return
             del self._pending[fpath]
-        # Check file is stable (wacht tot bestand klaar is met kopiëren)
-        try:
-            size1 = os.path.getsize(fpath)
-            time.sleep(10)
-            size2 = os.path.getsize(fpath)
-            if size1 != size2:
-                logger.info(f"Watcher: bestand nog bezig met kopiëren: {fpath}")
-                return
-        except:
-            return
+
         conn = get_db()
         existing = conn.execute(
             "SELECT id FROM queue WHERE file_path=? AND status IN ('pending','processing')", (fpath,)
@@ -612,15 +626,25 @@ def dispatcher_loop():
             time.sleep(1)
             continue
         try:
+            # Haal alle job-ids op die al actief zijn (in geheugen én in DB)
             with active_jobs_lock:
                 active_ids = [v["id"] for v in active_jobs.values()]
 
             conn2 = get_db()
-            if active_ids:
-                placeholders = ",".join("?" * len(active_ids))
+            # Sluit zowel 'processing' (DB) als actieve in-memory jobs uit
+            skip_ids = active_ids[:]
+            processing_in_db = [r["id"] for r in conn2.execute(
+                "SELECT id FROM queue WHERE status='processing'"
+            ).fetchall()]
+            for pid in processing_in_db:
+                if pid not in skip_ids:
+                    skip_ids.append(pid)
+
+            if skip_ids:
+                placeholders = ",".join("?" * len(skip_ids))
                 job = conn2.execute(
                     f"SELECT id FROM queue WHERE status='pending' AND id NOT IN ({placeholders}) "
-                    f"ORDER BY added_at ASC LIMIT 1", active_ids
+                    f"ORDER BY added_at ASC LIMIT 1", skip_ids
                 ).fetchone()
             else:
                 job = conn2.execute(
@@ -632,6 +656,15 @@ def dispatcher_loop():
                 # Probeer een slot te bemachtigen (non-blocking)
                 acquired = _job_semaphore.acquire(blocking=False)
                 if acquired:
+                    # Zet status meteen op 'processing' in DB zodat de dispatcher
+                    # dit item niet nogmaals oppakt vóór de thread gestart is
+                    conn3 = get_db()
+                    conn3.execute(
+                        "UPDATE queue SET status='processing' WHERE id=? AND status='pending'",
+                        (job["id"],)
+                    )
+                    conn3.commit()
+                    conn3.close()
                     logger.info(f"Dispatcher: start conversie {job['id'][:8]}")
                     t = threading.Thread(
                         target=run_job_thread,

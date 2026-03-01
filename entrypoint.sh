@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.16 — entrypoint met automatische GPU-detectie
+# Shrync v0.17 — entrypoint met automatische GPU-detectie
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Geen set -e — we willen zelf foutafhandeling doen, niet vroegtijdig afbreken
