@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.17 — entrypoint met automatische GPU-detectie
+# Shrync v0.18 — entrypoint met automatische GPU-detectie
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Geen set -e — we willen zelf foutafhandeling doen, niet vroegtijdig afbreken
@@ -67,7 +67,7 @@ if [ "${GPU_MODE}" = "nvidia" ]; then
         NVENC_TEST=$(ffmpeg -hide_banner \
             -f lavfi -i color=c=black:s=128x128:r=25:d=2 \
             -vf format=yuv420p \
-            -c:v hevc_nvenc -preset fast -rc vbr -cq 28 -b:v 0 \
+            -c:v hevc_nvenc -preset p4 -rc vbr -cq 28 -qmin 28 -qmax 28 -b:v 0 -maxrate 0 \
             -f null /dev/null 2>&1 || true)
 
         if echo "$NVENC_TEST" | grep -qE "No capable devices|Cannot load|not supported|Operation not permitted|no decoder|No such"; then

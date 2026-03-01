@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.17")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.18")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -161,21 +161,76 @@ def get_max_workers() -> int:
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".m4v", ".ts", ".wmv", ".flv"}
 
 # ── Conversion profiles ───────────────────────────────────────────────────────
-# profile_id -> (video_codec, preset, crf/cq)
+# profile_id -> (video_codec, nvenc_preset_or_cpu_preset, cq_or_crf)
+# Voor NVENC: preset = p4/p5/p6/p7 (niet slow/medium/fast)
+# Voor CPU:   preset = slow/medium/fast + crf
 PROFILES = {
-    "nvenc_max":    ("hevc_nvenc", "slow",   "19"),  # NVENC H.265 max kwaliteit
-    "nvenc_high":   ("hevc_nvenc", "medium", "23"),  # NVENC H.265 hoge kwaliteit
-    "nvenc_balanced":("hevc_nvenc","fast",   "26"),  # NVENC H.265 gebalanceerd
-    "cpu_slow":     ("libx265",   "slow","22"),   # CPU H.265 max quality
-    "cpu_medium":   ("libx265",   "medium","24"), # CPU H.265 balanced
-    "cpu_fast":     ("libx265",   "fast","26"),   # CPU H.265 fast
-    "h264_nvenc":   ("h264_nvenc","medium", "20"),  # NVENC H.264 hoge kwaliteit
-    "h264_cpu":     ("libx264",   "medium","22"), # CPU H.264 balanced
+    "nvenc_max":      ("hevc_nvenc", "p7", "19"),  # NVENC H.265 — max kwaliteit (traagst)
+    "nvenc_high":     ("hevc_nvenc", "p5", "22"),  # NVENC H.265 — hoge kwaliteit
+    "nvenc_balanced": ("hevc_nvenc", "p4", "26"),  # NVENC H.265 — gebalanceerd (snelst)
+    "cpu_slow":       ("libx265",    "slow",   "20"),  # CPU H.265 — max kwaliteit
+    "cpu_medium":     ("libx265",    "medium", "23"),  # CPU H.265 — gebalanceerd
+    "cpu_fast":       ("libx265",    "fast",   "26"),  # CPU H.265 — snel
+    "h264_nvenc":     ("h264_nvenc", "p5",     "20"),  # NVENC H.264 — hoge kwaliteit
+    "h264_cpu":       ("libx264",    "medium", "22"),  # CPU H.264 — gebalanceerd
 }
 
 def profile_to_ffmpeg(profile_id: str):
     """Returns (video_codec, preset, quality_str) for a given profile."""
     return PROFILES.get(profile_id, PROFILES["nvenc_max"])
+
+def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec):
+    """
+    Bouw een correcte NVENC ffmpeg command.
+
+    Sleutelparameters voor werkende kwaliteitscontrole op Pascal+:
+    - rc vbr         : variable bitrate — vereist voor CQ modus
+    - cq             : doelkwaliteit (lager = beter, 0 = lossless)
+    - qmin/qmax      : MOET gelijk zijn aan cq, anders negeert NVENC de cq waarde
+    - b:v 0          : geen bitrate limiet — laat NVENC vrij schalen
+    - maxrate 0      : geen maximale bitrate
+    - multipass 0    : snellere enkelvoudige pass (2 voor max kwaliteit maar langzamer)
+    - temporal-aq 1  : temporele adaptieve kwantisatie — betere kwaliteit per frame
+    - rc-lookahead   : vooruitkijken voor betere bitrate verdeling
+    """
+    return [
+        "ffmpeg", "-y",
+        "-i", src,
+        "-c:v", codec,
+        "-preset", preset,          # p4=medium, p5=slow, p6=slower, p7=slowest
+        "-rc", "vbr",               # VBR — enige modus die CQ correct ondersteunt
+        "-cq", cq,                  # doelkwaliteit
+        "-qmin", cq,                # KRITIEK: zonder dit negeert NVENC cq
+        "-qmax", cq,                # KRITIEK: zonder dit negeert NVENC cq
+        "-b:v", "0",                # geen bitrate limiet
+        "-maxrate", "0",            # geen maximale bitrate cap
+        "-rc-lookahead", "32",      # vooruitkijken — betere bitrate verdeling
+        "-temporal-aq", "1",        # temporele AQ — minder ruis in bewegende scènes
+        "-multipass", "0",          # 0=uit, 1=qres, 2=fullres (2 = langzamer maar beter)
+        "-c:a", audio_codec,
+        "-c:s", "copy",
+        "-max_muxing_queue_size", "4096",
+        "-progress", "pipe:1",
+        "-nostats",
+        tmp_out
+    ]
+
+def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec):
+    """Bouw een CPU ffmpeg command (libx265/libx264)."""
+    return [
+        "ffmpeg", "-y",
+        "-i", src,
+        "-c:v", codec,
+        "-preset", preset,
+        "-crf", crf,
+        "-c:a", audio_codec,
+        "-c:s", "copy",
+        "-max_muxing_queue_size", "4096",
+        "-progress", "pipe:1",
+        "-nostats",
+        tmp_out
+    ]
+
 
 def needs_conversion(file_path: str, target_codec: str) -> bool:
     try:
@@ -348,34 +403,9 @@ def run_conversion(job_id: str):
         logger.warning(f"GPU_MODE is niet 'nvidia' — valt terug op CPU codec: {effective_codec}")
 
     if is_nvenc:
-        cmd = [
-            "ffmpeg", "-y",
-            "-i", src,
-            "-c:v", effective_codec,
-            "-preset", preset,        # slow/medium/fast — werkt op alle GPU gen.
-            "-rc", "vbr",             # VBR mode — vereist voor -cq op Pascal+
-            "-cq", quality,           # kwaliteitsgestuurd
-            "-b:v", "0",              # geen bitrate limiet
-            "-spatial-aq", "1",       # adaptieve kwantisatie — Pascal+
-            "-c:a", audio_codec,
-            "-c:s", "copy",
-            "-progress", "pipe:1",
-            "-nostats",
-            tmp_out
-        ]
+        cmd = build_nvenc_cmd(src, tmp_out, effective_codec, preset, quality, audio_codec)
     else:
-        cmd = [
-            "ffmpeg", "-y",
-            "-i", src,
-            "-c:v", effective_codec,
-            "-preset", preset,
-            "-crf", quality,
-            "-c:a", audio_codec,
-            "-c:s", "copy",
-            "-progress", "pipe:1",
-            "-nostats",
-            tmp_out
-        ]
+        cmd = build_cpu_cmd(src, tmp_out, effective_codec, preset, quality, audio_codec)
 
     original_size = os.path.getsize(src)
     conn.execute("UPDATE queue SET status='processing', started_at=?, original_size=? WHERE id=?",
