@@ -1238,8 +1238,14 @@ async function loadHistory(page = 1) {
           <td><span class="expand-icon">▶</span><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
           <td style="font-size:11px;color:var(--muted)">${h.library_name||'—'}</td>
           <td>${saved > 0 ? `<span class="size-saved">−${formatBytes(saved)} (${pct}%)</span>` : '—'}</td>
-          <td>${h.status === 'success' ? '<span class="badge badge-success">✓ OK</span>' : `<span class="badge badge-error">✕ ${t('misc.error')}</span>`}</td>
-          <td style="font-size:10px;color:var(--muted)">${formatDate(h.finished_at)}</td>
+          <td>${h.status === 'success'
+            ? '<span class="badge badge-success">✓ OK</span>'
+            : `<span class="badge badge-error">✕ ${t('misc.error')}</span>`}
+          </td>
+          <td style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px">
+            ${formatDate(h.finished_at)}
+            ${h.status === 'error' ? `<button class="btn btn-sm" style="padding:2px 8px;font-size:10px;color:var(--orange);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)" onclick="event.stopPropagation();retryHistory('${h.id}')" title="Opnieuw proberen">↺</button>` : ''}
+          </td>
         </tr>
         <tr class="history-detail-row" id="${rid}">
           <td colspan="5">
@@ -1292,6 +1298,21 @@ async function clearHistory() {
   await fetch('/api/history', { method:'DELETE' });
   loadHistory();
   toast(t('misc.histCleared'), 'success');
+}
+
+async function retryHistory(hid) {
+  try {
+    const r = await fetch('/api/history/' + hid + '/retry', { method: 'POST' });
+    if (r.ok) {
+      toast('↺ Opnieuw toegevoegd aan wachtrij', 'success');
+      loadHistory();
+    } else {
+      const e = await r.json();
+      toast('Fout: ' + (e.detail || 'onbekend'), 'error');
+    }
+  } catch(e) {
+    toast('Verbindingsfout', 'error');
+  }
 }
 
 // ── Statistics ─────────────────────────────────────────────────────────────────

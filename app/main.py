@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.10")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.11")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -140,7 +140,6 @@ _observers = []
 class LibraryCreate(BaseModel):
     name: str
     path: str
-    scan_interval: int = 3600
 
 class LibraryUpdate(LibraryCreate):
     enabled: Optional[bool] = True
@@ -271,6 +270,15 @@ def scan_library(library_id: str):
                 skipped += 1
                 scan_status[library_id]["skipped"] = skipped
                 continue
+
+            # Mislukte conversie: verwijder oude foutmelding en voeg opnieuw toe
+            failed = conn.execute(
+                "SELECT id FROM history WHERE file_path=? AND status='error'", (fpath,)
+            ).fetchone()
+            if failed:
+                conn.execute("DELETE FROM history WHERE file_path=? AND status='error'", (fpath,))
+                conn.commit()
+                logger.info(f"Scan: mislukte conversie opnieuw toegevoegd: {fpath}")
 
             profile_id = get_global_setting('conversion_profile', 'nvenc_max')
             global_codec, _, _ = profile_to_ffmpeg(profile_id)
@@ -780,8 +788,8 @@ def api_create_library(lib: LibraryCreate):
     lid = str(uuid.uuid4())
     conn = get_db()
     conn.execute(
-        "INSERT INTO libraries (id,name,path,scan_interval) VALUES (?,?,?,?)",
-        (lid, lib.name, lib.path, lib.scan_interval)
+        "INSERT INTO libraries (id,name,path) VALUES (?,?,?)",
+        (lid, lib.name, lib.path)
     )
     conn.commit()
     conn.close()
@@ -793,8 +801,8 @@ def api_create_library(lib: LibraryCreate):
 def api_update_library(lid: str, lib: LibraryUpdate):
     conn = get_db()
     conn.execute(
-        "UPDATE libraries SET name=?,path=?,scan_interval=?,enabled=? WHERE id=?",
-        (lib.name, lib.path, lib.scan_interval, 1 if lib.enabled else 0, lid)
+        "UPDATE libraries SET name=?,path=?,enabled=? WHERE id=?",
+        (lib.name, lib.path, 1 if lib.enabled else 0, lid)
     )
     conn.commit()
     conn.close()
@@ -1031,6 +1039,39 @@ def api_history(page: int = 1, per_page: int = 50):
     ).fetchall()
     conn.close()
     return {"total": total, "page": page, "items": [dict(r) for r in rows]}
+
+
+@app.post("/api/history/{hid}/retry")
+def api_retry_history(hid: str):
+    """Zet een mislukte conversie opnieuw in de wachtrij."""
+    conn = get_db()
+    item = conn.execute("SELECT * FROM history WHERE id=? AND status='error'", (hid,)).fetchone()
+    if not item:
+        conn.close()
+        raise HTTPException(404, "Niet gevonden of niet mislukt")
+    file_path = item["file_path"]
+    if not os.path.exists(file_path):
+        conn.close()
+        raise HTTPException(400, "Bronbestand bestaat niet meer")
+    # Controleer of al in wachtrij
+    existing = conn.execute(
+        "SELECT id FROM queue WHERE file_path=? AND status IN ('pending','processing')", (file_path,)
+    ).fetchone()
+    if existing:
+        conn.close()
+        raise HTTPException(400, "Al in wachtrij")
+    # Verwijder oude foutmelding uit geschiedenis
+    conn.execute("DELETE FROM history WHERE id=?", (hid,))
+    # Toevoegen aan wachtrij
+    jid = str(uuid.uuid4())
+    fsize = os.path.getsize(file_path)
+    conn.execute(
+        "INSERT INTO queue (id,library_id,file_path,file_size,status) VALUES (?,?,?,?,'pending')",
+        (jid, item["library_id"], file_path, fsize)
+    )
+    conn.commit()
+    conn.close()
+    return {"id": jid}
 
 @app.delete("/api/history")
 def api_clear_history():
