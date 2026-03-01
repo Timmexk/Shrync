@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.18")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.19")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -181,32 +181,24 @@ def profile_to_ffmpeg(profile_id: str):
 
 def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec):
     """
-    Bouw een correcte NVENC ffmpeg command.
+    Bouw een correcte NVENC ffmpeg command voor Pascal+ GPUs (P4000, etc.)
 
-    Sleutelparameters voor werkende kwaliteitscontrole op Pascal+:
-    - rc vbr         : variable bitrate — vereist voor CQ modus
-    - cq             : doelkwaliteit (lager = beter, 0 = lossless)
-    - qmin/qmax      : MOET gelijk zijn aan cq, anders negeert NVENC de cq waarde
-    - b:v 0          : geen bitrate limiet — laat NVENC vrij schalen
-    - maxrate 0      : geen maximale bitrate
-    - multipass 0    : snellere enkelvoudige pass (2 voor max kwaliteit maar langzamer)
-    - temporal-aq 1  : temporele adaptieve kwantisatie — betere kwaliteit per frame
-    - rc-lookahead   : vooruitkijken voor betere bitrate verdeling
+    Gebruikt -rc constqp -qp in plaats van vbr + qmin/qmax:
+    - constqp is breed compatibel op alle NVENC generaties
+    - vbr + qmin=qmax=cq conflicteert met globale AVCodecContext opties op Pascal
+      en geeft "Invalid argument" errors
+    - temporal-aq verbetert kwaliteit in bewegende scènes
+    - rc-lookahead voor betere bitrate verdeling per frame
     """
     return [
         "ffmpeg", "-y",
         "-i", src,
         "-c:v", codec,
         "-preset", preset,          # p4=medium, p5=slow, p6=slower, p7=slowest
-        "-rc", "vbr",               # VBR — enige modus die CQ correct ondersteunt
-        "-cq", cq,                  # doelkwaliteit
-        "-qmin", cq,                # KRITIEK: zonder dit negeert NVENC cq
-        "-qmax", cq,                # KRITIEK: zonder dit negeert NVENC cq
-        "-b:v", "0",                # geen bitrate limiet
-        "-maxrate", "0",            # geen maximale bitrate cap
-        "-rc-lookahead", "32",      # vooruitkijken — betere bitrate verdeling
-        "-temporal-aq", "1",        # temporele AQ — minder ruis in bewegende scènes
-        "-multipass", "0",          # 0=uit, 1=qres, 2=fullres (2 = langzamer maar beter)
+        "-rc", "constqp",           # constant QP — werkt op alle NVENC generaties
+        "-qp", cq,                  # kwaliteitswaarde (lager = beter)
+        "-rc-lookahead", "32",      # vooruitkijken voor betere bitrate verdeling
+        "-temporal-aq", "1",        # temporele AQ — betere kwaliteit bewegende scènes
         "-c:a", audio_codec,
         "-c:s", "copy",
         "-max_muxing_queue_size", "4096",
