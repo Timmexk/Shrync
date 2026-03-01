@@ -1,40 +1,57 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.06 — Universele image (CPU + Nvidia GPU auto-detectie)
+# Shrync v0.08 — Multi-stage build op python:3.12-slim (Debian Bookworm)
 # ══════════════════════════════════════════════════════════════════════════════
 #
-# ffmpeg met NVENC ondersteuning — compatibel met Nvidia driver 570+
-# Presets: slow/medium/fast — werkt op alle GPU generaties (Pascal t/m Lovelace)
-# Eén image voor iedereen. GPU wordt automatisch gedetecteerd bij opstarten.
+# Waarom python:3.12-slim?
+#   - Kleiner dan Ubuntu (~45MB vs ~80MB base)
+#   - Python correct ingebouwd — geen handmatige installatie nodig
+#   - Officieel Docker-image, regelmatig gepatcht door Python-team
+#   - Zelfde platform in builder én runtime → dependency-kopie werkt feilloos
+#   - Geen onnodige system-pakketten zoals Ubuntu meebrengt
 
-FROM ubuntu:22.04
+# ── Stage 1: Python dependencies bouwen ──────────────────────────────────────
+FROM python:3.12-slim AS builder
+
+WORKDIR /build
+
+ENV PIP_NO_CACHE_DIR=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+RUN pip install --upgrade pip setuptools wheel
+
+COPY requirements.txt .
+RUN pip install --target=/build/deps -r requirements.txt
+
+# ── Stage 2: Runtime image ────────────────────────────────────────────────────
+FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="Shrync"
 LABEL org.opencontainers.image.description="Zelf-gehoste H.265 media converter — automatische GPU-detectie"
-LABEL org.opencontainers.image.version="0.06"
+LABEL org.opencontainers.image.version="0.08"
 LABEL org.opencontainers.image.authors="timmexk"
 LABEL org.opencontainers.image.source="https://github.com/timmexk/Shrync"
 
-# Build-time variabelen — niet zichtbaar als configuratie in Unraid CA
-ARG SHRYNC_VERSION=0.06
+ARG SHRYNC_VERSION=0.08
 ENV SHRYNC_VERSION=${SHRYNC_VERSION}
 ENV PYTHONUNBUFFERED=1
-# GPU_MODE en CACHE_DIR worden ingesteld via de Unraid template / docker-compose
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app/deps
 ENV GPU_MODE=
 ENV CACHE_DIR=
 
-# ── Systeem dependencies ──────────────────────────────────────────────────────
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
-    xz-utils \
-    curl \
-    ca-certificates \
-    python3 \
-    python3-pip \
-    python3-dev \
+WORKDIR /app
+
+# Minimale runtime-pakketten — alleen wat ffmpeg en nvidia-smi nodig hebben
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# ── ffmpeg statische build (GPL, met NVENC + libx265 + libx264) ───────────────
-# Vereist Nvidia driver 570+ voor NVENC gebruik.
-# Zonder GPU of oudere driver: automatische CPU fallback via entrypoint.
+# ── ffmpeg statische build (GPL, NVENC + libx265 + libx264) ──────────────────
+# Statische binary — geen extra libraries nodig, werkt op elke Linux distro.
+# Vereist Nvidia driver 570+ voor NVENC. Zonder GPU: automatische CPU fallback.
 RUN curl -fsSL \
     "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz" \
     -o /tmp/ffmpeg.tar.xz \
@@ -45,20 +62,23 @@ RUN curl -fsSL \
     && rm -rf /tmp/ffmpeg* \
     && ffmpeg -version | head -1
 
-# ── Python dependencies ───────────────────────────────────────────────────────
-WORKDIR /shrync
-
-COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+# ── Python dependencies vanuit builder ───────────────────────────────────────
+COPY --from=builder /build/deps ./deps
 
 # ── Applicatie ────────────────────────────────────────────────────────────────
 COPY app/ ./app/
 COPY templates/ ./templates/
 COPY static/ ./static/
-COPY entrypoint.sh .
+COPY entrypoint.sh ./entrypoint.sh
 
-RUN mkdir -p /config && chmod +x /shrync/entrypoint.sh
+# ── Non-root gebruiker ────────────────────────────────────────────────────────
+RUN useradd -m -u 1000 -s /bin/bash shrync \
+    && mkdir -p /config /cache /media \
+    && chmod 777 /config /cache /media \
+    && chmod +x /app/entrypoint.sh
+
+USER shrync
 
 EXPOSE 8000
 
-ENTRYPOINT ["/shrync/entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]

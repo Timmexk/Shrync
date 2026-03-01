@@ -15,12 +15,13 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 import sqlite3
+import shutil
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.06")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.08")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -441,7 +442,7 @@ def run_conversion(job_id: str):
         new_size = os.path.getsize(tmp_out)
         try:
             os.remove(src)
-            os.rename(tmp_out, src)
+            shutil.move(tmp_out, src)
         except Exception as e:
             if os.path.exists(tmp_out):
                 try: os.remove(tmp_out)
@@ -894,12 +895,32 @@ def api_save_settings(data: dict):
 def api_pause_workers():
     global workers_paused
     workers_paused = True
+    # Stuur SIGSTOP naar alle actieve ffmpeg-processen
+    import signal
+    with active_jobs_lock:
+        for slot in active_jobs.values():
+            proc = slot.get("process")
+            if proc and proc.poll() is None:
+                try:
+                    os.kill(proc.pid, signal.SIGSTOP)
+                except Exception:
+                    pass
     return {"paused": True}
 
 @app.post("/api/workers/resume")
 def api_resume_workers():
     global workers_paused
     workers_paused = False
+    # Stuur SIGCONT naar alle gepauzeerde ffmpeg-processen
+    import signal
+    with active_jobs_lock:
+        for slot in active_jobs.values():
+            proc = slot.get("process")
+            if proc and proc.poll() is None:
+                try:
+                    os.kill(proc.pid, signal.SIGCONT)
+                except Exception:
+                    pass
     return {"paused": False}
 
 @app.get("/api/workers/status")

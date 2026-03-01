@@ -8,7 +8,7 @@
   <Privileged>false</Privileged>
   <Support>https://github.com/timmexk/Shrync</Support>
   <Project>https://github.com/timmexk/Shrync</Project>
-  <Overview>Shrync v0.06 — Zelf-gehoste H.265 media converter met automatische GPU-detectie.&#xA;&#xA;Dezelfde image werkt op CPU en Nvidia GPU (driver 570+). De container detecteert automatisch of een GPU beschikbaar is.&#xA;&#xA;MEDIAMAPPEN: Gebruik /media/map1, /media/map2, /media/map3 als bibliotheekpad in de Shrync webinterface.&#xA;GPU: Voeg --runtime=nvidia toe aan Extra Parameters voor Nvidia GPU-gebruik.</Overview>
+  <Overview>Shrync v0.08 — Zelf-gehoste H.265 media converter met automatische GPU-detectie.&#xA;&#xA;Dezelfde image werkt op CPU en Nvidia GPU (driver 570+). De container detecteert automatisch of een GPU beschikbaar is.&#xA;&#xA;MEDIAMAPPEN: Gebruik /media/map1, /media/map2, /media/map3 als bibliotheekpad in de Shrync webinterface.&#xA;GPU: Voeg --runtime=nvidia toe aan Extra Parameters voor Nvidia GPU-gebruik.</Overview>
   <Category>MediaApp:Video Tools:</Category>
   <WebUI>http://[IP]:[PORT:8988]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/timmexk/Shrync/main/shrync.xml</TemplateURL>
@@ -19,7 +19,7 @@
   <DateInstalled/>
   <DonateText/>
   <DonateLink/>
-  <Description>Shrync v0.06 — H.265 media converter met automatische Nvidia GPU-detectie.</Description>
+  <Description>Shrync v0.08 — H.265 media converter met automatische Nvidia GPU-detectie.</Description>
 
   <!-- ══ POORT ══════════════════════════════════════════════════════════════ -->
   <Config Name="WebUI poort"

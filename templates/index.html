@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shrync</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f1726'/%3E%3Crect x='6' y='10' width='6' height='44' rx='2' fill='%231e293b'/%3E%3Crect x='52' y='10' width='6' height='44' rx='2' fill='%231e293b'/%3E%3Crect x='8' y='14' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='8' y='22' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='8' y='30' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='8' y='38' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='8' y='46' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='53' y='14' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='53' y='22' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='53' y='30' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='53' y='38' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='53' y='46' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='14' y='24' width='13' height='3' rx='1.5' fill='%2360a5fa'/%3E%3Cpolygon points='26,20 34,32 26,44' fill='%2360a5fa'/%3E%3Crect x='37' y='24' width='13' height='3' rx='1.5' fill='%2360a5fa'/%3E%3Cpolygon points='38,20 30,32 38,44' fill='%2360a5fa'/%3E%3Crect x='28' y='26' width='8' height='12' rx='2' fill='%232563eb'/%3E%3C/svg%3E">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -416,19 +417,10 @@ tr:hover td{background:rgba(255,255,255,.025)}
 
       <div class="active-card" id="active-job-section" style="display:none">
         <div class="active-hdr">
-          <span class="panel-title" id="lbl-active-job">Actieve conversie</span>
+          <span class="panel-title" id="lbl-active-job">Actieve conversies</span>
           <span class="badge badge-processing" style="animation:pulse 1.5s infinite">● Live</span>
         </div>
-        <div class="active-body">
-          <div class="file-name" id="active-file-name">—</div>
-          <div class="file-dir"  id="active-file-dir"></div>
-          <div class="progress-bar"><div class="progress-fill" id="active-progress-fill" style="width:0%"></div></div>
-          <div style="display:flex;gap:20px;font-size:12px;color:var(--text-s)">
-            <span id="active-progress-pct">0%</span>
-            <span id="active-fps">— fps</span>
-            <span id="active-eta">ETA: —</span>
-          </div>
-        </div>
+        <div id="active-jobs-list"></div>
       </div>
 
       <div class="table-wrap">
@@ -962,20 +954,25 @@ async function togglePause() {
   toast(isPaused ? t('misc.workersResumed') : t('misc.workersPaused'), 'success');
 }
 
-// ── Active job ─────────────────────────────────────────────────────────────────
+// ── Active jobs ────────────────────────────────────────────────────────────────
 async function loadActiveJob() {
   try {
     const jobs = await fetch('/api/queue?status=processing').then(r => r.json());
     const sec = document.getElementById('active-job-section');
+    const list = document.getElementById('active-jobs-list');
     if (!jobs || !jobs.length) { sec.style.display = 'none'; return; }
-    const j = jobs[0];
     sec.style.display = '';
-    document.getElementById('active-file-name').textContent = basename(j.file_path);
-    document.getElementById('active-file-dir').textContent  = dirname(j.file_path);
-    document.getElementById('active-progress-fill').style.width = (j.progress || 0) + '%';
-    document.getElementById('active-progress-pct').textContent  = (j.progress || 0) + '%';
-    document.getElementById('active-fps').textContent = (j.fps || 0).toFixed(1) + ' fps';
-    document.getElementById('active-eta').textContent = 'ETA: ' + (j.eta || '—');
+    list.innerHTML = jobs.map((j, idx) => `
+      <div class="active-body" ${idx > 0 ? 'style="border-top:1px solid var(--border);margin-top:14px;padding-top:14px"' : ''}>
+        <div class="file-name">${basename(j.file_path)}</div>
+        <div class="file-dir">${dirname(j.file_path)}</div>
+        <div class="progress-bar" style="margin-top:10px"><div class="progress-fill" style="width:${j.progress || 0}%"></div></div>
+        <div style="display:flex;gap:20px;font-size:12px;color:var(--text-s);margin-top:6px">
+          <span>${j.progress || 0}%</span>
+          <span>${(j.fps || 0).toFixed(1)} fps</span>
+          <span>ETA: ${j.eta || '—'}</span>
+        </div>
+      </div>`).join('');
   } catch(e) {}
 }
 
@@ -990,7 +987,7 @@ async function loadDashboard() {
 
 async function loadDashboardQueue() {
   try {
-    const jobs = await fetch('/api/queue').then(r => r.json());
+    const jobs = await fetch('/api/queue?status=pending').then(r => r.json());
     const tbody = document.getElementById('dashboard-queue-body');
     if (!jobs || !jobs.length) {
       tbody.innerHTML = `<tr><td colspan="4"><div class="empty"><span class="empty-icon">◈</span><div class="empty-text">${t('dash.noQueue')}</div></div></td></tr>`;
@@ -1001,9 +998,7 @@ async function loadDashboardQueue() {
         <td><div class="file-name">${basename(j.file_path)}</div><div class="file-dir">${dirname(j.file_path)}</div></td>
         <td style="font-size:11px;color:var(--muted)">${j.library_name || '—'}</td>
         <td style="font-size:11px">${formatBytes(j.file_size)}</td>
-        <td>${j.status === 'processing'
-          ? `<div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${j.progress}%"></div></div><div class="progress-text">${j.progress}% · ${(j.fps||0).toFixed(1)} fps · ${j.eta||'—'}</div></div>`
-          : statusBadge(j.status, j.progress)}</td>
+        <td>${statusBadge(j.status, j.progress)}</td>
       </tr>`).join('');
   } catch(e) {}
 }

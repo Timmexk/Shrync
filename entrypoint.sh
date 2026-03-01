@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.06 — entrypoint met automatische GPU-detectie
+# Shrync v0.08 — entrypoint met automatische GPU-detectie
 # ══════════════════════════════════════════════════════════════════════════════
 
 set -e
