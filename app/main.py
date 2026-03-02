@@ -181,24 +181,28 @@ def profile_to_ffmpeg(profile_id: str):
 
 def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec):
     """
-    Bouw een correcte NVENC ffmpeg command voor Pascal+ GPUs (P4000, etc.)
+    Universele NVENC ffmpeg command — compatibel met alle Nvidia GPU's vanaf GTX 900 (Maxwell+).
 
-    Gebruikt -rc constqp -qp in plaats van vbr + qmin/qmax:
-    - constqp is breed compatibel op alle NVENC generaties
-    - vbr + qmin=qmax=cq conflicteert met globale AVCodecContext opties op Pascal
-      en geeft "Invalid argument" errors
-    - temporal-aq verbetert kwaliteit in bewegende scènes
-    - rc-lookahead voor betere bitrate verdeling per frame
+    Bewust weggelaten voor maximale compatibiliteit:
+    - rc-lookahead : instabiel op Maxwell/Pascal HEVC
+    - temporal-aq  : werkt niet op HEVC vóór Turing (RTX 20-serie)
+    - spatial-aq   : zelfde beperking als temporal-aq
+
+    Verplicht voor Maxwell/Pascal HEVC:
+    - bf 0         : GTX 900/1000 ondersteunen geen B-frames bij HEVC
+    - pix_fmt yuv420p : meest compatibele pixel format voor alle generaties
+    - rc constqp   : stabielste kwaliteitsmodus op alle NVENC generaties
+    - qp           : directe kwaliteitscontrole (lager = beter)
     """
     return [
         "ffmpeg", "-y",
         "-i", src,
         "-c:v", codec,
-        "-preset", preset,          # p4=medium, p5=slow, p6=slower, p7=slowest
-        "-rc", "constqp",           # constant QP — werkt op alle NVENC generaties
-        "-qp", cq,                  # kwaliteitswaarde (lager = beter)
-        "-rc-lookahead", "32",      # vooruitkijken voor betere bitrate verdeling
-        "-temporal-aq", "1",        # temporele AQ — betere kwaliteit bewegende scènes
+        "-preset", preset,      # p4=medium, p5=slow, p6=slower, p7=slowest
+        "-rc", "constqp",       # constant QP — werkt op alle NVENC generaties
+        "-qp", cq,              # kwaliteitswaarde (lager = beter, hoger = kleiner bestand)
+        "-bf", "0",             # geen B-frames — verplicht voor Maxwell/Pascal HEVC
+        "-pix_fmt", "yuv420p",  # meest compatibele pixel format
         "-c:a", audio_codec,
         "-c:s", "copy",
         "-max_muxing_queue_size", "4096",
