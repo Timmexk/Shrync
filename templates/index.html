@@ -312,16 +312,14 @@ tr:hover td{background:rgba(255,255,255,.025)}
   background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%)}
 .gpu-monitor-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-s)}
 .gpu-monitor-name{font-size:11px;color:var(--text-t)}
-.gpu-bars{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;padding:16px 18px}
-.gpu-bar-item{display:flex;flex-direction:column;gap:5px}
-.gpu-bar-label{font-size:10px;color:var(--text-s);display:flex;justify-content:space-between;font-weight:500}
-.gpu-bar-track{height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
-.gpu-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
-.gpu-bar-fill.util{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
-.gpu-bar-fill.mem {background:linear-gradient(90deg,#8b5cf6,#a78bfa)}
-.gpu-bar-fill.temp{background:linear-gradient(90deg,#10b981,#34d399)}
-.gpu-temp-val{font-size:13px;font-weight:700;color:var(--text)}
-.gpu-enc-val {font-size:11px;color:var(--text-s)}
+.gpu-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:0;border-top:none}
+.gpu-card{padding:18px 18px 16px;border-right:1px solid var(--border);position:relative;overflow:hidden}
+.gpu-card:last-child{border-right:none}
+.gpu-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)}
+.gpu-card-val{font-size:22px;font-weight:700;letter-spacing:-1px;line-height:1;margin:8px 0 10px;color:var(--text)}
+.gpu-bar-track{height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.gpu-bar-fill{height:100%;border-radius:2px;transition:width .8s ease}
 
 /* ── Modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
@@ -475,25 +473,29 @@ tr:hover td{background:rgba(255,255,255,.025)}
       <!-- GPU Monitor widget — alleen zichtbaar als GPU actief -->
       <div class="gpu-monitor" id="gpu-monitor-widget" style="display:none">
         <div class="gpu-monitor-hdr">
-          <span class="gpu-monitor-title" id="gpu-monitor-title">GPU Monitor</span>
+          <span class="gpu-monitor-title">GPU Monitor</span>
           <span class="gpu-monitor-name" id="gpu-monitor-name"></span>
         </div>
-        <div class="gpu-bars" id="gpu-bars-container">
-          <div class="gpu-bar-item">
-            <div class="gpu-bar-label"><span id="lbl-gpu-util">GPU gebruik</span><span id="gpu-util-val">—</span></div>
-            <div class="gpu-bar-track"><div class="gpu-bar-fill util" id="gpu-util-bar" style="width:0%"></div></div>
+        <div class="gpu-cards">
+          <div class="gpu-card">
+            <div class="stat-label" id="lbl-gpu-util">GPU gebruik</div>
+            <div class="gpu-card-val" id="gpu-util-val">—</div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill" id="gpu-util-bar" style="width:0%;background:linear-gradient(90deg,#3b82f6,#60a5fa)"></div></div>
           </div>
-          <div class="gpu-bar-item">
-            <div class="gpu-bar-label"><span id="lbl-gpu-mem">VRAM gebruik</span><span id="gpu-mem-val">—</span></div>
-            <div class="gpu-bar-track"><div class="gpu-bar-fill mem" id="gpu-mem-bar" style="width:0%"></div></div>
+          <div class="gpu-card">
+            <div class="stat-label" id="lbl-gpu-mem">VRAM</div>
+            <div class="gpu-card-val" id="gpu-mem-val">—</div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill" id="gpu-mem-bar" style="width:0%;background:linear-gradient(90deg,#8b5cf6,#a78bfa)"></div></div>
           </div>
-          <div class="gpu-bar-item">
-            <div class="gpu-bar-label"><span id="lbl-gpu-temp">Temperatuur</span><span id="gpu-temp-val">—</span></div>
-            <div class="gpu-bar-track"><div class="gpu-bar-fill temp" id="gpu-temp-bar" style="width:0%"></div></div>
+          <div class="gpu-card">
+            <div class="stat-label" id="lbl-gpu-temp">Temperatuur</div>
+            <div class="gpu-card-val" id="gpu-temp-val">—</div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill" id="gpu-temp-bar" style="width:0%;background:linear-gradient(90deg,#10b981,#34d399)"></div></div>
           </div>
-          <div class="gpu-bar-item" id="gpu-enc-item">
-            <div class="gpu-bar-label"><span id="lbl-gpu-enc">Encoder gebruik</span><span id="gpu-enc-val">—</span></div>
-            <div class="gpu-bar-track"><div class="gpu-bar-fill util" id="gpu-enc-bar" style="width:0%;background:linear-gradient(90deg,#10b981,#34d399)"></div></div>
+          <div class="gpu-card" id="gpu-enc-item" style="display:none">
+            <div class="stat-label" id="lbl-gpu-enc">Encoder</div>
+            <div class="gpu-card-val" id="gpu-enc-val">—</div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill" id="gpu-enc-bar" style="width:0%;background:linear-gradient(90deg,#f59e0b,#fcd34d)"></div></div>
           </div>
         </div>
       </div>
@@ -1097,51 +1099,60 @@ async function loadGpuMonitor() {
     if (widget) widget.style.display = '';
 
     const gpu = d.gpus[0];
+
+    // GPU naam
     const nameEl = document.getElementById('gpu-monitor-name');
     if (nameEl) nameEl.textContent = gpu.name || '';
 
-    // Util bar
+    // GPU gebruik
     const utilVal = document.getElementById('gpu-util-val');
     const utilBar = document.getElementById('gpu-util-bar');
-    if (utilVal) utilVal.textContent = gpu.gpu_util + '%';
-    if (utilBar) utilBar.style.width = Math.min(gpu.gpu_util, 100) + '%';
+    const util = gpu.gpu_util || 0;
+    if (utilVal) utilVal.textContent = util + '%';
+    if (utilBar) utilBar.style.width = Math.min(util, 100) + '%';
 
-    // VRAM bar
+    // VRAM
     const memVal = document.getElementById('gpu-mem-val');
     const memBar = document.getElementById('gpu-mem-bar');
     if (gpu.mem_total_mb > 0) {
       const memPct = Math.round((gpu.mem_used_mb / gpu.mem_total_mb) * 100);
-      if (memVal) memVal.textContent = Math.round(gpu.mem_used_mb/1024*10)/10 + ' / ' + Math.round(gpu.mem_total_mb/1024*10)/10 + ' GB';
+      const usedGb  = (gpu.mem_used_mb  / 1024).toFixed(1);
+      const totalGb = (gpu.mem_total_mb / 1024).toFixed(0);
+      if (memVal) memVal.textContent = usedGb + ' / ' + totalGb + ' GB';
       if (memBar) memBar.style.width = memPct + '%';
     } else {
       if (memVal) memVal.textContent = '—';
     }
 
-    // Temperatuur bar (max 100°C voor display)
+    // Temperatuur — kleur afhankelijk van waarde
     const tempVal = document.getElementById('gpu-temp-val');
     const tempBar = document.getElementById('gpu-temp-bar');
-    if (gpu.temperature > 0) {
-      if (tempVal) tempVal.textContent = gpu.temperature + '°C';
-      if (tempBar) tempBar.style.width = Math.min(gpu.temperature, 100) + '%';
-      // Kleur op temperatuur
+    const temp = gpu.temperature || 0;
+    if (temp > 0) {
+      if (tempVal) tempVal.textContent = temp + '°C';
       if (tempBar) {
-        if (gpu.temperature >= 80) tempBar.style.background = 'linear-gradient(90deg,#ef4444,#f87171)';
-        else if (gpu.temperature >= 65) tempBar.style.background = 'linear-gradient(90deg,#f59e0b,#fcd34d)';
-        else tempBar.style.background = 'linear-gradient(90deg,#10b981,#34d399)';
+        tempBar.style.width = Math.min(temp, 100) + '%';
+        if      (temp >= 80) tempBar.style.background = 'linear-gradient(90deg,#ef4444,#f87171)';
+        else if (temp >= 65) tempBar.style.background = 'linear-gradient(90deg,#f59e0b,#fcd34d)';
+        else                 tempBar.style.background = 'linear-gradient(90deg,#10b981,#34d399)';
       }
     } else {
       if (tempVal) tempVal.textContent = '—';
     }
 
-    // Encoder gebruik + actieve sessies (alleen Nvidia)
+    // Encoder (alleen Nvidia) — gebruik % als balk, actieve jobs als waarde
+    const encItem = document.getElementById('gpu-enc-item');
     const encVal  = document.getElementById('gpu-enc-val');
     const encBar  = document.getElementById('gpu-enc-bar');
-    const encItem = document.getElementById('gpu-enc-item');
     if (d.mode === 'nvidia' && encItem) {
       encItem.style.display = '';
       const encUtil = gpu.enc_util || 0;
       const encSess = gpu.enc_sessions || 0;
-      if (encVal) encVal.textContent = encUtil + '%' + (encSess > 0 ? ' · ' + encSess + ' job' + (encSess > 1 ? 's' : '') : '');
+      if (encVal) {
+        if (encSess > 0)    encVal.textContent = encSess + ' job' + (encSess > 1 ? 's' : '');
+        else if (encUtil > 0) encVal.textContent = encUtil + '%';
+        else                  encVal.textContent = 'Inactief';
+      }
       if (encBar) encBar.style.width = Math.min(encUtil, 100) + '%';
     } else if (encItem) {
       encItem.style.display = 'none';
