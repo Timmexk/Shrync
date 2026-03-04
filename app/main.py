@@ -387,22 +387,28 @@ def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec, hdr: dict = Non
 
 
 def needs_conversion(file_path: str, target_codec: str) -> bool:
+    """
+    Controleert via ffprobe of het bestand al de doelcodec heeft.
+    Gebruikt -select_streams v:0 en een korte timeout voor snelle scan.
+    """
     try:
         result = subprocess.run([
-            "ffprobe", "-v", "quiet", "-print_format", "json",
-            "-show_streams", file_path
-        ], capture_output=True, text=True, timeout=30)
+            "ffprobe", "-v", "quiet",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=codec_name",
+            "-print_format", "json",
+            file_path
+        ], capture_output=True, text=True, timeout=8)
         info = json.loads(result.stdout)
         for stream in info.get("streams", []):
-            if stream.get("codec_type") == "video":
-                current = stream.get("codec_name", "")
-                if "hevc" in target_codec and current in ("hevc", "h265"):
-                    return False
-                if "h264" in target_codec and current == "h264":
-                    return False
+            current = stream.get("codec_name", "")
+            if "hevc" in target_codec and current in ("hevc", "h265"):
+                return False
+            if "h264" in target_codec and current == "h264":
+                return False
         return True
     except Exception as e:
-        logger.warning(f"ffprobe error for {file_path}: {e}")
+        logger.warning(f"ffprobe fout bij {file_path}: {e}")
         return True
 
 # ── Scanner ───────────────────────────────────────────────────────────────────
@@ -535,12 +541,14 @@ def run_conversion(job_id: str):
     video_codec, preset, quality = profile_to_ffmpeg(profile)
     audio_codec = get_global_setting('audio_codec', 'copy')
 
-    # Get duration via ffprobe
+    # Lees filmduur via ffprobe — alleen format sectie, snelle header read
     duration = 0
     try:
         r = subprocess.run(
-            ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", src],
-            capture_output=True, text=True, timeout=30
+            ["ffprobe", "-v", "quiet",
+             "-show_entries", "format=duration",
+             "-print_format", "json", src],
+            capture_output=True, text=True, timeout=10
         )
         info = json.loads(r.stdout)
         duration = float(info.get("format", {}).get("duration", 0))
