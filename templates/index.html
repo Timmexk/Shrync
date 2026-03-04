@@ -492,7 +492,8 @@ tr:hover td{background:rgba(255,255,255,.025)}
             <div class="gpu-bar-track"><div class="gpu-bar-fill temp" id="gpu-temp-bar" style="width:0%"></div></div>
           </div>
           <div class="gpu-bar-item" id="gpu-enc-item">
-            <div class="gpu-bar-label"><span id="lbl-gpu-enc">Encoder sessies</span><span id="gpu-enc-val">—</span></div>
+            <div class="gpu-bar-label"><span id="lbl-gpu-enc">Encoder gebruik</span><span id="gpu-enc-val">—</span></div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill util" id="gpu-enc-bar" style="width:0%;background:linear-gradient(90deg,#10b981,#34d399)"></div></div>
           </div>
         </div>
       </div>
@@ -1132,12 +1133,16 @@ async function loadGpuMonitor() {
       if (tempVal) tempVal.textContent = '—';
     }
 
-    // Encoder sessies (alleen Nvidia)
+    // Encoder gebruik + actieve sessies (alleen Nvidia)
     const encVal  = document.getElementById('gpu-enc-val');
+    const encBar  = document.getElementById('gpu-enc-bar');
     const encItem = document.getElementById('gpu-enc-item');
     if (d.mode === 'nvidia' && encItem) {
       encItem.style.display = '';
-      if (encVal) encVal.textContent = gpu.enc_sessions + ' actief';
+      const encUtil = gpu.enc_util || 0;
+      const encSess = gpu.enc_sessions || 0;
+      if (encVal) encVal.textContent = encUtil + '%' + (encSess > 0 ? ' · ' + encSess + ' job' + (encSess > 1 ? 's' : '') : '');
+      if (encBar) encBar.style.width = Math.min(encUtil, 100) + '%';
     } else if (encItem) {
       encItem.style.display = 'none';
     }
@@ -1321,36 +1326,39 @@ async function showSkipped(lid, libName) {
   try {
     const d = await fetch('/api/libraries/' + lid + '/skipped').then(r => r.json());
     const items = d.skipped || [];
-    sub.textContent = items.length + ' ' + t('lib.skippedCount') + ' · ' + t('lib.profile') + ': ' + d.profile;
+
+    const nConverted = items.filter(i => i.reason === 'already_converted').length;
+    const nQueued    = items.filter(i => i.reason === 'already_queued').length;
 
     if (!items.length) {
+      sub.textContent = t('lib.noSkipped');
       body.innerHTML = '<div class="empty"><div class="empty-text">' + t('lib.noSkipped') + '</div></div>';
       return;
     }
 
-    // Groepeer per reden
-    const groups = {
-      codec_match:      { label: t('lib.skipReasonCodec'),   color: 'var(--text-s)', items: [] },
-      already_converted:{ label: t('lib.skipReasonHistory'), color: 'var(--green)',   items: [] },
-      already_queued:   { label: t('lib.skipReasonQueued'),  color: '#60a5fa',        items: [] },
-    };
-    for (const item of items) {
-      const g = groups[item.reason] || groups.codec_match;
-      g.items.push(item);
-    }
+    sub.innerHTML =
+      '<span style="color:var(--green)">' + nConverted + ' ' + t('lib.skipReasonHistory') + '</span>' +
+      (nQueued ? ' &nbsp;·&nbsp; <span style="color:#60a5fa">' + nQueued + ' ' + t('lib.skipReasonQueued') + '</span>' : '');
 
     let html = '<table style="width:100%;border-collapse:collapse">';
     html += '<thead><tr style="border-bottom:1px solid var(--border);background:rgba(255,255,255,.03)">';
-    html += '<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s)">Bestand</th>';
-    html += '<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s);width:200px">Reden</th>';
+    html += '<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s)">' + t('misc.file') + '</th>';
+    html += '<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s);width:160px">Reden</th>';
+    html += '<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s);width:130px">Datum</th>';
     html += '</tr></thead><tbody>';
 
     for (const item of items) {
-      const g = groups[item.reason] || groups.codec_match;
+      const isConverted = item.reason === 'already_converted';
+      const reasonLabel = isConverted ? t('lib.skipReasonHistory') : t('lib.skipReasonQueued');
+      const reasonColor = isConverted ? 'var(--green)' : '#60a5fa';
+      const dir = item.path.substring(0, item.path.lastIndexOf('/') + 1);
       html += '<tr style="border-bottom:1px solid rgba(255,255,255,.04)">';
-      html += '<td style="padding:7px 14px"><div style="font-size:11px;font-weight:500;color:var(--text)">' + item.file + '</div>';
-      html += '<div style="font-size:10px;color:var(--text-t);margin-top:1px">' + item.path.replace(item.file,'') + '</div></td>';
-      html += '<td style="padding:7px 14px"><span style="font-size:10px;color:' + g.color + '">' + g.label + (item.detail ? ' (' + item.detail + ')' : '') + '</span></td>';
+      html += '<td style="padding:7px 14px">';
+      html += '<div style="font-size:11px;font-weight:500;color:var(--text)">' + item.file + '</div>';
+      html += '<div style="font-size:10px;color:var(--text-t);margin-top:1px">' + dir + '</div>';
+      html += '</td>';
+      html += '<td style="padding:7px 14px"><span style="font-size:10px;font-weight:600;color:' + reasonColor + '">' + reasonLabel + '</span></td>';
+      html += '<td style="padding:7px 14px;font-size:10px;color:var(--text-s)">' + (item.date ? formatDate(item.date) : '—') + '</td>';
       html += '</tr>';
     }
     html += '</tbody></table>';

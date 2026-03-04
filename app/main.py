@@ -1119,9 +1119,9 @@ def api_all_scan_status():
 @app.get("/api/libraries/{lid}/skipped")
 def api_skipped_files(lid: str):
     """
-    Geeft de overgeslagen bestanden terug voor een bibliotheek met reden.
-    - already_converted : codec komt al overeen met doelprofiel
-    - already_queued    : staat al in de wachtrij
+    Geeft de bestanden terug die de laatste scan heeft overgeslagen voor deze bibliotheek.
+    Bron: history (al geconverteerd) + queue (al in wachtrij).
+    Dit zijn de bestanden die de scan bewust heeft overgeslagen — niet de codec_match bestanden.
     """
     conn = get_db()
     lib = conn.execute("SELECT * FROM libraries WHERE id=?", (lid,)).fetchone()
@@ -1129,48 +1129,41 @@ def api_skipped_files(lid: str):
         conn.close()
         raise HTTPException(404, "Bibliotheek niet gevonden")
 
-    path = lib["path"]
-    profile_id = get_global_setting('conversion_profile', 'nvenc_max')
-    global_codec, _, _, _ = profile_to_ffmpeg(profile_id)
-
     skipped = []
-    try:
-        for root, dirs, files in os.walk(path):
-            dirs[:] = [d for d in dirs if not d.startswith('.')]
-            for fname in files:
-                ext = Path(fname).suffix.lower()
-                if ext not in VIDEO_EXTENSIONS:
-                    continue
-                fpath = os.path.join(root, fname)
-                if fname.startswith("shryncing-"):
-                    continue
 
-                # Al in wachtrij?
-                existing = conn.execute(
-                    "SELECT id FROM queue WHERE file_path=? AND status IN ('pending','processing')", (fpath,)
-                ).fetchone()
-                if existing:
-                    skipped.append({"file": fname, "path": fpath, "reason": "already_queued"})
-                    continue
+    # Bestanden die al succesvol geconverteerd zijn (in history)
+    history_rows = conn.execute(
+        "SELECT file_path, finished_at FROM history WHERE library_id=? AND status='success' ORDER BY finished_at DESC",
+        (lid,)
+    ).fetchall()
+    for row in history_rows:
+        fpath = row["file_path"]
+        fname = Path(fpath).name
+        skipped.append({
+            "file": fname,
+            "path": fpath,
+            "reason": "already_converted",
+            "date": row["finished_at"],
+        })
 
-                # Al succesvol geconverteerd?
-                done = conn.execute(
-                    "SELECT id FROM history WHERE file_path=? AND status='success'", (fpath,)
-                ).fetchone()
-                if done:
-                    skipped.append({"file": fname, "path": fpath, "reason": "already_converted"})
-                    continue
-
-                # Codec al correct?
-                if not needs_conversion(fpath, global_codec):
-                    skipped.append({"file": fname, "path": fpath, "reason": "codec_match",
-                                    "detail": f"Al {global_codec.replace('hevc','H.265').replace('libx264','H.264').replace('h264','H.264')}"})
-    except Exception as e:
-        conn.close()
-        raise HTTPException(500, str(e))
+    # Bestanden die al in de wachtrij staan
+    queue_rows = conn.execute(
+        "SELECT file_path, status, added_at FROM queue WHERE library_id=? ORDER BY added_at DESC",
+        (lid,)
+    ).fetchall()
+    for row in queue_rows:
+        fpath = row["file_path"]
+        fname = Path(fpath).name
+        skipped.append({
+            "file": fname,
+            "path": fpath,
+            "reason": "already_queued",
+            "status": row["status"],
+            "date": row["added_at"],
+        })
 
     conn.close()
-    return {"library": dict(lib), "profile": profile_id, "codec": global_codec, "skipped": skipped}
+    return {"library": dict(lib), "skipped": skipped, "total": len(skipped)}
 
 @app.get("/api/queue")
 def api_queue(status: Optional[str] = None):
@@ -1367,26 +1360,44 @@ def api_gpu_monitor():
 
     if gpu_mode == "nvidia":
         try:
+            # Stap 1: GPU stats + encoder utilization (werkt op alle driver versies)
             out = subprocess.run([
                 "nvidia-smi",
                 "--query-gpu=name,utilization.gpu,utilization.memory,"
-                "memory.used,memory.total,temperature.gpu,encoder.stats.sessionCount",
+                "memory.used,memory.total,temperature.gpu,utilization.encoder",
                 "--format=csv,noheader,nounits"
             ], capture_output=True, text=True, timeout=5)
             if out.returncode == 0:
                 for line in out.stdout.strip().splitlines():
                     parts = [p.strip() for p in line.split(",")]
                     if len(parts) >= 6:
+                        enc_util = int(parts[6]) if len(parts) > 6 and parts[6].isdigit() else 0
                         result["gpus"].append({
-                            "name":          parts[0],
-                            "gpu_util":      int(parts[1]) if parts[1].isdigit() else 0,
-                            "mem_util":      int(parts[2]) if parts[2].isdigit() else 0,
-                            "mem_used_mb":   int(parts[3]) if parts[3].isdigit() else 0,
-                            "mem_total_mb":  int(parts[4]) if parts[4].isdigit() else 0,
-                            "temperature":   int(parts[5]) if parts[5].isdigit() else 0,
-                            "enc_sessions":  int(parts[6]) if len(parts) > 6 and parts[6].isdigit() else 0,
+                            "name":         parts[0],
+                            "gpu_util":     int(parts[1]) if parts[1].isdigit() else 0,
+                            "mem_util":     int(parts[2]) if parts[2].isdigit() else 0,
+                            "mem_used_mb":  int(parts[3]) if parts[3].isdigit() else 0,
+                            "mem_total_mb": int(parts[4]) if parts[4].isdigit() else 0,
+                            "temperature":  int(parts[5]) if parts[5].isdigit() else 0,
+                            "enc_util":     enc_util,
+                            "enc_sessions": 0,  # wordt hieronder ingevuld
                         })
                 result["available"] = len(result["gpus"]) > 0
+
+            # Stap 2: encoder sessies ophalen via aparte query (niet altijd beschikbaar)
+            if result["available"]:
+                out2 = subprocess.run([
+                    "nvidia-smi",
+                    "--query-accounted-apps=gpu_name",
+                    "--format=csv,noheader"
+                ], capture_output=True, text=True, timeout=3)
+                # Teller: actieve ffmpeg processen tellen als betrouwbaardere bron
+                import subprocess as _sp
+                ps = _sp.run(["pgrep", "-c", "ffmpeg"], capture_output=True, text=True)
+                ffmpeg_count = int(ps.stdout.strip()) if ps.returncode == 0 and ps.stdout.strip().isdigit() else 0
+                for gpu in result["gpus"]:
+                    gpu["enc_sessions"] = ffmpeg_count
+
         except Exception as e:
             logger.debug(f"nvidia-smi fout: {e}")
 
