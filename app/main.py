@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.19")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.25")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -164,45 +164,138 @@ VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".m4v", ".ts", ".wmv", ".flv
 # profile_id -> (video_codec, nvenc_preset_or_cpu_preset, cq_or_crf)
 # Voor NVENC: preset = p4/p5/p6/p7 (niet slow/medium/fast)
 # Voor CPU:   preset = slow/medium/fast + crf
+# ── Encoder profielen ─────────────────────────────────────────────────────────
+# Formaat: (codec, preset, quality, encoder_type)
+# encoder_type: "nvidia" | "amd" | "intel" | "cpu"
 PROFILES = {
-    "nvenc_max":      ("hevc_nvenc", "p7", "19"),  # NVENC H.265 — max kwaliteit (traagst)
-    "nvenc_high":     ("hevc_nvenc", "p5", "22"),  # NVENC H.265 — hoge kwaliteit
-    "nvenc_balanced": ("hevc_nvenc", "p4", "26"),  # NVENC H.265 — gebalanceerd (snelst)
-    "cpu_slow":       ("libx265",    "slow",   "20"),  # CPU H.265 — max kwaliteit
-    "cpu_medium":     ("libx265",    "medium", "23"),  # CPU H.265 — gebalanceerd
-    "cpu_fast":       ("libx265",    "fast",   "26"),  # CPU H.265 — snel
-    "h264_nvenc":     ("h264_nvenc", "p5",     "20"),  # NVENC H.264 — hoge kwaliteit
-    "h264_cpu":       ("libx264",    "medium", "22"),  # CPU H.264 — gebalanceerd
+    # Nvidia NVENC (GTX 900+)
+    "nvenc_max":      ("hevc_nvenc", "p7", "19", "nvidia"),
+    "nvenc_high":     ("hevc_nvenc", "p5", "22", "nvidia"),
+    "nvenc_balanced": ("hevc_nvenc", "p4", "26", "nvidia"),
+    "h264_nvenc":     ("h264_nvenc", "p5", "20", "nvidia"),
+    # AMD AMF (RX 400+, via /dev/dri)
+    "amf_max":        ("hevc_amf",   "quality",  "19", "amd"),
+    "amf_balanced":   ("hevc_amf",   "balanced", "26", "amd"),
+    "h264_amf":       ("h264_amf",   "quality",  "20", "amd"),
+    # Intel QSV (Gen 6+, via /dev/dri)
+    "qsv_max":        ("hevc_qsv",   "veryslow", "19", "intel"),
+    "qsv_balanced":   ("hevc_qsv",   "medium",   "26", "intel"),
+    "h264_qsv":       ("h264_qsv",   "medium",   "20", "intel"),
+    # CPU fallback
+    "cpu_slow":       ("libx265",    "slow",     "20", "cpu"),
+    "cpu_medium":     ("libx265",    "medium",   "23", "cpu"),
+    "cpu_fast":       ("libx265",    "fast",     "26", "cpu"),
+    "h264_cpu":       ("libx264",    "medium",   "22", "cpu"),
 }
 
 def profile_to_ffmpeg(profile_id: str):
-    """Returns (video_codec, preset, quality_str) for a given profile."""
+    """Returns (codec, preset, quality, encoder_type) for a given profile."""
     return PROFILES.get(profile_id, PROFILES["nvenc_max"])
 
-def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec):
+# ── HDR metadata detectie ──────────────────────────────────────────────────────
+def detect_hdr(src: str) -> dict:
     """
-    Universele NVENC ffmpeg command — compatibel met alle Nvidia GPU's vanaf GTX 900 (Maxwell+).
-
-    Bewust weggelaten voor maximale compatibiliteit:
-    - rc-lookahead : instabiel op Maxwell/Pascal HEVC
-    - temporal-aq  : werkt niet op HEVC vóór Turing (RTX 20-serie)
-    - spatial-aq   : zelfde beperking als temporal-aq
-
-    Verplicht voor Maxwell/Pascal HEVC:
-    - bf 0         : GTX 900/1000 ondersteunen geen B-frames bij HEVC
-    - pix_fmt yuv420p : meest compatibele pixel format voor alle generaties
-    - rc constqp   : stabielste kwaliteitsmodus op alle NVENC generaties
-    - qp           : directe kwaliteitscontrole (lager = beter)
+    Detecteert HDR type via ffprobe.
+    Returnt dict met: hdr_type (None|"hdr10"|"hdr10plus"|"hlg"|"dolby_vision"),
+    color_space, color_transfer, color_primaries, has_dv_rpu.
     """
-    return [
+    result = {"hdr_type": None, "color_space": None, "color_transfer": None,
+              "color_primaries": None, "has_dv_rpu": False, "pix_fmt": "yuv420p"}
+    try:
+        import json as _json
+        probe = subprocess.run([
+            "ffprobe", "-v", "quiet", "-print_format", "json",
+            "-show_streams", "-show_format", src
+        ], capture_output=True, text=True, timeout=30)
+        if probe.returncode != 0:
+            return result
+        data = _json.loads(probe.stdout)
+        video_stream = next(
+            (s for s in data.get("streams", []) if s.get("codec_type") == "video"), None
+        )
+        if not video_stream:
+            return result
+
+        ct  = video_stream.get("color_transfer", "")
+        cp  = video_stream.get("color_primaries", "")
+        cs  = video_stream.get("color_space", "")
+        pf  = video_stream.get("pix_fmt", "yuv420p")
+
+        result["color_transfer"]  = ct
+        result["color_primaries"] = cp
+        result["color_space"]     = cs
+        result["pix_fmt"]         = pf
+
+        # Dolby Vision: check side_data_list
+        for side in video_stream.get("side_data_list", []):
+            if "Dolby Vision" in side.get("side_data_type", ""):
+                result["hdr_type"]    = "dolby_vision"
+                result["has_dv_rpu"]  = True
+                return result
+
+        # HDR10+ check
+        for side in video_stream.get("side_data_list", []):
+            if "HDR10+" in side.get("side_data_type", ""):
+                result["hdr_type"] = "hdr10plus"
+                return result
+
+        # HLG
+        if ct == "arib-std-b67":
+            result["hdr_type"] = "hlg"
+            return result
+
+        # HDR10 (PQ + BT.2020)
+        if ct in ("smpte2084", "smpte428") and cp in ("bt2020", "bt2020nc", "bt2020c"):
+            result["hdr_type"] = "hdr10"
+            return result
+
+    except Exception as e:
+        logger.warning(f"HDR detectie mislukt voor {src}: {e}")
+    return result
+
+def _hdr_video_flags(hdr: dict) -> list:
+    """
+    Geeft de extra ffmpeg video-flags terug om HDR metadata te bewaren.
+    Alleen van toepassing als hdr_type niet None is.
+    """
+    if not hdr.get("hdr_type"):
+        return []
+    flags = [
+        "-colorspace",       hdr["color_space"]     or "bt2020nc",
+        "-color_primaries",  hdr["color_primaries"]  or "bt2020",
+        "-color_trc",        hdr["color_transfer"]   or "smpte2084",
+    ]
+    return flags
+
+# ── ffmpeg command builders ───────────────────────────────────────────────────
+
+def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec, hdr: dict = None):
+    """
+    Universele NVENC command — GTX 900 (Maxwell) t/m RTX 40 (Ada Lovelace).
+    - constqp + bf 0 + pix_fmt yuv420p voor maximale compatibiliteit
+    - HDR metadata flags worden toegevoegd als het bronbestand HDR is
+    """
+    hdr = hdr or {}
+    # Kies pixel format op basis van HDR type
+    if hdr.get("hdr_type") in ("hdr10", "hdr10plus", "hlg"):
+        pix_fmt = "p010le"   # 10-bit voor HDR bewaring
+    elif hdr.get("hdr_type") == "dolby_vision":
+        pix_fmt = "yuv420p10le"
+    else:
+        pix_fmt = "yuv420p"
+
+    cmd = [
         "ffmpeg", "-y",
         "-i", src,
         "-c:v", codec,
-        "-preset", preset,      # p4=medium, p5=slow, p6=slower, p7=slowest
-        "-rc", "constqp",       # constant QP — werkt op alle NVENC generaties
-        "-qp", cq,              # kwaliteitswaarde (lager = beter, hoger = kleiner bestand)
-        "-bf", "0",             # geen B-frames — verplicht voor Maxwell/Pascal HEVC
-        "-pix_fmt", "yuv420p",  # meest compatibele pixel format
+        "-preset", preset,
+        "-rc", "constqp",
+        "-qp", cq,
+        "-bf", "0",           # verplicht Maxwell/Pascal HEVC
+        "-pix_fmt", pix_fmt,
+    ]
+    cmd += _hdr_video_flags(hdr)
+    cmd += [
         "-c:a", audio_codec,
         "-c:s", "copy",
         "-max_muxing_queue_size", "4096",
@@ -210,15 +303,79 @@ def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec):
         "-nostats",
         tmp_out
     ]
+    return cmd
 
-def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec):
-    """Bouw een CPU ffmpeg command (libx265/libx264)."""
-    return [
+def build_amf_cmd(src, tmp_out, codec, preset, qp, audio_codec, hdr: dict = None):
+    """
+    AMD AMF encoder command (hevc_amf / h264_amf).
+    Vereist: /dev/dri device mount in Docker.
+    Kwaliteitsparameter via -qp_i / -qp_p (AMF gebruikt geen globale -crf).
+    """
+    hdr = hdr or {}
+    pix_fmt = "p010le" if hdr.get("hdr_type") else "yuv420p"
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", src,
+        "-c:v", codec,
+        "-quality", preset,   # quality | balanced | speed
+        "-qp_i", qp,
+        "-qp_p", qp,
+        "-pix_fmt", pix_fmt,
+    ]
+    cmd += _hdr_video_flags(hdr)
+    cmd += [
+        "-c:a", audio_codec,
+        "-c:s", "copy",
+        "-max_muxing_queue_size", "4096",
+        "-progress", "pipe:1",
+        "-nostats",
+        tmp_out
+    ]
+    return cmd
+
+def build_qsv_cmd(src, tmp_out, codec, preset, q, audio_codec, hdr: dict = None):
+    """
+    Intel QSV encoder command (hevc_qsv / h264_qsv).
+    Vereist: /dev/dri device mount + Intel iGPU/Arc in Docker.
+    Kwaliteitsparameter via -global_quality (ICQ mode).
+    """
+    hdr = hdr or {}
+    pix_fmt = "p010le" if hdr.get("hdr_type") else "yuv420p"
+    cmd = [
+        "ffmpeg", "-y",
+        "-hwaccel", "qsv",
+        "-i", src,
+        "-c:v", codec,
+        "-preset", preset,
+        "-global_quality", q,
+        "-look_ahead", "1",
+        "-pix_fmt", pix_fmt,
+    ]
+    cmd += _hdr_video_flags(hdr)
+    cmd += [
+        "-c:a", audio_codec,
+        "-c:s", "copy",
+        "-max_muxing_queue_size", "4096",
+        "-progress", "pipe:1",
+        "-nostats",
+        tmp_out
+    ]
+    return cmd
+
+def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec, hdr: dict = None):
+    """CPU ffmpeg command (libx265/libx264) met optionele HDR metadata."""
+    hdr = hdr or {}
+    pix_fmt = "yuv420p10le" if hdr.get("hdr_type") else "yuv420p"
+    cmd = [
         "ffmpeg", "-y",
         "-i", src,
         "-c:v", codec,
         "-preset", preset,
         "-crf", crf,
+        "-pix_fmt", pix_fmt,
+    ]
+    cmd += _hdr_video_flags(hdr)
+    cmd += [
         "-c:a", audio_codec,
         "-c:s", "copy",
         "-max_muxing_queue_size", "4096",
@@ -226,6 +383,7 @@ def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec):
         "-nostats",
         tmp_out
     ]
+    return cmd
 
 
 def needs_conversion(file_path: str, target_codec: str) -> bool:
@@ -390,18 +548,40 @@ def run_conversion(job_id: str):
         pass
 
     gpu_mode = os.environ.get("GPU_MODE", "cpu").lower()
-    is_nvenc = "nvenc" in video_codec and gpu_mode == "nvidia"
 
-    # Als nvenc codec gekozen maar GPU_MODE=cpu, val terug op CPU equivalent
+    # Detecteer HDR metadata in bronbestand
+    hdr_info = detect_hdr(src)
+    if hdr_info.get("hdr_type"):
+        logger.info(f"HDR gedetecteerd: {hdr_info['hdr_type']} — metadata wordt bewaard")
+
+    # Bepaal encoder_type uit profiel (4e veld)
+    profile_data = PROFILES.get(profile_id, None)
+    encoder_type = profile_data[3] if profile_data else "cpu"
+
+    # Fallback logica: als gevraagde encoder niet overeenkomt met GPU_MODE
     effective_codec = video_codec
-    if "nvenc" in video_codec and gpu_mode != "nvidia":
+    if encoder_type == "nvidia" and gpu_mode != "nvidia":
         effective_codec = "libx265" if "hevc" in video_codec else "libx264"
-        logger.warning(f"GPU_MODE is niet 'nvidia' — valt terug op CPU codec: {effective_codec}")
+        encoder_type = "cpu"
+        logger.warning(f"Profiel vraagt NVENC maar GPU_MODE={gpu_mode} — valt terug op CPU: {effective_codec}")
+    elif encoder_type == "amd" and gpu_mode != "amd":
+        effective_codec = "libx265" if "hevc" in video_codec else "libx264"
+        encoder_type = "cpu"
+        logger.warning(f"Profiel vraagt AMD AMF maar GPU_MODE={gpu_mode} — valt terug op CPU: {effective_codec}")
+    elif encoder_type == "intel" and gpu_mode != "intel":
+        effective_codec = "libx265" if "hevc" in video_codec else "libx264"
+        encoder_type = "cpu"
+        logger.warning(f"Profiel vraagt Intel QSV maar GPU_MODE={gpu_mode} — valt terug op CPU: {effective_codec}")
 
-    if is_nvenc:
-        cmd = build_nvenc_cmd(src, tmp_out, effective_codec, preset, quality, audio_codec)
+    # Bouw het juiste ffmpeg command
+    if encoder_type == "nvidia":
+        cmd = build_nvenc_cmd(src, tmp_out, effective_codec, preset, quality, audio_codec, hdr_info)
+    elif encoder_type == "amd":
+        cmd = build_amf_cmd(src, tmp_out, effective_codec, preset, quality, audio_codec, hdr_info)
+    elif encoder_type == "intel":
+        cmd = build_qsv_cmd(src, tmp_out, effective_codec, preset, quality, audio_codec, hdr_info)
     else:
-        cmd = build_cpu_cmd(src, tmp_out, effective_codec, preset, quality, audio_codec)
+        cmd = build_cpu_cmd(src, tmp_out, effective_codec, preset, quality, audio_codec, hdr_info)
 
     original_size = os.path.getsize(src)
     conn.execute("UPDATE queue SET status='processing', started_at=?, original_size=? WHERE id=?",
@@ -1101,26 +1281,98 @@ def api_diagnostics():
 def api_config():
     """Geeft runtime configuratie terug zodat de UI weet welke functies beschikbaar zijn."""
     gpu_mode = os.environ.get("GPU_MODE", "cpu").lower()
-    # Controleer ook of nvidia-smi beschikbaar is als extra check
-    gpu_available = gpu_mode == "nvidia"
     return {
-        "gpu_available": gpu_available,
-        "gpu_mode": gpu_mode,
-        "version": SHRYNC_VERSION,
+        "gpu_available": gpu_mode in ("nvidia", "amd", "intel"),
+        "gpu_mode":      gpu_mode,
+        "version":       SHRYNC_VERSION,
     }
+
+
+@app.get("/api/gpu-monitor")
+def api_gpu_monitor():
+    """
+    Live GPU statistieken voor het dashboard.
+    Ondersteunt Nvidia (nvidia-smi), AMD en Intel (/sys/class/drm).
+    Returnt altijd een geldig object — nooit een error response.
+    """
+    gpu_mode = os.environ.get("GPU_MODE", "cpu").lower()
+    result = {"mode": gpu_mode, "available": False, "gpus": []}
+
+    if gpu_mode == "nvidia":
+        try:
+            out = subprocess.run([
+                "nvidia-smi",
+                "--query-gpu=name,utilization.gpu,utilization.memory,"
+                "memory.used,memory.total,temperature.gpu,encoder.stats.sessionCount",
+                "--format=csv,noheader,nounits"
+            ], capture_output=True, text=True, timeout=5)
+            if out.returncode == 0:
+                for line in out.stdout.strip().splitlines():
+                    parts = [p.strip() for p in line.split(",")]
+                    if len(parts) >= 6:
+                        result["gpus"].append({
+                            "name":          parts[0],
+                            "gpu_util":      int(parts[1]) if parts[1].isdigit() else 0,
+                            "mem_util":      int(parts[2]) if parts[2].isdigit() else 0,
+                            "mem_used_mb":   int(parts[3]) if parts[3].isdigit() else 0,
+                            "mem_total_mb":  int(parts[4]) if parts[4].isdigit() else 0,
+                            "temperature":   int(parts[5]) if parts[5].isdigit() else 0,
+                            "enc_sessions":  int(parts[6]) if len(parts) > 6 and parts[6].isdigit() else 0,
+                        })
+                result["available"] = len(result["gpus"]) > 0
+        except Exception as e:
+            logger.debug(f"nvidia-smi fout: {e}")
+
+    elif gpu_mode in ("amd", "intel"):
+        # AMD en Intel: basis info via /sys/class/drm
+        try:
+            import glob as _glob
+            gpu_entries = []
+            for card in sorted(_glob.glob("/sys/class/drm/card[0-9]")):
+                name_path = f"{card}/device/product_name"
+                util_path = f"{card}/device/gpu_busy_percent"
+                name = open(name_path).read().strip() if os.path.exists(name_path) else (
+                    "AMD GPU" if gpu_mode == "amd" else "Intel GPU"
+                )
+                util = 0
+                if os.path.exists(util_path):
+                    try: util = int(open(util_path).read().strip())
+                    except: pass
+                gpu_entries.append({"name": name, "gpu_util": util,
+                                    "mem_util": 0, "mem_used_mb": 0,
+                                    "mem_total_mb": 0, "temperature": 0,
+                                    "enc_sessions": 0})
+            if gpu_entries:
+                result["gpus"]      = gpu_entries
+                result["available"] = True
+        except Exception as e:
+            logger.debug(f"DRM GPU info fout: {e}")
+
+    return result
 
 
 @app.get("/api/profiles")
 def api_get_profiles():
+    """Geeft alle beschikbare encoder profielen terug met encoder_type label."""
     return [
-        {"id": "nvenc_max",      "label": "NVENC H.265 — Max kwaliteit",    "codec": "hevc_nvenc", "gpu": True},
-        {"id": "nvenc_high",     "label": "NVENC H.265 — Hoge kwaliteit",   "codec": "hevc_nvenc", "gpu": True},
-        {"id": "nvenc_balanced", "label": "NVENC H.265 — Gebalanceerd",     "codec": "hevc_nvenc", "gpu": True},
-        {"id": "h264_nvenc",     "label": "NVENC H.264 — Hoge kwaliteit",   "codec": "h264_nvenc", "gpu": True},
-        {"id": "cpu_slow",       "label": "CPU H.265 — Max kwaliteit",      "codec": "libx265",    "gpu": False},
-        {"id": "cpu_medium",     "label": "CPU H.265 — Gebalanceerd",       "codec": "libx265",    "gpu": False},
-        {"id": "cpu_fast",       "label": "CPU H.265 — Snel",               "codec": "libx265",    "gpu": False},
-        {"id": "h264_cpu",       "label": "CPU H.264 — Gebalanceerd",       "codec": "libx264",    "gpu": False},
+        # ── Nvidia NVENC ──────────────────────────────────────────────────────
+        {"id": "nvenc_max",      "label": "NVENC H.265 — Max kwaliteit",    "codec": "hevc_nvenc", "encoder": "nvidia"},
+        {"id": "nvenc_high",     "label": "NVENC H.265 — Hoge kwaliteit",   "codec": "hevc_nvenc", "encoder": "nvidia"},
+        {"id": "nvenc_balanced", "label": "NVENC H.265 — Gebalanceerd",     "codec": "hevc_nvenc", "encoder": "nvidia"},
+        {"id": "h264_nvenc",     "label": "NVENC H.264 — Hoge kwaliteit",   "codec": "h264_nvenc", "encoder": "nvidia"},
+        # ── AMD AMF ───────────────────────────────────────────────────────────
+        {"id": "amf_max",        "label": "AMF H.265 — Max kwaliteit",      "codec": "hevc_amf",   "encoder": "amd"},
+        {"id": "amf_balanced",   "label": "AMF H.265 — Gebalanceerd",       "codec": "hevc_amf",   "encoder": "amd"},
+        {"id": "h264_amf",       "label": "AMF H.264 — Hoge kwaliteit",     "codec": "h264_amf",   "encoder": "amd"},
+        # ── Intel QSV ─────────────────────────────────────────────────────────
+        {"id": "qsv_max",        "label": "QSV H.265 — Max kwaliteit",      "codec": "hevc_qsv",   "encoder": "intel"},
+        {"id": "qsv_balanced",   "label": "QSV H.265 — Gebalanceerd",       "codec": "hevc_qsv",   "encoder": "intel"},
+        {"id": "h264_qsv",       "label": "QSV H.264 — Hoge kwaliteit",     "codec": "h264_qsv",   "encoder": "intel"},
+        # ── CPU ───────────────────────────────────────────────────────────────
+        {"id": "cpu_slow",       "label": "CPU H.265 — Max kwaliteit",      "codec": "libx265",    "encoder": "cpu"},
+        {"id": "cpu_medium",     "label": "CPU H.265 — Gebalanceerd",       "codec": "libx265",    "encoder": "cpu"},
+        {"id": "cpu_fast",       "label": "CPU H.265 — Snel",               "codec": "libx265",    "encoder": "cpu"},
+        {"id": "h264_cpu",       "label": "CPU H.264 — Gebalanceerd",       "codec": "libx264",    "encoder": "cpu"},
     ]
 
 @app.get("/api/history")

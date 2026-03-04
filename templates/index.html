@@ -281,18 +281,40 @@ tr:hover td{background:rgba(255,255,255,.025)}
   font-size:13px;font-family:inherit;transition:border-color .18s,background .18s}
 .form-input:focus{outline:none;border-color:rgba(59,130,246,.55);background:rgba(59,130,246,.07);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
 .form-input option{background:#121a2e;color:var(--text)}
-/* Profiles */
-.profile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px}
+/* Profiles — encoder groepen */
+.profile-group{margin-bottom:16px}
+.profile-group-disabled{opacity:.45}
+.profile-group-hdr{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.profile-group-na{font-size:10px;color:var(--text-t);font-style:italic}
+.profile-grid-inner{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
 .profile-card{padding:12px 14px;border-radius:var(--rxs);border:1px solid var(--border);
   background:rgba(255,255,255,.05);cursor:pointer;transition:all .18s;user-select:none}
 .profile-card:hover{background:rgba(255,255,255,.09);border-color:var(--bhi)}
 .profile-card.selected{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4);box-shadow:0 0 0 2px rgba(59,130,246,.2)}
 .profile-name{font-size:13px;font-weight:600;margin-bottom:4px}
-.pbadge{display:inline-block;font-size:9px;font-weight:700;padding:1px 7px;border-radius:20px;
-  text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.pbadge.gpu{background:rgba(59,130,246,.2);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
-.pbadge.cpu{background:rgba(52,211,153,.15);color:#6ee7b7;border:1px solid rgba(52,211,153,.25)}
+.pbadge{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;
+  text-transform:uppercase;letter-spacing:.5px}
+.pbadge-nvidia{background:rgba(118,185,0,.2);color:#a3d977;border:1px solid rgba(118,185,0,.3)}
+.pbadge-amd   {background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.25)}
+.pbadge-intel {background:rgba(59,130,246,.2);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+.pbadge-cpu   {background:rgba(52,211,153,.15);color:#6ee7b7;border:1px solid rgba(52,211,153,.25)}
 .profile-desc{font-size:10px;color:var(--text-t)}
+/* GPU Monitor widget */
+.gpu-monitor{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px 18px;margin-bottom:18px}
+.gpu-monitor-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.gpu-monitor-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s)}
+.gpu-monitor-name{font-size:11px;color:var(--text-t)}
+.gpu-bars{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.gpu-bar-item{display:flex;flex-direction:column;gap:4px}
+.gpu-bar-label{font-size:10px;color:var(--text-s);display:flex;justify-content:space-between}
+.gpu-bar-track{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.gpu-bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.gpu-bar-fill.util{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+.gpu-bar-fill.mem {background:linear-gradient(90deg,#8b5cf6,#a78bfa)}
+.gpu-bar-fill.temp{background:linear-gradient(90deg,#f59e0b,#fcd34d)}
+.gpu-temp-val{font-size:13px;font-weight:700;color:var(--text)}
+.gpu-enc-val {font-size:11px;color:var(--text-s)}
 
 /* ── Modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
@@ -307,10 +329,12 @@ tr:hover td{background:rgba(255,255,255,.025)}
 .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
 
 /* ── Hamburger ── */
-.hamburger{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:8px;
-  border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.07);flex-shrink:0}
-.hamburger span{display:block;width:16px;height:1.5px;background:var(--text-s);border-radius:1px}
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;backdrop-filter:blur(6px)}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:10px;
+  border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.07);
+  flex-shrink:0;min-width:40px;min-height:40px;align-items:center;justify-content:center}
+.hamburger span{display:block;width:18px;height:2px;background:var(--text-s);border-radius:2px;transition:all .2s}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .sidebar-overlay.open{display:block}
 
 /* ── Toast ── */
@@ -325,22 +349,44 @@ tr:hover td{background:rgba(255,255,255,.025)}
 
 /* ── Responsive ── */
 @media(max-width:768px){
-  .app{padding:9px;gap:9px}
-  .sidebar{position:fixed;left:-230px;top:0;height:100dvh;border-radius:0 var(--r) var(--r) 0;z-index:101;transition:left .3s cubic-bezier(.4,0,.2,1)}
+  .app{padding:0;gap:0;flex-direction:column}
+  .main{border-radius:0;min-height:100dvh}
+  .header{padding:12px 14px;position:sticky;top:0;z-index:50;
+    background:rgba(8,15,31,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-radius:0;border-bottom:1px solid var(--border)}
+  .content{padding:12px 14px}
+  /* Sidebar als slide-in drawer */
+  .sidebar{position:fixed;left:-260px;top:0;width:240px;height:100dvh;
+    border-radius:0 16px 16px 0;z-index:101;
+    transition:left .28s cubic-bezier(.4,0,.2,1);
+    box-shadow:4px 0 32px rgba(0,0,0,.5)}
   .sidebar.open{left:0}
   .hamburger{display:flex}
-  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .btn-pause span, #btn-scan-label{display:none}
+  .btn-label-text{display:none}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px}
   .lib-grid,.profile-grid{grid-template-columns:1fr}
-  .sav-nums{gap:14px}
-  .sav-item-val{font-size:26px}
+  .sav-nums{gap:10px;flex-wrap:wrap}
+  .sav-item-val{font-size:24px}
   .sav-div{display:none}
-  .table-wrap,.panel{overflow-x:auto}
-  table{min-width:440px}
+  .table-wrap,.panel{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:480px}
   .form-row{grid-template-columns:1fr}
   .sec-hdr{flex-direction:column;align-items:flex-start;gap:8px}
   .detail-grid{grid-template-columns:repeat(2,1fr)}
+  .modal{margin:16px;max-width:calc(100vw - 32px)}
+  .worker-btn{width:44px;height:44px;font-size:16px}
+  .page-title{font-size:16px}
+  .page-sub{font-size:10px}
+  .stat-card{padding:14px}
+  .stat-value{font-size:26px}
 }
-@media(max-width:380px){.stats-grid{grid-template-columns:1fr}}
+@media(max-width:420px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .header{padding:10px 12px}
+  .content{padding:10px 12px}
+}
+@media(max-width:340px){.stats-grid{grid-template-columns:1fr}}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
@@ -393,9 +439,13 @@ tr:hover td{background:rgba(255,255,255,.025)}
         <div class="page-sub"   id="page-sub">Systeem overzicht</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-pause" id="btn-pause" onclick="togglePause()" data-paused="0">⏸ <span id="btn-pause-label">Pauzeren</span></button>
-      <button class="btn" onclick="scanAll()">⟳ <span id="btn-scan-label">Alles scannen</span></button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-pause" id="btn-pause" onclick="togglePause()" data-paused="0">
+        <span id="btn-pause-icon">⏸</span><span class="btn-label-text" id="btn-pause-label"> Pauzeren</span>
+      </button>
+      <button class="btn" onclick="scanAll()">
+        <span>⟳</span><span class="btn-label-text" id="btn-scan-label"> Alles scannen</span>
+      </button>
     </div>
   </div>
 
@@ -413,6 +463,31 @@ tr:hover td{background:rgba(255,255,255,.025)}
           <div class="stat-value c-green" id="stat-saved">—</div>
         </div>
         <div class="stat-card"><div class="stat-label" id="lbl-stat-libs">Bibliotheken</div><div class="stat-value" id="stat-libs">—</div></div>
+      </div>
+
+      <!-- GPU Monitor widget — alleen zichtbaar als GPU actief -->
+      <div class="gpu-monitor" id="gpu-monitor-widget" style="display:none">
+        <div class="gpu-monitor-hdr">
+          <span class="gpu-monitor-title" id="gpu-monitor-title">GPU Monitor</span>
+          <span class="gpu-monitor-name" id="gpu-monitor-name"></span>
+        </div>
+        <div class="gpu-bars" id="gpu-bars-container">
+          <div class="gpu-bar-item">
+            <div class="gpu-bar-label"><span id="lbl-gpu-util">GPU gebruik</span><span id="gpu-util-val">—</span></div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill util" id="gpu-util-bar" style="width:0%"></div></div>
+          </div>
+          <div class="gpu-bar-item">
+            <div class="gpu-bar-label"><span id="lbl-gpu-mem">VRAM gebruik</span><span id="gpu-mem-val">—</span></div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill mem" id="gpu-mem-bar" style="width:0%"></div></div>
+          </div>
+          <div class="gpu-bar-item">
+            <div class="gpu-bar-label"><span id="lbl-gpu-temp">Temperatuur</span><span id="gpu-temp-val">—</span></div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill temp" id="gpu-temp-bar" style="width:0%"></div></div>
+          </div>
+          <div class="gpu-bar-item" id="gpu-enc-item">
+            <div class="gpu-bar-label"><span id="lbl-gpu-enc">Encoder sessies</span><span id="gpu-enc-val">—</span></div>
+          </div>
+        </div>
       </div>
 
       <div class="active-card" id="active-job-section" style="display:none">
@@ -651,6 +726,12 @@ const T = {
       nvenc_high:    { name:'NVENC H.265 — High quality',   desc:'High quality, efficient GPU encode' },
       nvenc_balanced:{ name:'NVENC H.265 — Balanced',       desc:'Good quality, fast GPU encode' },
       h264_nvenc:    { name:'NVENC H.264 — High quality',   desc:'H.264 GPU encode, broad compatibility' },
+      amf_max:       { name:'AMF H.265 — Max quality',      desc:'Highest quality AMD GPU encode' },
+      amf_balanced:  { name:'AMF H.265 — Balanced',         desc:'Good quality, fast AMD GPU encode' },
+      h264_amf:      { name:'AMF H.264 — High quality',     desc:'H.264 AMD GPU encode' },
+      qsv_max:       { name:'QSV H.265 — Max quality',      desc:'Highest quality Intel GPU encode' },
+      qsv_balanced:  { name:'QSV H.265 — Balanced',         desc:'Good quality, fast Intel GPU encode' },
+      h264_qsv:      { name:'QSV H.264 — High quality',     desc:'H.264 Intel GPU encode' },
       cpu_slow:      { name:'CPU H.265 — Max quality',      desc:'Best quality, very slow CPU encode' },
       cpu_medium:    { name:'CPU H.265 — Balanced',         desc:'Good quality/speed balance' },
       cpu_fast:      { name:'CPU H.265 — Fast',             desc:'Fast CPU encode, lower quality' },
@@ -707,6 +788,12 @@ const T = {
       nvenc_high:    { name:'NVENC H.265 — Hoge kwaliteit',   desc:'Hoge kwaliteit, efficiënte GPU-codering' },
       nvenc_balanced:{ name:'NVENC H.265 — Gebalanceerd',     desc:'Goede kwaliteit, snelle GPU-codering' },
       h264_nvenc:    { name:'NVENC H.264 — Hoge kwaliteit',   desc:'H.264 GPU-codering, brede compatibiliteit' },
+      amf_max:       { name:'AMF H.265 — Max kwaliteit',      desc:'Hoogste kwaliteit AMD GPU-codering' },
+      amf_balanced:  { name:'AMF H.265 — Gebalanceerd',       desc:'Goede kwaliteit, snelle AMD GPU-codering' },
+      h264_amf:      { name:'AMF H.264 — Hoge kwaliteit',     desc:'H.264 AMD GPU-codering' },
+      qsv_max:       { name:'QSV H.265 — Max kwaliteit',      desc:'Hoogste kwaliteit Intel GPU-codering' },
+      qsv_balanced:  { name:'QSV H.265 — Gebalanceerd',       desc:'Goede kwaliteit, snelle Intel GPU-codering' },
+      h264_qsv:      { name:'QSV H.264 — Hoge kwaliteit',     desc:'H.264 Intel GPU-codering' },
       cpu_slow:      { name:'CPU H.265 — Max kwaliteit',      desc:'Beste kwaliteit, zeer trage CPU-codering' },
       cpu_medium:    { name:'CPU H.265 — Gebalanceerd',       desc:'Goede balans kwaliteit/snelheid' },
       cpu_fast:      { name:'CPU H.265 — Snel',               desc:'Snelle CPU-codering, lagere kwaliteit' },
@@ -974,11 +1061,74 @@ async function loadActiveJob() {
   } catch(e) {}
 }
 
+// ── GPU Monitor ────────────────────────────────────────────────────────────────
+let _gpuMonitorInterval = null;
+
+async function loadGpuMonitor() {
+  try {
+    const d = await fetch('/api/gpu-monitor').then(r => r.json());
+    const widget = document.getElementById('gpu-monitor-widget');
+    if (!d.available || !d.gpus || !d.gpus.length) {
+      if (widget) widget.style.display = 'none';
+      return;
+    }
+    if (widget) widget.style.display = '';
+
+    const gpu = d.gpus[0];
+    const nameEl = document.getElementById('gpu-monitor-name');
+    if (nameEl) nameEl.textContent = gpu.name || '';
+
+    // Util bar
+    const utilVal = document.getElementById('gpu-util-val');
+    const utilBar = document.getElementById('gpu-util-bar');
+    if (utilVal) utilVal.textContent = gpu.gpu_util + '%';
+    if (utilBar) utilBar.style.width = Math.min(gpu.gpu_util, 100) + '%';
+
+    // VRAM bar
+    const memVal = document.getElementById('gpu-mem-val');
+    const memBar = document.getElementById('gpu-mem-bar');
+    if (gpu.mem_total_mb > 0) {
+      const memPct = Math.round((gpu.mem_used_mb / gpu.mem_total_mb) * 100);
+      if (memVal) memVal.textContent = Math.round(gpu.mem_used_mb/1024*10)/10 + ' / ' + Math.round(gpu.mem_total_mb/1024*10)/10 + ' GB';
+      if (memBar) memBar.style.width = memPct + '%';
+    } else {
+      if (memVal) memVal.textContent = '—';
+    }
+
+    // Temperatuur bar (max 100°C voor display)
+    const tempVal = document.getElementById('gpu-temp-val');
+    const tempBar = document.getElementById('gpu-temp-bar');
+    if (gpu.temperature > 0) {
+      if (tempVal) tempVal.textContent = gpu.temperature + '°C';
+      if (tempBar) tempBar.style.width = Math.min(gpu.temperature, 100) + '%';
+      // Kleur op temperatuur
+      if (tempBar) {
+        if (gpu.temperature >= 80) tempBar.style.background = 'linear-gradient(90deg,#ef4444,#f87171)';
+        else if (gpu.temperature >= 65) tempBar.style.background = 'linear-gradient(90deg,#f59e0b,#fcd34d)';
+        else tempBar.style.background = 'linear-gradient(90deg,#10b981,#34d399)';
+      }
+    } else {
+      if (tempVal) tempVal.textContent = '—';
+    }
+
+    // Encoder sessies (alleen Nvidia)
+    const encVal  = document.getElementById('gpu-enc-val');
+    const encItem = document.getElementById('gpu-enc-item');
+    if (d.mode === 'nvidia' && encItem) {
+      encItem.style.display = '';
+      if (encVal) encVal.textContent = gpu.enc_sessions + ' actief';
+    } else if (encItem) {
+      encItem.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
 // ── Dashboard ──────────────────────────────────────────────────────────────────
 async function loadDashboard() {
   await loadStats();
   await loadWorkerStatus();
   await loadActiveJob();
+  await loadGpuMonitor();
   await loadDashboardQueue();
   await loadRecent();
 }
@@ -1357,60 +1507,83 @@ async function loadSavings() {
 }
 
 // ── Settings ───────────────────────────────────────────────────────────────────
-const PROFILE_IDS = ['nvenc_max','nvenc_high','nvenc_balanced','h264_nvenc','cpu_slow','cpu_medium','cpu_fast','h264_cpu'];
-const PROFILE_GPU = { nvenc_max:true, nvenc_high:true, nvenc_balanced:true, h264_nvenc:true, cpu_slow:false, cpu_medium:false, cpu_fast:false, h264_cpu:false };
+// Encoder groepen — alle profielen per type
+const ENCODER_GROUPS = [
+  { type: 'nvidia', label: 'Nvidia NVENC', badge: 'nvidia',
+    ids: ['nvenc_max','nvenc_high','nvenc_balanced','h264_nvenc'] },
+  { type: 'amd',    label: 'AMD AMF',      badge: 'amd',
+    ids: ['amf_max','amf_balanced','h264_amf'] },
+  { type: 'intel',  label: 'Intel QSV',    badge: 'intel',
+    ids: ['qsv_max','qsv_balanced','h264_qsv'] },
+  { type: 'cpu',    label: 'CPU',          badge: 'cpu',
+    ids: ['cpu_slow','cpu_medium','cpu_fast','h264_cpu'] },
+];
+const PROFILE_ENCODER = {};
+ENCODER_GROUPS.forEach(g => g.ids.forEach(id => PROFILE_ENCODER[id] = g.type));
 
-// Runtime GPU beschikbaarheid — wordt ingesteld vanuit /api/config bij opstarten
+// Runtime GPU modus — wordt ingesteld vanuit /api/config bij opstarten
 let gpuAvailable = false;
+let gpuMode      = 'cpu';
 
 function renderProfiles(selected) {
-  const grid = document.getElementById('profile-grid');
-  if (!grid) return;
+  const container = document.getElementById('profile-grid');
+  if (!container) return;
 
-  // Toon alleen GPU-profielen als de container met GPU-modus is gestart
-  const visibleIds = gpuAvailable
-    ? PROFILE_IDS
-    : PROFILE_IDS.filter(id => !PROFILE_GPU[id]);
-
-  // Als het geselecteerde profiel een GPU-profiel is maar geen GPU beschikbaar:
-  // selecteer automatisch het eerste CPU-profiel
+  // Automatische fallback naar CPU als geselecteerd profiel niet beschikbaar
   let effectiveSelected = selected;
-  if (!gpuAvailable && PROFILE_GPU[selected]) {
+  if (PROFILE_ENCODER[selected] !== 'cpu' && PROFILE_ENCODER[selected] !== gpuMode) {
     effectiveSelected = 'cpu_medium';
     document.getElementById('selected-profile').value = effectiveSelected;
   }
 
-  grid.innerHTML = visibleIds.map(id => {
-    const isGpu = PROFILE_GPU[id];
-    const pName = t('profiles.' + id + '.name');
-    const pDesc = t('profiles.' + id + '.desc');
-    return `<div class="profile-card${effectiveSelected === id ? ' selected' : ''}" onclick="selectProfile('${id}')">
-      <div class="pbadge ${isGpu ? 'gpu' : 'cpu'}">${isGpu ? 'GPU' : 'CPU'}</div>
-      <div class="profile-name">${pName}</div>
-      <div class="profile-desc">${pDesc}</div>
-    </div>`;
-  }).join('');
+  let html = '';
+  ENCODER_GROUPS.forEach(group => {
+    const available = group.type === 'cpu' || group.type === gpuMode;
+    if (!available) {
+      // Grijze collapsed sectie voor niet-beschikbare encoders
+      html += `<div class="profile-group profile-group-disabled">
+        <div class="profile-group-hdr">
+          <span class="pbadge pbadge-${group.type}">${group.label}</span>
+          <span class="profile-group-na">Niet beschikbaar</span>
+        </div>
+      </div>`;
+      return;
+    }
+    html += `<div class="profile-group">
+      <div class="profile-group-hdr">
+        <span class="pbadge pbadge-${group.type}">${group.label}</span>
+      </div>
+      <div class="profile-grid-inner">`;
+    group.ids.forEach(id => {
+      const pName = t('profiles.' + id + '.name');
+      const pDesc = t('profiles.' + id + '.desc');
+      html += `<div class="profile-card${effectiveSelected === id ? ' selected' : ''}" onclick="selectProfile('${id}')">
+        <div class="profile-name">${pName}</div>
+        <div class="profile-desc">${pDesc}</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
 
-  // Verberg de NVENC-waarschuwing als er geen GPU is
-  const warn = document.getElementById('nvenc-warning');
-  if (warn && !gpuAvailable) warn.style.display = 'none';
+  container.innerHTML = html;
 
-  // Toon GPU-status banner in de instellingenpagina
+  // GPU status banner
   const banner = document.getElementById('gpu-status-banner');
   if (banner) {
-    if (gpuAvailable) {
-      banner.style.display = '';
-      banner.style.background = 'rgba(52,211,153,.08)';
-      banner.style.borderColor = 'rgba(52,211,153,.25)';
-      banner.style.color = 'var(--success)';
-      banner.textContent = '✓ Nvidia GPU beschikbaar — NVENC profielen ingeschakeld';
+    if (gpuMode === 'nvidia') {
+      banner.style.cssText = 'background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.25);color:var(--success)';
+      banner.textContent   = '✓ Nvidia GPU actief — NVENC profielen ingeschakeld';
+    } else if (gpuMode === 'amd') {
+      banner.style.cssText = 'background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);color:#fca5a5';
+      banner.textContent   = '✓ AMD GPU actief — AMF profielen ingeschakeld';
+    } else if (gpuMode === 'intel') {
+      banner.style.cssText = 'background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.25);color:#93c5fd';
+      banner.textContent   = '✓ Intel GPU actief — QSV profielen ingeschakeld';
     } else {
-      banner.style.display = '';
-      banner.style.background = 'rgba(255,255,255,.04)';
-      banner.style.borderColor = 'rgba(255,255,255,.1)';
-      banner.style.color = 'var(--text-s)';
-      banner.textContent = 'ℹ CPU modus — GPU_MODE is niet ingesteld op nvidia. Alleen CPU-profielen beschikbaar.';
+      banner.style.cssText = 'background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);color:var(--text-s)';
+      banner.textContent   = 'ℹ CPU modus — geen GPU gedetecteerd. Alleen CPU-profielen beschikbaar.';
     }
+    banner.style.display = '';
   }
 }
 
@@ -1426,14 +1599,14 @@ async function loadSettings() {
       fetch('/api/config').then(r => r.json()),
     ]);
     gpuAvailable = cfg.gpu_available === true;
+    gpuMode      = cfg.gpu_mode || 'cpu';
     currentWorkers = parseInt(s.max_workers || 1);
     updateWorkerUI(currentWorkers);
-    const profile = s.conversion_profile || (gpuAvailable ? 'nvenc_max' : 'cpu_medium');
+    const profile = s.conversion_profile || (gpuMode === 'nvidia' ? 'nvenc_max' : gpuMode === 'amd' ? 'amf_balanced' : gpuMode === 'intel' ? 'qsv_balanced' : 'cpu_medium');
     document.getElementById('selected-profile').value = profile;
     renderProfiles(profile);
     const audio = document.getElementById('global-audio');
     if (audio) audio.value = s.audio_codec || 'copy';
-    // Language buttons
     document.getElementById('lang-en').classList.toggle('active', lang === 'en');
     document.getElementById('lang-nl').classList.toggle('active', lang === 'nl');
   } catch(e) {}
@@ -1575,14 +1748,15 @@ setInterval(() => {
 // ── Init ───────────────────────────────────────────────────────────────────────
 (async () => {
   await initLanguage();
-  // Haal runtime config op voor GPU-status en versienummer
   try {
     const cfg = await fetch('/api/config').then(r => r.json());
     gpuAvailable = cfg.gpu_available === true;
+    gpuMode      = cfg.gpu_mode || 'cpu';
     const verEl = document.getElementById('app-version');
     if (verEl && cfg.version) verEl.textContent = 'v' + cfg.version;
   } catch(e) {}
-  renderProfiles(gpuAvailable ? 'nvenc_max' : 'cpu_medium');
+  const defaultProfile = gpuMode === 'nvidia' ? 'nvenc_max' : gpuMode === 'amd' ? 'amf_balanced' : gpuMode === 'intel' ? 'qsv_balanced' : 'cpu_medium';
+  renderProfiles(defaultProfile);
   loadDashboard();
 })();
 </script>
