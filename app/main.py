@@ -469,6 +469,7 @@ def scan_library(library_id: str):
             if existing:
                 skipped += 1
                 scan_status[library_id]["skipped"] = skipped
+                scan_status[library_id]["last_skip"] = {"file": fname, "reason": "already_queued"}
                 continue
 
             done = conn.execute(
@@ -477,6 +478,7 @@ def scan_library(library_id: str):
             if done:
                 skipped += 1
                 scan_status[library_id]["skipped"] = skipped
+                scan_status[library_id]["last_skip"] = {"file": fname, "reason": "already_converted"}
                 continue
 
             # Mislukte conversie: verwijder oude foutmelding en voeg opnieuw toe
@@ -493,6 +495,7 @@ def scan_library(library_id: str):
             if not needs_conversion(fpath, global_codec):
                 already_converted += 1
                 scan_status[library_id]["already_converted"] = already_converted
+                scan_status[library_id]["last_skip"] = {"file": fname, "reason": "codec_match", "codec": global_codec}
                 continue
 
             fsize = os.path.getsize(fpath)
@@ -563,7 +566,7 @@ def run_conversion(job_id: str):
         logger.info(f"HDR gedetecteerd: {hdr_info['hdr_type']} — metadata wordt bewaard")
 
     # Bepaal encoder_type uit profiel (4e veld)
-    profile_data = PROFILES.get(profile_id, None)
+    profile_data = PROFILES.get(profile, None)
     encoder_type = profile_data[3] if profile_data else "cpu"
 
     # Fallback logica: als gevraagde encoder niet overeenkomt met GPU_MODE
@@ -1112,6 +1115,62 @@ def api_scan_status_single(lid: str):
 @app.get("/api/scan-status")
 def api_all_scan_status():
     return scan_status
+
+@app.get("/api/libraries/{lid}/skipped")
+def api_skipped_files(lid: str):
+    """
+    Geeft de overgeslagen bestanden terug voor een bibliotheek met reden.
+    - already_converted : codec komt al overeen met doelprofiel
+    - already_queued    : staat al in de wachtrij
+    """
+    conn = get_db()
+    lib = conn.execute("SELECT * FROM libraries WHERE id=?", (lid,)).fetchone()
+    if not lib:
+        conn.close()
+        raise HTTPException(404, "Bibliotheek niet gevonden")
+
+    path = lib["path"]
+    profile_id = get_global_setting('conversion_profile', 'nvenc_max')
+    global_codec, _, _, _ = profile_to_ffmpeg(profile_id)
+
+    skipped = []
+    try:
+        for root, dirs, files in os.walk(path):
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            for fname in files:
+                ext = Path(fname).suffix.lower()
+                if ext not in VIDEO_EXTENSIONS:
+                    continue
+                fpath = os.path.join(root, fname)
+                if fname.startswith("shryncing-"):
+                    continue
+
+                # Al in wachtrij?
+                existing = conn.execute(
+                    "SELECT id FROM queue WHERE file_path=? AND status IN ('pending','processing')", (fpath,)
+                ).fetchone()
+                if existing:
+                    skipped.append({"file": fname, "path": fpath, "reason": "already_queued"})
+                    continue
+
+                # Al succesvol geconverteerd?
+                done = conn.execute(
+                    "SELECT id FROM history WHERE file_path=? AND status='success'", (fpath,)
+                ).fetchone()
+                if done:
+                    skipped.append({"file": fname, "path": fpath, "reason": "already_converted"})
+                    continue
+
+                # Codec al correct?
+                if not needs_conversion(fpath, global_codec):
+                    skipped.append({"file": fname, "path": fpath, "reason": "codec_match",
+                                    "detail": f"Al {global_codec.replace('hevc','H.265').replace('libx264','H.264').replace('h264','H.264')}"})
+    except Exception as e:
+        conn.close()
+        raise HTTPException(500, str(e))
+
+    conn.close()
+    return {"library": dict(lib), "profile": profile_id, "codec": global_codec, "skipped": skipped}
 
 @app.get("/api/queue")
 def api_queue(status: Optional[str] = None):

@@ -678,6 +678,20 @@ tr:hover td{background:rgba(255,255,255,.025)}
   </div>
 </div>
 
+
+<div class="modal-overlay" id="skip-modal" onclick="if(event.target===this)closeSkipModal()">
+  <div class="modal" style="max-width:680px;max-height:80vh;display:flex;flex-direction:column">
+    <div class="modal-title" id="skip-modal-title">Overgeslagen bestanden</div>
+    <div style="font-size:11px;color:var(--text-s);margin-bottom:14px" id="skip-modal-sub"></div>
+    <div style="overflow-y:auto;flex:1;border-radius:var(--rxs);border:1px solid var(--border)" id="skip-modal-body">
+      <div class="empty"><div class="empty-text">Laden…</div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeSkipModal()">Sluiten</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 
 <script>
@@ -704,7 +718,7 @@ const T = {
              nvencWarn:'⚠ Nvidia GPUs have a default limit of 3 concurrent NVENC sessions. Install nvidia-patch to use >1 worker with NVENC.' },
     lib:   { add:'Add library', edit:'Edit library', addBtn:'Add library', name:'Name', path:'Path (folder)',
              cancel:'Cancel', save:'Save',
-             scan:'Scan', edit:'Edit', delete:'Delete', lastScan:'Last scan', neverScanned:'Never scanned' },
+             scan:'Scan', showSkipped:'Skipped files', edit:'Edit', delete:'Delete', lastScan:'Last scan', neverScanned:'Never scanned', skippedCount:'files skipped', profile:'Profile', noSkipped:'No skipped files', skipReasonCodec:'Already correct codec', skipReasonHistory:'Already converted', skipReasonQueued:'Already in queue' },
     btn:   { pause:'Pause', resume:'Resume', scanAll:'Scan all' },
     misc:  { activeConv:'Active conversion', jobs:'jobs', jobRemoved:'Job removed',
              libSaved:'Library saved', libUpdated:'Library updated', libAdded:'Library added', libDeleted:'Library deleted',
@@ -766,7 +780,7 @@ const T = {
              nvencWarn:"⚠ Nvidia GPU's hebben standaard een limiet van 3 NVENC-sessies. Installeer de nvidia-patch voor meer dan 1 worker." },
     lib:   { add:'Bibliotheek toevoegen', edit:'Bibliotheek bewerken', addBtn:'Bibliotheek toevoegen',
              name:'Naam', path:'Pad (map)', cancel:'Annuleren', save:'Opslaan',
-             scan:'Scannen', edit:'Bewerken', delete:'Verwijderen', lastScan:'Laatste scan', neverScanned:'Nog nooit gescand' },
+             scan:'Scannen', showSkipped:'Overgeslagen', edit:'Bewerken', delete:'Verwijderen', lastScan:'Laatste scan', neverScanned:'Nog nooit gescand', skippedCount:'bestanden overgeslagen', profile:'Profiel', noSkipped:'Geen overgeslagen bestanden', skipReasonCodec:'Codec al correct', skipReasonHistory:'Al geconverteerd', skipReasonQueued:'Al in wachtrij' },
     btn:   { pause:'Pauzeren', resume:'Hervatten', scanAll:'Alles scannen' },
     misc:  { activeConv:'Actieve conversie', jobs:'taken', jobRemoved:'Taak verwijderd',
              libSaved:'Bibliotheek opgeslagen', libUpdated:'Bibliotheek bijgewerkt', libAdded:'Bibliotheek toegevoegd', libDeleted:'Bibliotheek verwijderd',
@@ -1252,6 +1266,7 @@ async function loadLibraries() {
           <div class="lib-scan-status" data-lib-id="${l.id}">${scanStatusHtml(scan)}</div>
           <div class="lib-actions">
             <button class="btn btn-sm" onclick="scanLib('${l.id}')">${t('lib.scan')}</button>
+            <button class="btn btn-sm" onclick="showSkipped('${l.id}','${l.name}')">${t('lib.showSkipped')}</button>
             <button class="btn btn-sm" onclick="editLib(${JSON.stringify(l).replace(/"/g,'&quot;')})">${t('lib.edit')}</button>
             <button class="btn btn-sm btn-danger" onclick="deleteLib('${l.id}')">${t('lib.delete')}</button>
           </div>
@@ -1290,6 +1305,63 @@ async function loadLibraries() {
       _libScanInterval = null;
     }
   } catch(e) { console.error('loadLibraries:', e); }
+}
+
+// ── Skip modal ─────────────────────────────────────────────────────────────────
+async function showSkipped(lid, libName) {
+  const modal = document.getElementById('skip-modal');
+  const title = document.getElementById('skip-modal-title');
+  const sub   = document.getElementById('skip-modal-sub');
+  const body  = document.getElementById('skip-modal-body');
+  title.textContent = t('lib.showSkipped') + ' — ' + libName;
+  sub.textContent   = '';
+  body.innerHTML    = '<div class="empty"><div class="empty-text">Laden…</div></div>';
+  modal.classList.add('open');
+
+  try {
+    const d = await fetch('/api/libraries/' + lid + '/skipped').then(r => r.json());
+    const items = d.skipped || [];
+    sub.textContent = items.length + ' ' + t('lib.skippedCount') + ' · ' + t('lib.profile') + ': ' + d.profile;
+
+    if (!items.length) {
+      body.innerHTML = '<div class="empty"><div class="empty-text">' + t('lib.noSkipped') + '</div></div>';
+      return;
+    }
+
+    // Groepeer per reden
+    const groups = {
+      codec_match:      { label: t('lib.skipReasonCodec'),   color: 'var(--text-s)', items: [] },
+      already_converted:{ label: t('lib.skipReasonHistory'), color: 'var(--green)',   items: [] },
+      already_queued:   { label: t('lib.skipReasonQueued'),  color: '#60a5fa',        items: [] },
+    };
+    for (const item of items) {
+      const g = groups[item.reason] || groups.codec_match;
+      g.items.push(item);
+    }
+
+    let html = '<table style="width:100%;border-collapse:collapse">';
+    html += '<thead><tr style="border-bottom:1px solid var(--border);background:rgba(255,255,255,.03)">';
+    html += '<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s)">Bestand</th>';
+    html += '<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s);width:200px">Reden</th>';
+    html += '</tr></thead><tbody>';
+
+    for (const item of items) {
+      const g = groups[item.reason] || groups.codec_match;
+      html += '<tr style="border-bottom:1px solid rgba(255,255,255,.04)">';
+      html += '<td style="padding:7px 14px"><div style="font-size:11px;font-weight:500;color:var(--text)">' + item.file + '</div>';
+      html += '<div style="font-size:10px;color:var(--text-t);margin-top:1px">' + item.path.replace(item.file,'') + '</div></td>';
+      html += '<td style="padding:7px 14px"><span style="font-size:10px;color:' + g.color + '">' + g.label + (item.detail ? ' (' + item.detail + ')' : '') + '</span></td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    body.innerHTML = html;
+  } catch(e) {
+    body.innerHTML = '<div class="empty"><div class="empty-text">Fout bij laden</div></div>';
+  }
+}
+
+function closeSkipModal() {
+  document.getElementById('skip-modal').classList.remove('open');
 }
 
 function openAddLib() {
