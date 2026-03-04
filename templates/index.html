@@ -300,19 +300,26 @@ tr:hover td{background:rgba(255,255,255,.025)}
 .pbadge-cpu   {background:rgba(52,211,153,.15);color:#6ee7b7;border:1px solid rgba(52,211,153,.25)}
 .profile-desc{font-size:10px;color:var(--text-t)}
 /* GPU Monitor widget */
-.gpu-monitor{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--r);
-  padding:16px 18px;margin-bottom:18px}
-.gpu-monitor-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.gpu-monitor-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s)}
+.gpu-monitor{
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);
+  overflow:hidden;margin-bottom:11px;position:relative}
+.gpu-monitor::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);pointer-events:none}
+.gpu-monitor-hdr{
+  padding:13px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%)}
+.gpu-monitor-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-s)}
 .gpu-monitor-name{font-size:11px;color:var(--text-t)}
-.gpu-bars{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
-.gpu-bar-item{display:flex;flex-direction:column;gap:4px}
-.gpu-bar-label{font-size:10px;color:var(--text-s);display:flex;justify-content:space-between}
-.gpu-bar-track{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
-.gpu-bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.gpu-bars{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;padding:16px 18px}
+.gpu-bar-item{display:flex;flex-direction:column;gap:5px}
+.gpu-bar-label{font-size:10px;color:var(--text-s);display:flex;justify-content:space-between;font-weight:500}
+.gpu-bar-track{height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.gpu-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
 .gpu-bar-fill.util{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
 .gpu-bar-fill.mem {background:linear-gradient(90deg,#8b5cf6,#a78bfa)}
-.gpu-bar-fill.temp{background:linear-gradient(90deg,#f59e0b,#fcd34d)}
+.gpu-bar-fill.temp{background:linear-gradient(90deg,#10b981,#34d399)}
 .gpu-temp-val{font-size:13px;font-weight:700;color:var(--text)}
 .gpu-enc-val {font-size:11px;color:var(--text-s)}
 
@@ -1384,9 +1391,11 @@ async function loadHistory(page = 1) {
             ? '<span class="badge badge-success">✓ OK</span>'
             : `<span class="badge badge-error">✕ ${t('misc.error')}</span>`}
           </td>
-          <td style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px">
-            ${formatDate(h.finished_at)}
-            ${h.status === 'error' ? `<button class="btn btn-sm" style="padding:2px 8px;font-size:10px;color:var(--orange);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)" onclick="event.stopPropagation();retryHistory('${h.id}')" title="Opnieuw proberen">↺</button>` : ''}
+          <td>
+            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)">
+              ${formatDate(h.finished_at)}
+              ${h.status === 'error' ? `<button class="btn btn-sm" style="padding:2px 8px;font-size:10px;color:var(--orange);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)" onclick="event.stopPropagation();retryHistory('${h.id}')" title="Opnieuw proberen">↺</button>` : ''}
+            </div>
           </td>
         </tr>
         <tr class="history-detail-row" id="${rid}">

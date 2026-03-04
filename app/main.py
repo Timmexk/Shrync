@@ -489,7 +489,7 @@ def scan_library(library_id: str):
                 logger.info(f"Scan: mislukte conversie opnieuw toegevoegd: {fpath}")
 
             profile_id = get_global_setting('conversion_profile', 'nvenc_max')
-            global_codec, _, _ = profile_to_ffmpeg(profile_id)
+            global_codec, _, _, _ = profile_to_ffmpeg(profile_id)
             if not needs_conversion(fpath, global_codec):
                 already_converted += 1
                 scan_status[library_id]["already_converted"] = already_converted
@@ -538,7 +538,7 @@ def run_conversion(job_id: str):
     logger.info(f"Tijdelijk bestand: {tmp_out}")
     # Lees conversie-instellingen uit globale settings (niet uit bibliotheek)
     profile = get_global_setting('conversion_profile', 'nvenc_max')
-    video_codec, preset, quality = profile_to_ffmpeg(profile)
+    video_codec, preset, quality, _ = profile_to_ffmpeg(profile)
     audio_codec = get_global_setting('audio_codec', 'copy')
 
     # Lees filmduur via ffprobe — alleen format sectie, snelle header read
@@ -768,7 +768,7 @@ class LibraryWatcher(FileSystemEventHandler):
             conn.close()
             return
         lib = conn.execute("SELECT * FROM libraries WHERE id=?", (self.library_id,)).fetchone()
-        global_codec, _, _ = profile_to_ffmpeg(get_global_setting('conversion_profile', 'nvenc_max'))
+        global_codec, _, _, _ = profile_to_ffmpeg(get_global_setting('conversion_profile', 'nvenc_max'))
         if not lib or not needs_conversion(fpath, global_codec):
             conn.close()
             return
