@@ -338,7 +338,7 @@ tr:hover td{background:rgba(255,255,255,.025)}
   border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.07);
   flex-shrink:0;min-width:40px;min-height:40px;align-items:center;justify-content:center}
 .hamburger span{display:block;width:18px;height:2px;background:var(--text-s);border-radius:2px;transition:all .2s}
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:199;
   backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .sidebar-overlay.open{display:block}
 
@@ -362,10 +362,13 @@ tr:hover td{background:rgba(255,255,255,.025)}
   .content{padding:12px 14px}
   /* Sidebar als slide-in drawer */
   .sidebar{position:fixed;left:-260px;top:0;width:240px;height:100dvh;
-    border-radius:0 16px 16px 0;z-index:101;
-    transition:left .28s cubic-bezier(.4,0,.2,1);
-    box-shadow:4px 0 32px rgba(0,0,0,.5)}
-  .sidebar.open{left:0}
+    border-radius:0 16px 16px 0;z-index:200;
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+    transform:translateX(0);
+    box-shadow:4px 0 32px rgba(0,0,0,.6);
+    isolation:isolate;will-change:transform;
+    backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%)}
+  .sidebar.open{left:0;transform:translateX(260px)}
   .hamburger{display:flex}
   .btn-pause span, #btn-scan-label{display:none}
   .btn-label-text{display:none}

@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.31")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.32")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -162,6 +162,34 @@ def cleanup_stale_conversions():
     conn.close()
 
 cleanup_stale_conversions()
+
+def cleanup_stale_subtitles():
+    """
+    Bij herstart: zet onderbroken subtitle jobs terug naar pending,
+    en verwijder fout-items uit de wachtrij (horen in geschiedenis thuis).
+    """
+    conn = get_db()
+    stale = conn.execute(
+        "SELECT id, file_path FROM subtitle_queue WHERE status='processing'"
+    ).fetchall()
+    for job in stale:
+        conn.execute(
+            "UPDATE subtitle_queue SET status='pending', progress=0, lines_done=0, started_at=NULL WHERE id=?",
+            (job["id"],)
+        )
+        logger.info(f"Ondertitel opruimen: teruggezet naar pending: {Path(job['file_path']).name}")
+    errors = conn.execute(
+        "SELECT COUNT(*) as c FROM subtitle_queue WHERE status='error'"
+    ).fetchone()["c"]
+    if errors:
+        conn.execute("DELETE FROM subtitle_queue WHERE status='error'")
+        logger.info(f"Ondertitel opruimen: {errors} fout-item(s) verwijderd uit wachtrij")
+    conn.commit()
+    conn.close()
+    if stale:
+        logger.info(f"Ondertitel opruimen: {len(stale)} onderbroken taak/taken hersteld.")
+
+cleanup_stale_subtitles()
 
 # ── State ─────────────────────────────────────────────────────────────────────
 active_jobs = {}        # slot_name -> {"id": job_id, "process": process}
@@ -1088,11 +1116,7 @@ def run_subtitle_translation(job_id: str):
 
     except Exception as e:
         logger.error(f"Ondertitel vertaling mislukt: {file_path}: {e}")
-        conn.execute(
-            "UPDATE subtitle_queue SET status='error', error_msg=?, finished_at=? WHERE id=?",
-            (str(e)[:500], datetime.utcnow().isoformat(), job_id)
-        )
-        # Fout ook in geschiedenis
+        # Fout opslaan in geschiedenis
         hist_id = str(uuid.uuid4())
         conn.execute(
             "INSERT INTO subtitle_history (id,library_id,file_path,source_lang,target_lang,"
@@ -1102,6 +1126,8 @@ def run_subtitle_translation(job_id: str):
              get_subtitle_setting("ollama_model",""), str(e)[:500],
              datetime.utcnow().isoformat())
         )
+        # Verwijder uit wachtrij — fouten horen in geschiedenis, niet in wachtrij
+        conn.execute("DELETE FROM subtitle_queue WHERE id=?", (job_id,))
         conn.commit()
     finally:
         conn.close()
