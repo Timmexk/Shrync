@@ -429,6 +429,9 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="nav-item" onclick="navigate('savings')">
       <div class="nav-icon">◎</div><span class="nav-label" id="nav-lbl-savings">Statistieken</span>
     </div>
+    <div class="nav-item" onclick="navigate('subtitles')">
+      <div class="nav-icon">⊶</div><span class="nav-label" id="nav-lbl-subtitles">Ondertiteling</span>
+    </div>
     <div class="nav-item" onclick="navigate('settings')">
       <div class="nav-icon">⚙</div><span class="nav-label" id="nav-lbl-settings">Instellingen</span>
     </div>
@@ -468,6 +471,31 @@ tr:hover td{background:rgba(255,255,255,.025)}
           <div class="stat-value c-green" id="stat-saved">—</div>
         </div>
         <div class="stat-card"><div class="stat-label" id="lbl-stat-libs">Bibliotheken</div><div class="stat-value" id="stat-libs">—</div></div>
+      </div>
+
+      <!-- Ondertiteling status balk — alleen zichtbaar als subtitle_enabled=1 -->
+      <div class="gpu-monitor" id="sub-dashboard-bar" style="display:none">
+        <div class="gpu-monitor-hdr">
+          <span class="gpu-monitor-title">Ondertiteling</span>
+          <span style="font-size:10px;color:var(--text-t)" id="sub-dash-model"></span>
+        </div>
+        <div class="gpu-cards">
+          <div class="gpu-card" onclick="navigate('subtitles')" style="cursor:pointer">
+            <div class="stat-label">In wachtrij</div>
+            <div class="gpu-card-val c-blue" id="sub-dash-pending">—</div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill" id="sub-dash-pending-bar" style="width:0%;background:linear-gradient(90deg,#3b82f6,#60a5fa)"></div></div>
+          </div>
+          <div class="gpu-card" onclick="navigate('subtitles')" style="cursor:pointer">
+            <div class="stat-label">Bezig</div>
+            <div class="gpu-card-val c-cyan" id="sub-dash-processing">—</div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill" id="sub-dash-proc-bar" style="width:0%;background:linear-gradient(90deg,#06b6d4,#67e8f9)"></div></div>
+          </div>
+          <div class="gpu-card" onclick="navigate('subtitles')" style="cursor:pointer">
+            <div class="stat-label">Vandaag klaar</div>
+            <div class="gpu-card-val c-green" id="sub-dash-done">—</div>
+            <div class="gpu-bar-track"><div class="gpu-bar-fill" style="width:0%;background:linear-gradient(90deg,#10b981,#34d399)"></div></div>
+          </div>
+        </div>
       </div>
 
       <!-- GPU Monitor widget — alleen zichtbaar als GPU actief -->
@@ -590,6 +618,71 @@ tr:hover td{background:rgba(255,255,255,.025)}
       </div>
     </div>
 
+    <!-- SUBTITLES -->
+    <div class="page" id="page-subtitles">
+
+      <!-- Dashboard tegel rij voor ondertiteling -->
+      <div class="stats-grid" style="margin-bottom:11px">
+        <div class="stat-card">
+          <div class="stat-label" id="lbl-sub-stat-pending">In wachtrij</div>
+          <div class="stat-value c-blue" id="sub-stat-pending">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label" id="lbl-sub-stat-processing">Bezig</div>
+          <div class="stat-value c-cyan" id="sub-stat-processing">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label" id="lbl-sub-stat-done">Vandaag klaar</div>
+          <div class="stat-value c-green" id="sub-stat-done">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Totaal vertaald</div>
+          <div class="stat-value" id="sub-stat-total">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Fouten</div>
+          <div class="stat-value" id="sub-stat-errors" style="color:var(--danger)">—</div>
+        </div>
+      </div>
+
+      <!-- Actieve vertaling -->
+      <div class="active-card" id="sub-active-section" style="display:none">
+        <div class="active-hdr">
+          <span class="panel-title">Actieve vertaling</span>
+          <span class="badge badge-processing" style="animation:pulse 1.5s infinite">● Live</span>
+        </div>
+        <div class="active-body" id="sub-active-body"></div>
+      </div>
+
+      <!-- Wachtrij -->
+      <div class="table-wrap">
+        <div class="table-hdr">
+          <span class="table-title">Wachtrij</span>
+        </div>
+        <table><thead><tr>
+          <th>Bestand</th><th>Bibliotheek</th><th style="width:100px">Status</th>
+        </tr></thead>
+        <tbody id="sub-queue-body"><tr><td colspan="3"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Geschiedenis -->
+      <div class="table-wrap">
+        <div class="table-hdr">
+          <span class="table-title">Geschiedenis</span>
+          <button class="btn btn-sm" onclick="clearSubtitleErrors()">Fouten wissen</button>
+        </div>
+        <table><thead><tr>
+          <th style="width:45%">Bestand</th><th>Bibliotheek</th>
+          <th style="width:80px">Regels</th><th style="width:80px">Model</th>
+          <th style="width:80px">Status</th><th style="width:120px">Datum</th>
+        </tr></thead>
+        <tbody id="sub-history-body"><tr><td colspan="6"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
+        </table>
+      </div>
+
+    </div>
+
     <!-- SETTINGS -->
     <div class="page" id="page-settings">
 
@@ -652,6 +745,50 @@ tr:hover td{background:rgba(255,255,255,.025)}
           <div id="nvenc-warning" style="display:none;padding:12px 14px;background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.28);border-radius:var(--rxs);font-size:11px;color:var(--orange);margin-bottom:14px">
             <span id="nvenc-warn-text"></span>
           </div>
+
+      <!-- AI Ondertiteling -->
+      <div class="panel" style="max-width:580px">
+        <div class="panel-hdr"><span class="panel-title">AI Ondertiteling</span></div>
+        <div style="padding:18px">
+
+          <!-- Aan/uit toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+            <div>
+              <div style="font-size:13px;font-weight:600;margin-bottom:3px">Automatisch vertalen</div>
+              <div style="font-size:11px;color:var(--text-s)">Vertaal Engelse ondertitels naar Nederlands na conversie</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="subtitle-enabled" onchange="onSubtitleToggle(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <!-- Ollama host -->
+          <div class="form-group" style="margin-bottom:14px">
+            <label class="form-label">Ollama adres</label>
+            <div style="display:flex;gap:8px">
+              <input class="form-input" id="ollama-host" placeholder="http://192.168.1.x:11434" style="flex:1">
+              <button class="btn btn-sm" onclick="loadOllamaModels()" style="white-space:nowrap">⟳ Modellen laden</button>
+            </div>
+          </div>
+
+          <!-- Model dropdown -->
+          <div class="form-group" style="margin-bottom:18px">
+            <label class="form-label">Model</label>
+            <select class="form-input" id="ollama-model-select" style="cursor:pointer">
+              <option value="">— Laad eerst modellen —</option>
+            </select>
+            <div style="font-size:10px;color:var(--text-t);margin-top:5px" id="ollama-model-hint">
+              Aanbevolen: mistral:7b, gemma2:9b of vergelijkbaar voor goede Nederlandse vertaling
+            </div>
+          </div>
+
+          <!-- Status -->
+          <div id="ollama-status" style="font-size:11px;color:var(--text-s);margin-bottom:14px;min-height:16px"></div>
+
+        </div>
+      </div>
+
           <button class="btn btn-accent" onclick="saveSettings()">&#128190; <span id="lbl-save-settings">Instellingen opslaan</span></button>
         </div>
       </div>
@@ -701,12 +838,13 @@ tr:hover td{background:rgba(255,255,255,.025)}
 // ── Translations ───────────────────────────────────────────────────────────────
 const T = {
   en: {
-    nav:  { libraries:'Libraries', history:'History', savings:'Statistics', settings:'Settings' },
+    nav:  { libraries:'Libraries', history:'History', savings:'Statistics', subtitles:'Subtitles', settings:'Settings' },
     page: {
       dashboard: { title:'Dashboard',   sub:'System overview' },
       libraries: { title:'Libraries',   sub:'Manage your media folders' },
       history:   { title:'History',     sub:'Completed conversions' },
       savings:   { title:'Statistics',  sub:'Storage saved by conversions' },
+      subtitles: { title:'Subtitles',   sub:'Automatic English → Dutch translation via AI' },
       settings:  { title:'Settings',    sub:'Configure Shrync' },
     },
     stat:  { pending:'In queue', processing:'Converting', done:'Done today', errors:'Errors', saved:'Storage saved ↗', libs:'Libraries' },
@@ -763,12 +901,13 @@ const T = {
     },
   },
   nl: {
-    nav:  { libraries:'Bibliotheken', history:'Geschiedenis', savings:'Statistieken', settings:'Instellingen' },
+    nav:  { libraries:'Bibliotheken', history:'Geschiedenis', savings:'Statistieken', subtitles:'Ondertiteling', settings:'Instellingen' },
     page: {
       dashboard: { title:'Dashboard',     sub:'Systeem overzicht' },
       libraries: { title:'Bibliotheken',  sub:'Beheer je mediamappen' },
       history:   { title:'Geschiedenis',  sub:'Voltooide conversies' },
       savings:   { title:'Statistieken',  sub:'Ruimte bespaard door conversies' },
+      subtitles: { title:'Ondertiteling', sub:'Automatisch Engels → Nederlands via AI' },
       settings:  { title:'Instellingen',  sub:'Configureer Shrync' },
     },
     stat:  { pending:'In wachtrij', processing:'Bezig', done:'Vandaag klaar', errors:'Fouten', saved:'Ruimte bespaard ↗', libs:'Bibliotheken' },
@@ -989,7 +1128,7 @@ function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  const navPages = ['dashboard','libraries','history','savings','settings'];
+  const navPages = ['dashboard','libraries','history','savings','subtitles','settings'];
   const idx = navPages.indexOf(page);
   if (idx >= 0) document.querySelectorAll('.nav-item')[idx].classList.add('active');
   document.getElementById('page-title').textContent = t('page.' + page + '.title');
@@ -1003,6 +1142,7 @@ function loadPage(page) {
   else if (page === 'libraries') loadLibraries();
   else if (page === 'history') loadHistory();
   else if (page === 'savings') loadSavings();
+  else if (page === 'subtitles') loadSubtitles();
   else if (page === 'settings') loadSettings();
 }
 
@@ -1166,8 +1306,33 @@ async function loadDashboard() {
   await loadWorkerStatus();
   await loadActiveJob();
   await loadGpuMonitor();
+  await loadSubtitleDashboard();
   await loadDashboardQueue();
   await loadRecent();
+}
+
+async function loadSubtitleDashboard() {
+  try {
+    const d = await fetch('/api/subtitle/stats').then(r => r.json());
+    const bar = document.getElementById('sub-dashboard-bar');
+    if (!bar) return;
+    if (!d.enabled) { bar.style.display = 'none'; return; }
+    bar.style.display = '';
+    document.getElementById('sub-dash-pending').textContent    = d.pending;
+    document.getElementById('sub-dash-processing').textContent = d.processing;
+    document.getElementById('sub-dash-done').textContent       = d.done_today;
+    // Voortgangsbalk gebaseerd op wachtrij grootte (max 50 voor 100%)
+    const pBar = document.getElementById('sub-dash-pending-bar');
+    if (pBar) pBar.style.width = Math.min(d.pending / 50 * 100, 100) + '%';
+    const prBar = document.getElementById('sub-dash-proc-bar');
+    if (prBar) prBar.style.width = d.processing > 0 ? '100%' : '0%';
+    // Model naam ophalen
+    const modelEl = document.getElementById('sub-dash-model');
+    if (modelEl) {
+      const s = await fetch('/api/settings').then(r => r.json());
+      modelEl.textContent = s.ollama_model || '';
+    }
+  } catch(e) {}
 }
 
 async function loadDashboardQueue() {
@@ -1692,6 +1857,163 @@ function selectProfile(id) {
   renderProfiles(id);
 }
 
+
+// ── Ondertiteling ──────────────────────────────────────────────────────────────
+let _subInterval = null;
+
+async function loadSubtitles() {
+  await Promise.all([loadSubtitleStats(), loadSubtitleQueue(), loadSubtitleHistory()]);
+  // Start live polling als er iets actief is
+  if (!_subInterval) {
+    _subInterval = setInterval(async () => {
+      if (currentPage !== 'subtitles') { clearInterval(_subInterval); _subInterval = null; return; }
+      await Promise.all([loadSubtitleStats(), loadSubtitleQueue(), loadSubtitleActive()]);
+    }, 3000);
+  }
+}
+
+async function loadSubtitleStats() {
+  try {
+    const d = await fetch('/api/subtitle/stats').then(r => r.json());
+    document.getElementById('sub-stat-pending').textContent    = d.pending;
+    document.getElementById('sub-stat-processing').textContent = d.processing;
+    document.getElementById('sub-stat-done').textContent       = d.done_today;
+    document.getElementById('sub-stat-total').textContent      = d.total;
+    document.getElementById('sub-stat-errors').textContent     = d.errors;
+  } catch(e) {}
+}
+
+async function loadSubtitleActive() {
+  try {
+    const job = await fetch('/api/subtitle/active').then(r => r.json());
+    const sec = document.getElementById('sub-active-section');
+    const body = document.getElementById('sub-active-body');
+    if (!job) { if (sec) sec.style.display = 'none'; return; }
+    if (sec) sec.style.display = '';
+    const fname = job.file_path ? job.file_path.split('/').pop() : '—';
+    const pct   = job.progress || 0;
+    const done  = job.lines_done || 0;
+    const total = job.lines_total || 0;
+    body.innerHTML = `
+      <div class="file-name">${fname}</div>
+      <div class="file-dir">${job.file_path ? job.file_path.replace('/' + fname, '') : ''}</div>
+      <div style="margin:12px 0 4px;display:flex;justify-content:space-between;font-size:11px;color:var(--text-s)">
+        <span>${done} / ${total} regels vertaald</span>
+        <span>${pct}%</span>
+      </div>
+      <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:2px;transition:width .5s ease"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text-t);margin-top:8px">Model: ${job.model_used || '—'}</div>`;
+  } catch(e) {}
+}
+
+async function loadSubtitleQueue() {
+  try {
+    const items = await fetch('/api/subtitle/queue').then(r => r.json());
+    const tbody = document.getElementById('sub-queue-body');
+    loadSubtitleActive();
+    if (!items.length) {
+      tbody.innerHTML = `<tr><td colspan="3"><div class="empty"><span class="empty-icon">◌</span><div class="empty-text">Geen bestanden in wachtrij</div></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = items.map(j => {
+      const fname = j.file_path ? j.file_path.split('/').pop() : '—';
+      const dir   = j.file_path ? j.file_path.replace('/' + fname,'') : '';
+      const badge = j.status === 'processing'
+        ? `<span class="badge badge-processing">● Bezig ${j.progress||0}%</span>`
+        : j.status === 'error'
+        ? `<span class="badge badge-error" title="${j.error_msg||''}">✕ Fout</span>`
+        : `<span class="badge" style="background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3)">◌ Wacht</span>`;
+      return `<tr>
+        <td><div class="file-name">${fname}</div><div class="file-dir">${dir}</div></td>
+        <td style="font-size:11px;color:var(--muted)">${j.library_name||'—'}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {}
+}
+
+async function loadSubtitleHistory(page = 1) {
+  try {
+    const d = await fetch('/api/subtitle/history?page=' + page).then(r => r.json());
+    const tbody = document.getElementById('sub-history-body');
+    if (!d.items.length) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><span class="empty-icon">◷</span><div class="empty-text">Geen geschiedenis</div></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = d.items.map(h => {
+      const fname = h.file_path ? h.file_path.split('/').pop() : '—';
+      const dir   = h.file_path ? h.file_path.replace('/' + fname,'') : '';
+      const badge = h.status === 'success'
+        ? `<span class="badge badge-success">✓ OK</span>`
+        : `<span class="badge badge-error">✕ Fout</span>`;
+      const retryBtn = h.status === 'error'
+        ? `<button class="btn btn-sm" style="padding:2px 7px;font-size:10px;color:var(--orange);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)" onclick="retrySubtitle('${h.id}')">↺</button>`
+        : '';
+      return `<tr>
+        <td><div class="file-name">${fname}</div><div class="file-dir">${dir}</div></td>
+        <td style="font-size:11px;color:var(--muted)">${h.library_name||'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${h.lines_translated||'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${h.model_used||'—'}</td>
+        <td>${badge}${retryBtn}</td>
+        <td style="font-size:10px;color:var(--muted)">${formatDate(h.finished_at)}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {}
+}
+
+async function retrySubtitle(hid) {
+  try {
+    await fetch('/api/subtitle/retry/' + hid, {method:'POST'});
+    toast('Opnieuw toegevoegd aan wachtrij');
+    loadSubtitles();
+  } catch(e) { toast('Fout: ' + e, true); }
+}
+
+async function clearSubtitleErrors() {
+  try {
+    await fetch('/api/subtitle/history', {method:'DELETE'});
+    toast('Fouten gewist');
+    loadSubtitleHistory();
+  } catch(e) {}
+}
+
+async function loadOllamaModels() {
+  const hostEl  = document.getElementById('ollama-host');
+  const select  = document.getElementById('ollama-model-select');
+  const status  = document.getElementById('ollama-status');
+  const host    = hostEl ? hostEl.value.trim() : '';
+  if (!host) { status.textContent = '⚠ Vul eerst een Ollama adres in'; status.style.color='var(--orange)'; return; }
+  // Sla host alvast op zodat de API het juiste adres gebruikt
+  await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ollama_host: host})});
+  status.textContent = 'Modellen laden…'; status.style.color = 'var(--text-s)';
+  try {
+    const d = await fetch('/api/ollama/models').then(r => r.json());
+    if (d.error || !d.models.length) {
+      status.textContent = d.error ? '✕ ' + d.error : '✕ Geen modellen gevonden';
+      status.style.color = 'var(--danger)';
+      return;
+    }
+    const current = select.value;
+    select.innerHTML = d.models.map(m =>
+      `<option value="${m}" ${m === current ? 'selected' : ''}>${m}</option>`
+    ).join('');
+    status.textContent = '✓ ' + d.models.length + ' model(len) gevonden';
+    status.style.color = 'var(--green)';
+  } catch(e) {
+    status.textContent = '✕ Verbinding mislukt';
+    status.style.color = 'var(--danger)';
+  }
+}
+
+function onSubtitleToggle(enabled) {
+  // Visuele feedback — echte opslag via saveSettings
+  const hint = document.getElementById('ollama-model-hint');
+  if (hint) hint.style.color = enabled ? 'var(--text-s)' : 'var(--text-t)';
+}
+
 async function loadSettings() {
   try {
     const [s, cfg] = await Promise.all([
@@ -1709,6 +2031,26 @@ async function loadSettings() {
     if (audio) audio.value = s.audio_codec || 'copy';
     document.getElementById('lang-en').classList.toggle('active', lang === 'en');
     document.getElementById('lang-nl').classList.toggle('active', lang === 'nl');
+
+    // Ondertiteling instellingen
+    const subEnabled = document.getElementById('subtitle-enabled');
+    if (subEnabled) subEnabled.checked = s.subtitle_enabled === '1';
+    const ollamaHost = document.getElementById('ollama-host');
+    if (ollamaHost) ollamaHost.value = s.ollama_host || '';
+    const ollamaModel = document.getElementById('ollama-model-select');
+    // Laad modellen als er al een host is
+    if (s.ollama_host && s.ollama_host.length > 5) {
+      try {
+        const md = await fetch('/api/ollama/models').then(r => r.json());
+        if (md.models && md.models.length) {
+          ollamaModel.innerHTML = md.models.map(m =>
+            `<option value="${m}" ${m === (s.ollama_model||'') ? 'selected' : ''}>${m}</option>`
+          ).join('');
+          document.getElementById('ollama-status').textContent = '✓ ' + md.models.length + ' model(len) beschikbaar';
+          document.getElementById('ollama-status').style.color = 'var(--green)';
+        }
+      } catch(e) {}
+    }
   } catch(e) {}
 }
 
@@ -1725,10 +2067,16 @@ function updateWorkerUI(n) {
 async function saveSettings() {
   const profile = document.getElementById('selected-profile')?.value || 'nvenc_max';
   const audio   = document.getElementById('global-audio')?.value    || 'copy';
+  const subEnabled  = document.getElementById('subtitle-enabled')?.checked ? '1' : '0';
+  const ollamaHost  = document.getElementById('ollama-host')?.value.trim() || '';
+  const ollamaModel = document.getElementById('ollama-model-select')?.value || '';
   await fetch('/api/settings', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ max_workers: currentWorkers, conversion_profile: profile, audio_codec: audio }),
+    body: JSON.stringify({
+      max_workers: currentWorkers, conversion_profile: profile, audio_codec: audio,
+      subtitle_enabled: subEnabled, ollama_host: ollamaHost, ollama_model: ollamaModel,
+    }),
   });
   toast(t('set.saved') + ' — ' + currentWorkers + ' worker(s)', 'success');
 }

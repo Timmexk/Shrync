@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.25")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.30")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -89,6 +89,46 @@ def init_db():
         error_msg TEXT,
         finished_at TEXT DEFAULT CURRENT_TIMESTAMP
     )""")
+
+    # ── Ondertiteling tabellen ────────────────────────────────────────────────
+    c.execute("""CREATE TABLE IF NOT EXISTS subtitle_queue (
+        id TEXT PRIMARY KEY,
+        library_id TEXT,
+        file_path TEXT NOT NULL,
+        file_size INTEGER DEFAULT 0,
+        source_lang TEXT DEFAULT 'eng',
+        target_lang TEXT DEFAULT 'nld',
+        subtitle_track_index INTEGER DEFAULT -1,
+        status TEXT DEFAULT 'pending',
+        progress INTEGER DEFAULT 0,
+        lines_total INTEGER DEFAULT 0,
+        lines_done INTEGER DEFAULT 0,
+        added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        started_at TEXT,
+        finished_at TEXT,
+        error_msg TEXT,
+        output_path TEXT
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS subtitle_history (
+        id TEXT PRIMARY KEY,
+        library_id TEXT,
+        file_path TEXT NOT NULL,
+        output_path TEXT,
+        source_lang TEXT DEFAULT 'eng',
+        target_lang TEXT DEFAULT 'nld',
+        lines_translated INTEGER DEFAULT 0,
+        model_used TEXT,
+        status TEXT DEFAULT 'success',
+        error_msg TEXT,
+        finished_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )""")
+
+    # Ondertiteling instellingen
+    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('subtitle_enabled', '0')")
+    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('ollama_host', 'http://localhost:11434')")
+    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('ollama_model', '')")
+    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('subtitle_auto', '1')")
+
     conn.commit()
     conn.close()
 
@@ -683,7 +723,12 @@ def run_conversion(job_id: str):
             (str(uuid.uuid4()), job["library_id"], src, original_size, new_size, elapsed, now)
         )
         conn.execute("DELETE FROM queue WHERE id=?", (job_id,))
+        conn.commit()
+        conn.close()
         logger.info(f"Conversie geslaagd: {src} ({original_size} -> {new_size} bytes, {elapsed}s)")
+        # Voeg toe aan ondertitelwachtrij als functie ingeschakeld is
+        maybe_queue_subtitle(src, job["library_id"])
+        return
     else:
         # Meest relevante foutmelding uit stderr — laatste 1000 tekens
         error_detail = stderr_out[-1000:].strip() if stderr_out.strip() else f"ffmpeg returncode: {process.returncode}"
@@ -700,6 +745,437 @@ def run_conversion(job_id: str):
 
     conn.commit()
     conn.close()
+
+
+# ── Ondertiteling engine ──────────────────────────────────────────────────────
+
+def get_subtitle_setting(key: str, default: str = '') -> str:
+    conn = get_db()
+    row = conn.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+    conn.close()
+    return row["value"] if row else default
+
+def detect_subtitle_streams(file_path: str) -> list:
+    """
+    Detecteert alle ondertitelsporen in een mediabestand via ffprobe.
+    Geeft gesorteerde lijst terug: Engels zonder SDH eerst.
+    """
+    try:
+        result = subprocess.run([
+            "ffprobe", "-v", "quiet",
+            "-print_format", "json",
+            "-show_streams",
+            "-select_streams", "s",
+            file_path
+        ], capture_output=True, text=True, timeout=15)
+        if result.returncode != 0:
+            return []
+        data = json.loads(result.stdout)
+        streams = []
+        for s in data.get("streams", []):
+            tags = s.get("tags", {})
+            lang = (tags.get("language") or tags.get("LANGUAGE") or "").lower()
+            title = (tags.get("title") or tags.get("TITLE") or "").lower()
+            idx = s.get("index", -1)
+            codec = s.get("codec_name", "")
+            streams.append({
+                "index": idx,
+                "lang": lang,
+                "title": title,
+                "codec": codec,
+                "is_sdh": any(x in title for x in ["sdh", "hearing", "cc", "forced"]),
+            })
+        return streams
+    except Exception as e:
+        logger.warning(f"Ondertitel detectie mislukt voor {file_path}: {e}")
+        return []
+
+def pick_best_english_stream(streams: list) -> dict | None:
+    """
+    Kiest het beste Engelse ondertitelspoor:
+    1. Engels zonder SDH/CC
+    2. Engels SDH als er geen normaal Engels is
+    3. None als er geen Engels is
+    """
+    english = [s for s in streams if s["lang"] in ("eng", "en")]
+    if not english:
+        return None
+    # Voorkeur: niet-SDH
+    normal = [s for s in english if not s["is_sdh"]]
+    if normal:
+        return normal[0]
+    return english[0]
+
+def has_dutch_subtitle(file_path: str) -> bool:
+    """Controleert of er al een Nederlandse SRT naast het mediabestand staat."""
+    base = Path(file_path).stem
+    parent = Path(file_path).parent
+    for ext in (".nl.srt", ".nld.srt", ".dut.srt", ".nl.forced.srt"):
+        if (parent / (base + ext)).exists():
+            return True
+    # Controleer ook streams in het bestand zelf
+    try:
+        result = subprocess.run([
+            "ffprobe", "-v", "quiet", "-print_format", "json",
+            "-show_streams", "-select_streams", "s", file_path
+        ], capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            for s in data.get("streams", []):
+                tags = s.get("tags", {})
+                lang = (tags.get("language") or tags.get("LANGUAGE") or "").lower()
+                if lang in ("nld", "dut", "nl"):
+                    return True
+    except:
+        pass
+    return False
+
+def extract_srt(file_path: str, stream_index: int) -> str | None:
+    """Extraheert een ondertitelspoor als tijdelijk SRT bestand."""
+    tmp_path = f"/tmp/shrync_sub_{uuid.uuid4().hex[:8]}.srt"
+    try:
+        result = subprocess.run([
+            "ffmpeg", "-y", "-i", file_path,
+            "-map", f"0:{stream_index}",
+            "-c:s", "srt",
+            tmp_path
+        ], capture_output=True, text=True, timeout=60)
+        if result.returncode == 0 and os.path.exists(tmp_path):
+            return tmp_path
+        logger.warning(f"SRT extractie mislukt: {result.stderr[-300:]}")
+        return None
+    except Exception as e:
+        logger.warning(f"SRT extractie fout: {e}")
+        return None
+
+def parse_srt(srt_path: str) -> list:
+    """
+    Parseert een SRT bestand naar een lijst van blokken:
+    [{"index": "1", "timing": "00:00:01,000 --> 00:00:03,000", "text": "Hello"}]
+    """
+    blocks = []
+    try:
+        with open(srt_path, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+        # Split op lege regels
+        raw_blocks = content.strip().split("\n\n")
+        for block in raw_blocks:
+            lines = block.strip().splitlines()
+            if len(lines) < 3:
+                continue
+            idx_line = lines[0].strip()
+            timing_line = lines[1].strip()
+            text_lines = lines[2:]
+            if "-->" not in timing_line:
+                continue
+            blocks.append({
+                "index": idx_line,
+                "timing": timing_line,
+                "text": "\n".join(text_lines),
+            })
+    except Exception as e:
+        logger.warning(f"SRT parse fout: {e}")
+    return blocks
+
+def write_srt(blocks: list, output_path: str):
+    """Schrijft vertaalde blokken terug als SRT bestand."""
+    with open(output_path, "w", encoding="utf-8") as f:
+        for i, block in enumerate(blocks, 1):
+            f.write(f"{i}\n")
+            f.write(f"{block['timing']}\n")
+            f.write(f"{block['text']}\n\n")
+
+def translate_blocks_ollama(blocks: list, model: str, host: str,
+                             job_id: str, update_cb) -> list:
+    """
+    Vertaalt ondertitelblokken van Engels naar Nederlands via Ollama.
+    Stuurt batches van 20 blokken tegelijk voor context en snelheid.
+    Timecodes worden NOOIT aangepast — alleen de tekst wordt vertaald.
+    """
+    BATCH_SIZE = 20
+    translated = []
+
+    system_prompt = (
+        "Je bent een professionele ondertitelvertaler. "
+        "Vertaal de volgende Engelse filmondertitels naar natuurlijk Nederlands. "
+        "Regels zijn genummerd. Behoud de nummering exact. "
+        "Vertaal alleen de tekst, niet de nummers. "
+        "Gebruik spreektaal, geen formele taal. "
+        "Antwoord ALLEEN met de vertaalde genummerde regels, geen uitleg."
+    )
+
+    for batch_start in range(0, len(blocks), BATCH_SIZE):
+        batch = blocks[batch_start:batch_start + BATCH_SIZE]
+
+        # Bouw prompt: genummerde teksten
+        prompt_lines = []
+        for i, block in enumerate(batch):
+            prompt_lines.append(f"{i+1}. {block['text'].replace(chr(10), ' | ')}")
+        prompt = "\n".join(prompt_lines)
+
+        try:
+            response = subprocess.run([
+                "curl", "-s", "-X", "POST",
+                f"{host}/api/generate",
+                "-H", "Content-Type: application/json",
+                "-d", json.dumps({
+                    "model": model,
+                    "system": system_prompt,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.3, "num_predict": 2048}
+                })
+            ], capture_output=True, text=True, timeout=120)
+
+            if response.returncode != 0:
+                raise Exception(f"curl fout: {response.stderr[:200]}")
+
+            resp_data = json.loads(response.stdout)
+            resp_text = resp_data.get("response", "").strip()
+
+            # Parse de genummerde regels terug
+            result_lines = {}
+            for line in resp_text.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                # Zoek naar "N. tekst" patroon
+                for sep in [". ", ") ", ": "]:
+                    parts = line.split(sep, 1)
+                    if len(parts) == 2 and parts[0].strip().isdigit():
+                        num = int(parts[0].strip())
+                        result_lines[num] = parts[1].strip().replace(" | ", "\n")
+                        break
+
+            # Voeg vertaalde tekst toe, val terug op origineel bij mislukking
+            for i, block in enumerate(batch):
+                translated_text = result_lines.get(i+1, block["text"])
+                translated.append({
+                    "index": block["index"],
+                    "timing": block["timing"],
+                    "text": translated_text,
+                })
+
+        except Exception as e:
+            logger.warning(f"Ollama vertaling batch fout: {e} — origineel behouden")
+            for block in batch:
+                translated.append(block)
+
+        # Voortgang bijwerken
+        done = min(batch_start + BATCH_SIZE, len(blocks))
+        update_cb(done, len(blocks))
+
+    return translated
+
+def run_subtitle_translation(job_id: str):
+    """Voert één ondertitelvertaling uit — draait in eigen thread."""
+    conn = get_db()
+    job = conn.execute("SELECT * FROM subtitle_queue WHERE id=?", (job_id,)).fetchone()
+    if not job:
+        conn.close()
+        return
+
+    file_path = job["file_path"]
+    logger.info(f"Ondertitel vertaling gestart: {Path(file_path).name}")
+
+    conn.execute(
+        "UPDATE subtitle_queue SET status='processing', started_at=? WHERE id=?",
+        (datetime.utcnow().isoformat(), job_id)
+    )
+    conn.commit()
+
+    host  = get_subtitle_setting("ollama_host", "http://localhost:11434")
+    model = get_subtitle_setting("ollama_model", "")
+
+    if not model:
+        conn.execute(
+            "UPDATE subtitle_queue SET status='error', error_msg='Geen Ollama model ingesteld', finished_at=? WHERE id=?",
+            (datetime.utcnow().isoformat(), job_id)
+        )
+        conn.commit()
+        conn.close()
+        return
+
+    try:
+        # Detecteer ondertitelsporen
+        streams = detect_subtitle_streams(file_path)
+        best = pick_best_english_stream(streams)
+        if not best:
+            raise Exception("Geen Engelse ondertitelstream gevonden in dit bestand")
+
+        logger.info(f"Ondertitelspoor gekozen: index {best['index']} ({best['lang']}, SDH={best['is_sdh']})")
+
+        # Extraheer naar tijdelijk SRT
+        tmp_srt = extract_srt(file_path, best["index"])
+        if not tmp_srt:
+            raise Exception("SRT extractie mislukt")
+
+        # Parseer SRT
+        blocks = parse_srt(tmp_srt)
+        os.remove(tmp_srt)
+
+        if not blocks:
+            raise Exception("SRT bestand is leeg of onleesbaar")
+
+        conn.execute(
+            "UPDATE subtitle_queue SET lines_total=? WHERE id=?",
+            (len(blocks), job_id)
+        )
+        conn.commit()
+
+        # Voortgang callback
+        def update_progress(done: int, total: int):
+            pct = int((done / total) * 100) if total > 0 else 0
+            c = get_db()
+            c.execute(
+                "UPDATE subtitle_queue SET progress=?, lines_done=? WHERE id=?",
+                (pct, done, job_id)
+            )
+            c.commit()
+            c.close()
+
+        # Vertaal via Ollama
+        translated = translate_blocks_ollama(blocks, model, host, job_id, update_progress)
+
+        # Schrijf output SRT naast het mediabestand
+        base   = Path(file_path).stem
+        parent = Path(file_path).parent
+        out_path = str(parent / f"{base}.nl.srt")
+        write_srt(translated, out_path)
+
+        logger.info(f"Ondertitel opgeslagen: {out_path} ({len(translated)} regels)")
+
+        # Geschiedenis opslaan
+        hist_id = str(uuid.uuid4())
+        conn.execute(
+            "INSERT INTO subtitle_history (id,library_id,file_path,output_path,source_lang,target_lang,"
+            "lines_translated,model_used,status,finished_at) VALUES (?,?,?,?,?,?,?,?,'success',?)",
+            (hist_id, job["library_id"], file_path, out_path,
+             job["source_lang"], job["target_lang"],
+             len(translated), model, datetime.utcnow().isoformat())
+        )
+        conn.execute("DELETE FROM subtitle_queue WHERE id=?", (job_id,))
+        conn.commit()
+
+    except Exception as e:
+        logger.error(f"Ondertitel vertaling mislukt: {file_path}: {e}")
+        conn.execute(
+            "UPDATE subtitle_queue SET status='error', error_msg=?, finished_at=? WHERE id=?",
+            (str(e)[:500], datetime.utcnow().isoformat(), job_id)
+        )
+        # Fout ook in geschiedenis
+        hist_id = str(uuid.uuid4())
+        conn.execute(
+            "INSERT INTO subtitle_history (id,library_id,file_path,source_lang,target_lang,"
+            "model_used,status,error_msg,finished_at) VALUES (?,?,?,?,?,?,'error',?,?)",
+            (hist_id, job["library_id"], file_path,
+             job["source_lang"], job["target_lang"],
+             get_subtitle_setting("ollama_model",""), str(e)[:500],
+             datetime.utcnow().isoformat())
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+def maybe_queue_subtitle(file_path: str, library_id: str):
+    """
+    Wordt aangeroepen na een succesvolle conversie.
+    Voegt het bestand toe aan de ondertitelwachtrij als:
+    - Ondertiteling is ingeschakeld
+    - Er geen Nederlandse ondertitel bestaat
+    - Er een Engelse ondertitelstream aanwezig is
+    """
+    if get_subtitle_setting("subtitle_enabled", "0") != "1":
+        return
+    if has_dutch_subtitle(file_path):
+        logger.info(f"Ondertitel: NL al aanwezig voor {Path(file_path).name}")
+        return
+    streams = detect_subtitle_streams(file_path)
+    best = pick_best_english_stream(streams)
+    if not best:
+        logger.info(f"Ondertitel: geen Engelse stream in {Path(file_path).name}")
+        return
+    conn = get_db()
+    existing = conn.execute(
+        "SELECT id FROM subtitle_queue WHERE file_path=? AND status IN ('pending','processing')",
+        (file_path,)
+    ).fetchone()
+    if existing:
+        conn.close()
+        return
+    jid = str(uuid.uuid4())
+    conn.execute(
+        "INSERT INTO subtitle_queue (id,library_id,file_path,file_size,subtitle_track_index,status) "
+        "VALUES (?,?,?,?,?,'pending')",
+        (jid, library_id, file_path, os.path.getsize(file_path), best["index"])
+    )
+    conn.commit()
+    conn.close()
+    logger.info(f"Ondertitel wachtrij: {Path(file_path).name} toegevoegd")
+
+# ── Ondertitel dispatcher ─────────────────────────────────────────────────────
+_sub_dispatcher_running = False
+_sub_semaphore = threading.Semaphore(1)  # altijd 1 tegelijk — Ollama is single-threaded
+
+def sub_job_thread(job_id: str):
+    try:
+        run_subtitle_translation(job_id)
+    finally:
+        _sub_semaphore.release()
+
+def subtitle_dispatcher_loop():
+    """
+    Wacht tot de conversiewachtrij leeg is voordat ondertitels worden verwerkt.
+    Verwerkt altijd maximaal 1 ondertiteling tegelijk.
+    """
+    logger.info("Ondertitel dispatcher gestart.")
+    while _sub_dispatcher_running:
+        if get_subtitle_setting("subtitle_enabled", "0") != "1":
+            time.sleep(5)
+            continue
+        try:
+            conn = get_db()
+            # Wacht als er nog conversies bezig zijn
+            active_conversions = conn.execute(
+                "SELECT COUNT(*) as c FROM queue WHERE status IN ('pending','processing')"
+            ).fetchone()["c"]
+
+            if active_conversions > 0:
+                conn.close()
+                time.sleep(10)
+                continue
+
+            # Haal volgende ondertiteljob op
+            job = conn.execute(
+                "SELECT id FROM subtitle_queue WHERE status='pending' ORDER BY added_at ASC LIMIT 1"
+            ).fetchone()
+            conn.close()
+
+            if job:
+                acquired = _sub_semaphore.acquire(blocking=False)
+                if acquired:
+                    c2 = get_db()
+                    c2.execute(
+                        "UPDATE subtitle_queue SET status='processing' WHERE id=? AND status='pending'",
+                        (job["id"],)
+                    )
+                    c2.commit()
+                    c2.close()
+                    t = threading.Thread(
+                        target=sub_job_thread,
+                        args=(job["id"],),
+                        name=f"Subtitle-{job['id'][:8]}",
+                        daemon=True
+                    )
+                    t.start()
+                else:
+                    time.sleep(5)
+            else:
+                time.sleep(10)
+        except Exception as e:
+            logger.error(f"Ondertitel dispatcher fout: {e}")
+            time.sleep(10)
+    logger.info("Ondertitel dispatcher gestopt.")
 
 # ── File watcher ──────────────────────────────────────────────────────────────
 class LibraryWatcher(FileSystemEventHandler):
@@ -936,6 +1412,70 @@ def watcher_monitor():
             logger.error(f"Watcher monitor fout: {e}")
 
 
+def scan_existing_subtitles():
+    """
+    Controleert bij opstart alle bestanden in actieve bibliotheken:
+    voegt toe aan ondertitelwachtrij als er geen NL ondertitel is
+    maar wel een Engelse stream aanwezig is.
+    Alleen als subtitle_enabled=1.
+    """
+    if get_subtitle_setting("subtitle_enabled", "0") != "1":
+        return
+    logger.info("Ondertitel opstartscan gestart...")
+    conn = get_db()
+    libs = conn.execute("SELECT * FROM libraries WHERE enabled=1").fetchall()
+    conn.close()
+    added = 0
+    for lib in libs:
+        path = lib["path"]
+        if not os.path.isdir(path):
+            continue
+        for root, dirs, files in os.walk(path):
+            dirs[:] = [d for d in dirs if not d.startswith(".")]
+            for fname in files:
+                if Path(fname).suffix.lower() not in VIDEO_EXTENSIONS:
+                    continue
+                if fname.startswith("shryncing-"):
+                    continue
+                fpath = os.path.join(root, fname)
+                # Sla over als al in wachtrij
+                c = get_db()
+                existing = c.execute(
+                    "SELECT id FROM subtitle_queue WHERE file_path=? AND status IN ('pending','processing')",
+                    (fpath,)
+                ).fetchone()
+                already_done = c.execute(
+                    "SELECT id FROM subtitle_history WHERE file_path=? AND status='success'",
+                    (fpath,)
+                ).fetchone()
+                c.close()
+                if existing or already_done:
+                    continue
+                if has_dutch_subtitle(fpath):
+                    continue
+                streams = detect_subtitle_streams(fpath)
+                best = pick_best_english_stream(streams)
+                if not best:
+                    continue
+                c = get_db()
+                jid = str(uuid.uuid4())
+                c.execute(
+                    "INSERT INTO subtitle_queue (id,library_id,file_path,file_size,subtitle_track_index,status) "
+                    "VALUES (?,?,?,?,?,'pending')",
+                    (jid, lib["id"], fpath, os.path.getsize(fpath), best["index"])
+                )
+                c.commit()
+                c.close()
+                added += 1
+    logger.info(f"Ondertitel opstartscan klaar: {added} bestand(en) toegevoegd aan wachtrij")
+
+def start_subtitle_dispatcher():
+    global _sub_dispatcher_running
+    _sub_dispatcher_running = True
+    t = threading.Thread(target=subtitle_dispatcher_loop, name="SubtitleDispatcher", daemon=True)
+    t.start()
+    logger.info("Ondertitel dispatcher actief.")
+
 def initial_startup():
     logger.info("Shrync opstart — eenmalige scan van alle bibliotheken...")
     conn = get_db()
@@ -947,6 +1487,9 @@ def initial_startup():
     threading.Thread(target=watcher_monitor, daemon=True).start()
     logger.info("Live monitoring actief.")
     start_workers()
+    start_subtitle_dispatcher()
+    # Ondertitel opstartscan in aparte thread — na conversie dispatcher
+    threading.Thread(target=scan_existing_subtitles, daemon=True).start()
 
 # ── App lifecycle ─────────────────────────────────────────────────────────────
 @app.on_event("startup")
@@ -959,8 +1502,9 @@ def startup():
 
 @app.on_event("shutdown")
 def shutdown():
-    global worker_running
+    global worker_running, _sub_dispatcher_running
     worker_running = False
+    _sub_dispatcher_running = False
     for obs in _observers:
         try:
             obs.stop()
@@ -1505,3 +2049,160 @@ def api_clear_history():
     conn.commit()
     conn.close()
     return {"ok": True}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── Ondertiteling API routes ──────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/subtitle/stats")
+def api_subtitle_stats():
+    """Dashboard tegel data voor ondertiteling."""
+    conn = get_db()
+    pending    = conn.execute("SELECT COUNT(*) as c FROM subtitle_queue WHERE status='pending'").fetchone()["c"]
+    processing = conn.execute("SELECT COUNT(*) as c FROM subtitle_queue WHERE status='processing'").fetchone()["c"]
+    done_today = conn.execute(
+        "SELECT COUNT(*) as c FROM subtitle_history WHERE status='success' AND date(finished_at)=date('now')"
+    ).fetchone()["c"]
+    errors = conn.execute("SELECT COUNT(*) as c FROM subtitle_history WHERE status='error'").fetchone()["c"]
+    total  = conn.execute("SELECT COUNT(*) as c FROM subtitle_history WHERE status='success'").fetchone()["c"]
+    conn.close()
+    return {
+        "pending": pending, "processing": processing,
+        "done_today": done_today, "errors": errors, "total": total,
+        "enabled": get_subtitle_setting("subtitle_enabled", "0") == "1"
+    }
+
+@app.get("/api/subtitle/queue")
+def api_subtitle_queue():
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT sq.*, l.name as library_name FROM subtitle_queue sq "
+        "LEFT JOIN libraries l ON sq.library_id=l.id "
+        "WHERE sq.status IN ('pending','processing','error') "
+        "ORDER BY sq.status DESC, sq.added_at ASC LIMIT 100"
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.get("/api/subtitle/history")
+def api_subtitle_history(page: int = 1, per_page: int = 50):
+    offset = (page - 1) * per_page
+    conn = get_db()
+    total = conn.execute("SELECT COUNT(*) as c FROM subtitle_history").fetchone()["c"]
+    rows = conn.execute(
+        "SELECT sh.*, l.name as library_name FROM subtitle_history sh "
+        "LEFT JOIN libraries l ON sh.library_id=l.id "
+        "ORDER BY sh.finished_at DESC LIMIT ? OFFSET ?",
+        (per_page, offset)
+    ).fetchall()
+    conn.close()
+    return {"total": total, "page": page, "items": [dict(r) for r in rows]}
+
+@app.delete("/api/subtitle/queue/{jid}")
+def api_subtitle_queue_remove(jid: str):
+    conn = get_db()
+    conn.execute("DELETE FROM subtitle_queue WHERE id=?", (jid,))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+@app.post("/api/subtitle/retry/{hid}")
+def api_subtitle_retry(hid: str):
+    conn = get_db()
+    item = conn.execute(
+        "SELECT * FROM subtitle_history WHERE id=? AND status='error'", (hid,)
+    ).fetchone()
+    if not item:
+        conn.close()
+        raise HTTPException(404, "Niet gevonden of niet mislukt")
+    if not os.path.exists(item["file_path"]):
+        conn.close()
+        raise HTTPException(400, "Bronbestand bestaat niet meer")
+    streams = detect_subtitle_streams(item["file_path"])
+    best = pick_best_english_stream(streams)
+    if not best:
+        conn.close()
+        raise HTTPException(400, "Geen Engelse ondertitelstream gevonden")
+    jid = str(uuid.uuid4())
+    conn.execute("DELETE FROM subtitle_history WHERE id=?", (hid,))
+    conn.execute(
+        "INSERT INTO subtitle_queue (id,library_id,file_path,file_size,subtitle_track_index,status) "
+        "VALUES (?,?,?,?,?,'pending')",
+        (jid, item["library_id"], item["file_path"],
+         os.path.getsize(item["file_path"]), best["index"])
+    )
+    conn.commit()
+    conn.close()
+    return {"id": jid}
+
+@app.delete("/api/subtitle/history")
+def api_subtitle_clear_history():
+    conn = get_db()
+    conn.execute("DELETE FROM subtitle_history WHERE status='error'")
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+@app.get("/api/subtitle/active")
+def api_subtitle_active():
+    """Live voortgang van de actieve ondertiteljob."""
+    conn = get_db()
+    job = conn.execute(
+        "SELECT sq.*, l.name as library_name FROM subtitle_queue sq "
+        "LEFT JOIN libraries l ON sq.library_id=l.id "
+        "WHERE sq.status='processing' LIMIT 1"
+    ).fetchone()
+    conn.close()
+    if not job:
+        return None
+    return dict(job)
+
+@app.get("/api/ollama/models")
+def api_ollama_models():
+    """Haalt beschikbare Ollama modellen op van de geconfigureerde host."""
+    host = get_subtitle_setting("ollama_host", "http://localhost:11434")
+    try:
+        result = subprocess.run(
+            ["curl", "-s", "--connect-timeout", "4", f"{host}/api/tags"],
+            capture_output=True, text=True, timeout=6
+        )
+        if result.returncode != 0:
+            return {"models": [], "error": "Ollama niet bereikbaar"}
+        data = json.loads(result.stdout)
+        models = [m["name"] for m in data.get("models", [])]
+        return {"models": models}
+    except Exception as e:
+        return {"models": [], "error": str(e)[:200]}
+
+@app.post("/api/subtitle/queue/add")
+def api_subtitle_add(data: dict):
+    """Voegt een bestand handmatig toe aan de ondertitelwachtrij."""
+    file_path = data.get("file_path", "")
+    library_id = data.get("library_id")
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(400, "Bestand niet gevonden")
+    if has_dutch_subtitle(file_path):
+        raise HTTPException(400, "Nederlandse ondertitel al aanwezig")
+    streams = detect_subtitle_streams(file_path)
+    best = pick_best_english_stream(streams)
+    if not best:
+        raise HTTPException(400, "Geen Engelse ondertitelstream gevonden in dit bestand")
+    conn = get_db()
+    existing = conn.execute(
+        "SELECT id FROM subtitle_queue WHERE file_path=? AND status IN ('pending','processing')",
+        (file_path,)
+    ).fetchone()
+    if existing:
+        conn.close()
+        raise HTTPException(400, "Al in ondertitelwachtrij")
+    jid = str(uuid.uuid4())
+    conn.execute(
+        "INSERT INTO subtitle_queue (id,library_id,file_path,file_size,subtitle_track_index,status) "
+        "VALUES (?,?,?,?,?,'pending')",
+        (jid, library_id, file_path, os.path.getsize(file_path), best["index"])
+    )
+    conn.commit()
+    conn.close()
+    return {"id": jid}
+
