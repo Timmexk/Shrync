@@ -658,27 +658,53 @@ tr:hover td{background:rgba(255,255,255,.025)}
       <div class="table-wrap">
         <div class="table-hdr">
           <span class="table-title">Wachtrij</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:10px;color:var(--text-s)" id="sub-queue-count"></span>
+            <button class="btn btn-sm btn-danger" onclick="clearSubtitleQueue()">Wachtrij leegmaken</button>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:10px;color:var(--text-s)">Per pagina:</span>
+              <select id="sub-queue-perpage" class="form-input" style="padding:3px 8px;height:auto;font-size:11px;width:70px" onchange="subQueuePage=1;loadSubtitleQueue()">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="75">75</option>
+                <option value="100">100</option>
+              </select>
+            </div>
+          </div>
         </div>
         <table><thead><tr>
-          <th>Bestand</th><th>Bibliotheek</th><th style="width:100px">Status</th>
+          <th>Bestand</th><th>Bibliotheek</th><th style="width:110px">Status</th>
         </tr></thead>
         <tbody id="sub-queue-body"><tr><td colspan="3"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
         </table>
+        <div id="sub-queue-pagination" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-top:1px solid var(--border)"></div>
       </div>
 
       <!-- Geschiedenis -->
       <div class="table-wrap">
         <div class="table-hdr">
           <span class="table-title">Geschiedenis</span>
-          <button class="btn btn-sm" onclick="clearSubtitleErrors()">Fouten wissen</button>
+          <div style="display:flex;align-items:center;gap:10px">
+            <button class="btn btn-sm" onclick="clearSubtitleErrors()">Fouten wissen</button>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:10px;color:var(--text-s)">Per pagina:</span>
+              <select id="sub-hist-perpage" class="form-input" style="padding:3px 8px;height:auto;font-size:11px;width:70px" onchange="subHistPage=1;loadSubtitleHistory()">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="75">75</option>
+                <option value="100">100</option>
+              </select>
+            </div>
+          </div>
         </div>
         <table><thead><tr>
-          <th style="width:45%">Bestand</th><th>Bibliotheek</th>
-          <th style="width:80px">Regels</th><th style="width:80px">Model</th>
+          <th style="width:40%">Bestand</th><th>Bibliotheek</th>
+          <th style="width:70px">Regels</th><th style="width:90px">Model</th>
           <th style="width:80px">Status</th><th style="width:120px">Datum</th>
         </tr></thead>
         <tbody id="sub-history-body"><tr><td colspan="6"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
         </table>
+        <div id="sub-hist-pagination" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-top:1px solid var(--border)"></div>
       </div>
 
     </div>
@@ -1860,10 +1886,11 @@ function selectProfile(id) {
 
 // ── Ondertiteling ──────────────────────────────────────────────────────────────
 let _subInterval = null;
+let subQueuePage = 1;
+let subHistPage  = 1;
 
 async function loadSubtitles() {
   await Promise.all([loadSubtitleStats(), loadSubtitleQueue(), loadSubtitleHistory()]);
-  // Start live polling als er iets actief is
   if (!_subInterval) {
     _subInterval = setInterval(async () => {
       if (currentPage !== 'subtitles') { clearInterval(_subInterval); _subInterval = null; return; }
@@ -1886,81 +1913,160 @@ async function loadSubtitleStats() {
 async function loadSubtitleActive() {
   try {
     const job = await fetch('/api/subtitle/active').then(r => r.json());
-    const sec = document.getElementById('sub-active-section');
+    const sec  = document.getElementById('sub-active-section');
     const body = document.getElementById('sub-active-body');
     if (!job) { if (sec) sec.style.display = 'none'; return; }
     if (sec) sec.style.display = '';
     const fname = job.file_path ? job.file_path.split('/').pop() : '—';
+    const dir   = job.file_path ? job.file_path.replace('/' + fname, '') : '';
     const pct   = job.progress || 0;
     const done  = job.lines_done || 0;
     const total = job.lines_total || 0;
     body.innerHTML = `
       <div class="file-name">${fname}</div>
-      <div class="file-dir">${job.file_path ? job.file_path.replace('/' + fname, '') : ''}</div>
+      <div class="file-dir">${dir}</div>
       <div style="margin:12px 0 4px;display:flex;justify-content:space-between;font-size:11px;color:var(--text-s)">
-        <span>${done} / ${total} regels vertaald</span>
-        <span>${pct}%</span>
+        <span>${done} / ${total} regels vertaald</span><span>${pct}%</span>
       </div>
       <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden">
         <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:2px;transition:width .5s ease"></div>
       </div>
-      <div style="font-size:10px;color:var(--text-t);margin-top:8px">Model: ${job.model_used || '—'}</div>`;
+      <div style="font-size:10px;color:var(--text-t);margin-top:8px">Model: ${job.model_used||'—'}</div>`;
   } catch(e) {}
 }
 
-async function loadSubtitleQueue() {
+function renderPagination(containerId, currentPage, total, perPage, onPageFn) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  if (totalPages <= 1) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  const btnStyle = (active) =>
+    `style="padding:4px 10px;font-size:11px;border-radius:var(--rxs);border:1px solid var(--border);cursor:pointer;${
+      active ? 'background:rgba(99,102,241,.25);color:#a5b4fc;border-color:rgba(99,102,241,.4);font-weight:700'
+             : 'background:rgba(255,255,255,.04);color:var(--text-s)'}"`;
+  let html = '';
+  html += `<button ${btnStyle(false)} onclick="${onPageFn}(${currentPage-1})" ${currentPage<=1?'disabled':''}>‹</button>`;
+  // Toon max 7 pagina knoppen rondom huidige pagina
+  let start = Math.max(1, currentPage - 3);
+  let end   = Math.min(totalPages, start + 6);
+  start = Math.max(1, end - 6);
+  if (start > 1) html += `<button ${btnStyle(false)} onclick="${onPageFn}(1)">1</button><span style="color:var(--text-t);font-size:11px">…</span>`;
+  for (let p = start; p <= end; p++)
+    html += `<button ${btnStyle(p===currentPage)} onclick="${onPageFn}(${p})">${p}</button>`;
+  if (end < totalPages) html += `<span style="color:var(--text-t);font-size:11px">…</span><button ${btnStyle(false)} onclick="${onPageFn}(${totalPages})">${totalPages}</button>`;
+  html += `<button ${btnStyle(false)} onclick="${onPageFn}(${currentPage+1})" ${currentPage>=totalPages?'disabled':''}>›</button>`;
+  html += `<span style="font-size:10px;color:var(--text-t);margin-left:4px">${total} items</span>`;
+  el.innerHTML = html;
+}
+
+async function loadSubtitleQueue(page) {
+  if (page !== undefined) subQueuePage = page;
+  const perPage = parseInt(document.getElementById('sub-queue-perpage')?.value || 50);
   try {
-    const items = await fetch('/api/subtitle/queue').then(r => r.json());
-    const tbody = document.getElementById('sub-queue-body');
     loadSubtitleActive();
+    const d = await fetch(`/api/subtitle/queue?page=${subQueuePage}&per_page=${perPage}`).then(r => r.json());
+    const items = d.items || [];
+    const tbody = document.getElementById('sub-queue-body');
+    const countEl = document.getElementById('sub-queue-count');
+    if (countEl) countEl.textContent = d.total + ' items';
+
     if (!items.length) {
       tbody.innerHTML = `<tr><td colspan="3"><div class="empty"><span class="empty-icon">◌</span><div class="empty-text">Geen bestanden in wachtrij</div></div></td></tr>`;
+      renderPagination('sub-queue-pagination', subQueuePage, 0, perPage, 'loadSubtitleQueue');
       return;
     }
+
     tbody.innerHTML = items.map(j => {
       const fname = j.file_path ? j.file_path.split('/').pop() : '—';
       const dir   = j.file_path ? j.file_path.replace('/' + fname,'') : '';
+      const isErr = j.status === 'error';
       const badge = j.status === 'processing'
         ? `<span class="badge badge-processing">● Bezig ${j.progress||0}%</span>`
-        : j.status === 'error'
-        ? `<span class="badge badge-error" title="${j.error_msg||''}">✕ Fout</span>`
+        : isErr
+        ? `<span class="badge badge-error">✕ Fout</span>`
         : `<span class="badge" style="background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3)">◌ Wacht</span>`;
-      return `<tr>
-        <td><div class="file-name">${fname}</div><div class="file-dir">${dir}</div></td>
+      const errRow = isErr && j.error_msg
+        ? `<tr class="history-detail-row" id="qerr-${j.id}">
+            <td colspan="3">
+              <div class="history-detail" style="background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2)">
+                <div style="font-size:10px;color:var(--danger);font-weight:600;margin-bottom:4px">Foutmelding</div>
+                <div style="font-size:10px;color:var(--text-s);white-space:pre-wrap;word-break:break-all">${j.error_msg}</div>
+              </div>
+            </td>
+           </tr>`
+        : '';
+      return `<tr class="history-row" ${isErr ? `onclick="toggleQueueError('${j.id}')"` : ''} style="${isErr?'cursor:pointer':''}">
+        <td>${isErr?'<span class="expand-icon">▶</span>':''}<div class="file-name">${fname}</div><div class="file-dir">${dir}</div></td>
         <td style="font-size:11px;color:var(--muted)">${j.library_name||'—'}</td>
         <td>${badge}</td>
-      </tr>`;
+      </tr>${errRow}`;
     }).join('');
+
+    renderPagination('sub-queue-pagination', subQueuePage, d.total, perPage, 'loadSubtitleQueue');
   } catch(e) {}
 }
 
-async function loadSubtitleHistory(page = 1) {
+function toggleQueueError(id) {
+  const row = document.getElementById('qerr-' + id);
+  if (!row) return;
+  const open = row.classList.toggle('open');
+  const tr = row.previousElementSibling;
+  const icon = tr ? tr.querySelector('.expand-icon') : null;
+  if (icon) icon.textContent = open ? '▼' : '▶';
+}
+
+async function loadSubtitleHistory(page) {
+  if (page !== undefined) subHistPage = page;
+  const perPage = parseInt(document.getElementById('sub-hist-perpage')?.value || 50);
   try {
-    const d = await fetch('/api/subtitle/history?page=' + page).then(r => r.json());
+    const d = await fetch(`/api/subtitle/history?page=${subHistPage}&per_page=${perPage}`).then(r => r.json());
     const tbody = document.getElementById('sub-history-body');
     if (!d.items.length) {
       tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><span class="empty-icon">◷</span><div class="empty-text">Geen geschiedenis</div></div></td></tr>`;
+      renderPagination('sub-hist-pagination', subHistPage, 0, perPage, 'loadSubtitleHistory');
       return;
     }
     tbody.innerHTML = d.items.map(h => {
       const fname = h.file_path ? h.file_path.split('/').pop() : '—';
       const dir   = h.file_path ? h.file_path.replace('/' + fname,'') : '';
-      const badge = h.status === 'success'
-        ? `<span class="badge badge-success">✓ OK</span>`
-        : `<span class="badge badge-error">✕ Fout</span>`;
-      const retryBtn = h.status === 'error'
-        ? `<button class="btn btn-sm" style="padding:2px 7px;font-size:10px;color:var(--orange);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)" onclick="retrySubtitle('${h.id}')">↺</button>`
+      const isErr = h.status === 'error';
+      const badge = isErr
+        ? `<span class="badge badge-error">✕ Fout</span>`
+        : `<span class="badge badge-success">✓ OK</span>`;
+      const retryBtn = isErr
+        ? `<button class="btn btn-sm" style="padding:2px 7px;font-size:10px;color:var(--orange);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08);margin-left:4px" onclick="event.stopPropagation();retrySubtitle('${h.id}')">↺</button>`
         : '';
-      return `<tr>
-        <td><div class="file-name">${fname}</div><div class="file-dir">${dir}</div></td>
+      const errRow = isErr && h.error_msg
+        ? `<tr class="history-detail-row" id="herr-${h.id}">
+            <td colspan="6">
+              <div class="history-detail" style="background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2)">
+                <div style="font-size:10px;color:var(--danger);font-weight:600;margin-bottom:4px">Foutmelding</div>
+                <div style="font-size:10px;color:var(--text-s);white-space:pre-wrap;word-break:break-all">${h.error_msg}</div>
+              </div>
+            </td>
+           </tr>`
+        : '';
+      return `<tr class="history-row" ${isErr?`onclick="toggleHistError('${h.id}')"`:''} style="${isErr?'cursor:pointer':''}">
+        <td>${isErr?'<span class="expand-icon">▶</span>':''}<div class="file-name">${fname}</div><div class="file-dir">${dir}</div></td>
         <td style="font-size:11px;color:var(--muted)">${h.library_name||'—'}</td>
         <td style="font-size:11px;color:var(--muted)">${h.lines_translated||'—'}</td>
-        <td style="font-size:11px;color:var(--muted)">${h.model_used||'—'}</td>
+        <td style="font-size:11px;color:var(--muted);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h.model_used||''}">${h.model_used||'—'}</td>
         <td>${badge}${retryBtn}</td>
-        <td style="font-size:10px;color:var(--muted)">${formatDate(h.finished_at)}</td>
-      </tr>`;
+        <td><div style="font-size:10px;color:var(--muted)">${formatDate(h.finished_at)}</div></td>
+      </tr>${errRow}`;
     }).join('');
+    renderPagination('sub-hist-pagination', subHistPage, d.total, perPage, 'loadSubtitleHistory');
   } catch(e) {}
+}
+
+function toggleHistError(id) {
+  const row = document.getElementById('herr-' + id);
+  if (!row) return;
+  const open = row.classList.toggle('open');
+  const tr = row.previousElementSibling;
+  const icon = tr ? tr.querySelector('.expand-icon') : null;
+  if (icon) icon.textContent = open ? '▼' : '▶';
 }
 
 async function retrySubtitle(hid) {
@@ -1968,7 +2074,18 @@ async function retrySubtitle(hid) {
     await fetch('/api/subtitle/retry/' + hid, {method:'POST'});
     toast('Opnieuw toegevoegd aan wachtrij');
     loadSubtitles();
-  } catch(e) { toast('Fout: ' + e, true); }
+  } catch(e) { toast('Fout bij opnieuw proberen', true); }
+}
+
+async function clearSubtitleQueue() {
+  if (!confirm('Wachtrij leegmaken? Lopende vertalingen worden niet onderbroken.')) return;
+  try {
+    const d = await fetch('/api/subtitle/queue', {method:'DELETE'}).then(r => r.json());
+    toast(d.deleted + ' item(s) verwijderd uit wachtrij');
+    subQueuePage = 1;
+    loadSubtitleQueue();
+    loadSubtitleStats();
+  } catch(e) { toast('Fout bij leegmaken', true); }
 }
 
 async function clearSubtitleErrors() {
@@ -1980,12 +2097,11 @@ async function clearSubtitleErrors() {
 }
 
 async function loadOllamaModels() {
-  const hostEl  = document.getElementById('ollama-host');
-  const select  = document.getElementById('ollama-model-select');
-  const status  = document.getElementById('ollama-status');
-  const host    = hostEl ? hostEl.value.trim() : '';
+  const hostEl = document.getElementById('ollama-host');
+  const select = document.getElementById('ollama-model-select');
+  const status = document.getElementById('ollama-status');
+  const host   = hostEl ? hostEl.value.trim() : '';
   if (!host) { status.textContent = '⚠ Vul eerst een Ollama adres in'; status.style.color='var(--orange)'; return; }
-  // Sla host alvast op zodat de API het juiste adres gebruikt
   await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ollama_host: host})});
   status.textContent = 'Modellen laden…'; status.style.color = 'var(--text-s)';
@@ -1993,12 +2109,11 @@ async function loadOllamaModels() {
     const d = await fetch('/api/ollama/models').then(r => r.json());
     if (d.error || !d.models.length) {
       status.textContent = d.error ? '✕ ' + d.error : '✕ Geen modellen gevonden';
-      status.style.color = 'var(--danger)';
-      return;
+      status.style.color = 'var(--danger)'; return;
     }
     const current = select.value;
     select.innerHTML = d.models.map(m =>
-      `<option value="${m}" ${m === current ? 'selected' : ''}>${m}</option>`
+      `<option value="${m}" ${m === current ? 'selected':''}>${m}</option>`
     ).join('');
     status.textContent = '✓ ' + d.models.length + ' model(len) gevonden';
     status.style.color = 'var(--green)';
@@ -2009,7 +2124,6 @@ async function loadOllamaModels() {
 }
 
 function onSubtitleToggle(enabled) {
-  // Visuele feedback — echte opslag via saveSettings
   const hint = document.getElementById('ollama-model-hint');
   if (hint) hint.style.color = enabled ? 'var(--text-s)' : 'var(--text-t)';
 }

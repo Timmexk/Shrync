@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.30")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.31")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -807,13 +807,41 @@ def pick_best_english_stream(streams: list) -> dict | None:
     return english[0]
 
 def has_dutch_subtitle(file_path: str) -> bool:
-    """Controleert of er al een Nederlandse SRT naast het mediabestand staat."""
-    base = Path(file_path).stem
+    """
+    Controleert of er al een ondertitelbestand aanwezig is voor dit mediabestand.
+    Sloeg over als:
+    - Er een gelabeld NL bestand naast staat (.nl.srt, .nld.srt, etc.)
+    - Er een extern SRT/ASS/SSA bestand naast staat met dezelfde bestandsnaam
+      (ongeacht taalcode — extern bestand = al aanwezig, niet opnieuw aanmaken)
+    - Er een NL ondertitelstream in het MKV zelf zit
+    """
+    base   = Path(file_path).stem
     parent = Path(file_path).parent
-    for ext in (".nl.srt", ".nld.srt", ".dut.srt", ".nl.forced.srt"):
+
+    # 1. Gelabelde NL bestanden
+    for ext in (".nl.srt", ".nld.srt", ".dut.srt", ".nl.forced.srt",
+                ".nl.sdh.srt", ".nld.forced.srt"):
         if (parent / (base + ext)).exists():
+            logger.debug(f"Ondertitel: gelabeld NL bestand gevonden voor {base}")
             return True
-    # Controleer ook streams in het bestand zelf
+
+    # 2. Elk extern ondertitelbestand met dezelfde bestandsnaam (zonder taalcode)
+    #    bijv. "Film.srt", "Film.ass", "Film.ssa" — als het naast de mediafile staat
+    #    beschouwen we het als al aanwezig, ongeacht de taalcode
+    for sub_ext in (".srt", ".ass", ".ssa", ".vtt", ".sub"):
+        candidate = parent / (base + sub_ext)
+        if candidate.exists():
+            logger.debug(f"Ondertitel: extern bestand gevonden ({candidate.name}) — overslaan")
+            return True
+        # Ook bestanden met een taalcode tussenin: Film.en.srt, Film.eng.srt, etc.
+        # glob op base + ".*" + sub_ext
+        import glob as _glob
+        matches = _glob.glob(str(parent / (base + ".*" + sub_ext[1:])))
+        if matches:
+            logger.debug(f"Ondertitel: extern bestand met taalcode gevonden ({matches[0]}) — overslaan")
+            return True
+
+    # 3. NL ondertitelstream in het MKV zelf
     try:
         result = subprocess.run([
             "ffprobe", "-v", "quiet", "-print_format", "json",
@@ -828,6 +856,7 @@ def has_dutch_subtitle(file_path: str) -> bool:
                     return True
     except:
         pass
+
     return False
 
 def extract_srt(file_path: str, stream_index: int) -> str | None:
@@ -2074,16 +2103,21 @@ def api_subtitle_stats():
     }
 
 @app.get("/api/subtitle/queue")
-def api_subtitle_queue():
+def api_subtitle_queue(page: int = 1, per_page: int = 50):
+    offset = (page - 1) * per_page
     conn = get_db()
+    total = conn.execute(
+        "SELECT COUNT(*) as c FROM subtitle_queue WHERE status IN ('pending','processing','error')"
+    ).fetchone()["c"]
     rows = conn.execute(
         "SELECT sq.*, l.name as library_name FROM subtitle_queue sq "
         "LEFT JOIN libraries l ON sq.library_id=l.id "
         "WHERE sq.status IN ('pending','processing','error') "
-        "ORDER BY sq.status DESC, sq.added_at ASC LIMIT 100"
+        "ORDER BY sq.status DESC, sq.added_at ASC LIMIT ? OFFSET ?",
+        (per_page, offset)
     ).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return {"total": total, "page": page, "per_page": per_page, "items": [dict(r) for r in rows]}
 
 @app.get("/api/subtitle/history")
 def api_subtitle_history(page: int = 1, per_page: int = 50):
@@ -2106,6 +2140,17 @@ def api_subtitle_queue_remove(jid: str):
     conn.commit()
     conn.close()
     return {"ok": True}
+
+@app.delete("/api/subtitle/queue")
+def api_subtitle_queue_clear():
+    """Verwijdert alle pending items uit de ondertitelwachtrij. Lopende jobs blijven."""
+    conn = get_db()
+    deleted = conn.execute(
+        "DELETE FROM subtitle_queue WHERE status='pending'"
+    ).rowcount
+    conn.commit()
+    conn.close()
+    return {"ok": True, "deleted": deleted}
 
 @app.post("/api/subtitle/retry/{hid}")
 def api_subtitle_retry(hid: str):
