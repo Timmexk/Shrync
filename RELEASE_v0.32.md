@@ -21,3 +21,10 @@ Een mislukte vertaling werd eerder opgeslagen als `error` in de wachtrij en blee
 
 **Mobiel hamburger menu maakt scherm wazig**
 De sidebar had geen `isolation: isolate` waardoor de `backdrop-filter` blur doorsijpelde naar de content. De sidebar heeft nu `z-index: 200` met volledige blur-isolatie. De overlay heeft `z-index: 199`.
+
+**Ontbrekende vertalingen hersteld**
+De volgende elementen waren niet vertaald bij het wisselen naar Engels:
+- GPU monitor labels (GPU gebruik, VRAM, Temperatuur, Encoder)
+- Ondertiteling pagina: stat labels, tabel headers, knop teksten
+- Statistieken reset knop
+- Overgeslagen bestanden modal kolomtitels

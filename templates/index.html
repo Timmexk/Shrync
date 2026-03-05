@@ -338,7 +338,7 @@ tr:hover td{background:rgba(255,255,255,.025)}
   border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.07);
   flex-shrink:0;min-width:40px;min-height:40px;align-items:center;justify-content:center}
 .hamburger span{display:block;width:18px;height:2px;background:var(--text-s);border-radius:2px;transition:all .2s}
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:199;
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:199;pointer-events:auto;touch-action:none;
   backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .sidebar-overlay.open{display:block}
 
@@ -357,18 +357,18 @@ tr:hover td{background:rgba(255,255,255,.025)}
   .app{padding:0;gap:0;flex-direction:column}
   .main{border-radius:0;min-height:100dvh}
   .header{padding:12px 14px;position:sticky;top:0;z-index:50;
-    background:rgba(8,15,31,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    background:#080f1f;backdrop-filter:none;-webkit-backdrop-filter:none;
     border-radius:0;border-bottom:1px solid var(--border)}
   .content{padding:12px 14px}
-  /* Sidebar als slide-in drawer */
-  .sidebar{position:fixed;left:-260px;top:0;width:240px;height:100dvh;
+  /* Sidebar als slide-in drawer — GEEN backdrop-filter op mobiel, dat lekt door naar content */
+  .sidebar{position:fixed;left:0;top:0;width:240px;height:100dvh;
     border-radius:0 16px 16px 0;z-index:200;
+    transform:translateX(-260px);
     transition:transform .28s cubic-bezier(.4,0,.2,1);
-    transform:translateX(0);
-    box-shadow:4px 0 32px rgba(0,0,0,.6);
-    isolation:isolate;will-change:transform;
-    backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%)}
-  .sidebar.open{left:0;transform:translateX(260px)}
+    box-shadow:4px 0 32px rgba(0,0,0,.8);
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+    background:#0d1729}
+  .sidebar.open{transform:translateX(0)}
   .hamburger{display:flex}
   .btn-pause span, #btn-scan-label{display:none}
   .btn-label-text{display:none}
@@ -660,10 +660,10 @@ tr:hover td{background:rgba(255,255,255,.025)}
       <!-- Wachtrij -->
       <div class="table-wrap">
         <div class="table-hdr">
-          <span class="table-title">Wachtrij</span>
+          <span class="table-title" id="sub-queue-title-lbl">Wachtrij</span>
           <div style="display:flex;align-items:center;gap:10px">
             <span style="font-size:10px;color:var(--text-s)" id="sub-queue-count"></span>
-            <button class="btn btn-sm btn-danger" onclick="clearSubtitleQueue()">Wachtrij leegmaken</button>
+            <button class="btn btn-sm btn-danger" onclick="clearSubtitleQueue()"><span id="sub-clear-queue-lbl">Wachtrij leegmaken</span></button>
             <div style="display:flex;align-items:center;gap:6px">
               <span style="font-size:10px;color:var(--text-s)">Per pagina:</span>
               <select id="sub-queue-perpage" class="form-input" style="padding:3px 8px;height:auto;font-size:11px;width:70px" onchange="subQueuePage=1;loadSubtitleQueue()">
@@ -676,7 +676,7 @@ tr:hover td{background:rgba(255,255,255,.025)}
           </div>
         </div>
         <table><thead><tr>
-          <th>Bestand</th><th>Bibliotheek</th><th style="width:110px">Status</th>
+          <th id="sub-q-th-file">Bestand</th><th id="sub-q-th-lib">Bibliotheek</th><th style="width:110px" id="sub-q-th-status">Status</th>
         </tr></thead>
         <tbody id="sub-queue-body"><tr><td colspan="3"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
         </table>
@@ -686,9 +686,9 @@ tr:hover td{background:rgba(255,255,255,.025)}
       <!-- Geschiedenis -->
       <div class="table-wrap">
         <div class="table-hdr">
-          <span class="table-title">Geschiedenis</span>
+          <span class="table-title" id="sub-hist-title-lbl">Geschiedenis</span>
           <div style="display:flex;align-items:center;gap:10px">
-            <button class="btn btn-sm" onclick="clearSubtitleErrors()">Fouten wissen</button>
+            <button class="btn btn-sm" onclick="clearSubtitleErrors()"><span id="sub-clear-errors-lbl">Fouten wissen</span></button>
             <div style="display:flex;align-items:center;gap:6px">
               <span style="font-size:10px;color:var(--text-s)">Per pagina:</span>
               <select id="sub-hist-perpage" class="form-input" style="padding:3px 8px;height:auto;font-size:11px;width:70px" onchange="subHistPage=1;loadSubtitleHistory()">
@@ -701,9 +701,9 @@ tr:hover td{background:rgba(255,255,255,.025)}
           </div>
         </div>
         <table><thead><tr>
-          <th style="width:40%">Bestand</th><th>Bibliotheek</th>
-          <th style="width:70px">Regels</th><th style="width:90px">Model</th>
-          <th style="width:80px">Status</th><th style="width:120px">Datum</th>
+          <th style="width:40%" id="sub-h-th-file">Bestand</th><th id="sub-h-th-lib">Bibliotheek</th>
+          <th style="width:70px" id="sub-h-th-lines">Regels</th><th style="width:90px" id="sub-h-th-model">Model</th>
+          <th style="width:80px" id="sub-h-th-status">Status</th><th style="width:120px" id="sub-h-th-date">Datum</th>
         </tr></thead>
         <tbody id="sub-history-body"><tr><td colspan="6"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
         </table>
@@ -880,6 +880,7 @@ const T = {
     dash:  { queue:'Queue', noQueue:'Queue is empty', recentDone:'Recently completed', noRecent:'No completed conversions yet',
              file:'File', lib:'Library', size:'Size', status:'Status', saved:'Saved', duration:'Duration', date:'Date' },
     hist:  { file:'File', lib:'Library', saved:'Saved', status:'Status', date:'Date' },
+    savbtn: { reset:'Reset statistics' },
     sav:   { overview:'Total overview', original:'Before conversion', after:'After conversion', saved:'Saved',
              reduction:'Reduction', files:'Files', perLib:'Per library', noData:'No completed conversions yet', afterBar:'After', origBar:'Original (100%)' },
     set:   { lang:'Language / Taal', profile:'Conversion profile', audio:'Audio', workers:'Concurrent conversions',
@@ -890,6 +891,11 @@ const T = {
              cancel:'Cancel', save:'Save',
              scan:'Scan', showSkipped:'Skipped files', edit:'Edit', delete:'Delete', lastScan:'Last scan', neverScanned:'Never scanned', skippedCount:'files skipped', profile:'Profile', noSkipped:'No skipped files', skipReasonCodec:'Already correct codec', skipReasonHistory:'Already converted', skipReasonQueued:'Already in queue' },
     btn:   { pause:'Pause', resume:'Resume', scanAll:'Scan all' },
+    gpu:   { util:'GPU usage', mem:'VRAM', temp:'Temperature', enc:'Encoder' },
+    sub:   { pending:'In queue', processing:'Translating', done:'Done today',
+             queueTitle:'Queue', histTitle:'History', clearQueue:'Clear queue',
+             clearErrors:'Clear errors', file:'File', lib:'Library',
+             lines:'Lines', model:'Model', status:'Status', date:'Date', reason:'Reason' },
     misc:  { activeConv:'Active conversion', jobs:'jobs', jobRemoved:'Job removed',
              libSaved:'Library saved', libUpdated:'Library updated', libAdded:'Library added', libDeleted:'Library deleted',
              scanStarted:'Scan started', scanAllStarted:'Scanning all libraries',
@@ -943,6 +949,7 @@ const T = {
     dash:  { queue:'Wachtrij', noQueue:'Wachtrij is leeg', recentDone:'Recent verwerkt', noRecent:'Nog geen voltooide conversies',
              file:'Bestand', lib:'Bibliotheek', size:'Grootte', status:'Status', saved:'Bespaard', duration:'Tijdsduur', date:'Datum' },
     hist:  { file:'Bestand', lib:'Bibliotheek', saved:'Bespaard', status:'Status', date:'Datum' },
+    savbtn: { reset:'Statistieken resetten' },
     sav:   { overview:'Totaal overzicht', original:'Voor conversie', after:'Na conversie', saved:'Bespaard',
              reduction:'Reductie', files:'Bestanden', perLib:'Per bibliotheek', noData:'Nog geen voltooide conversies', afterBar:'Na conversie', origBar:'Origineel (100%)' },
     set:   { lang:'Taal / Language', profile:'Conversieprofiel', audio:'Audio', workers:'Gelijktijdige conversies',
@@ -953,6 +960,11 @@ const T = {
              name:'Naam', path:'Pad (map)', cancel:'Annuleren', save:'Opslaan',
              scan:'Scannen', showSkipped:'Overgeslagen', edit:'Bewerken', delete:'Verwijderen', lastScan:'Laatste scan', neverScanned:'Nog nooit gescand', skippedCount:'bestanden overgeslagen', profile:'Profiel', noSkipped:'Geen overgeslagen bestanden', skipReasonCodec:'Codec al correct', skipReasonHistory:'Al geconverteerd', skipReasonQueued:'Al in wachtrij' },
     btn:   { pause:'Pauzeren', resume:'Hervatten', scanAll:'Alles scannen' },
+    gpu:   { util:'GPU gebruik', mem:'VRAM', temp:'Temperatuur', enc:'Encoder' },
+    sub:   { pending:'In wachtrij', processing:'Bezig', done:'Vandaag klaar',
+             queueTitle:'Wachtrij', histTitle:'Geschiedenis', clearQueue:'Wachtrij leegmaken',
+             clearErrors:'Fouten wissen', file:'Bestand', lib:'Bibliotheek',
+             lines:'Regels', model:'Model', status:'Status', date:'Datum', reason:'Reden' },
     misc:  { activeConv:'Actieve conversie', jobs:'taken', jobRemoved:'Taak verwijderd',
              libSaved:'Bibliotheek opgeslagen', libUpdated:'Bibliotheek bijgewerkt', libAdded:'Bibliotheek toegevoegd', libDeleted:'Bibliotheek verwijderd',
              scanStarted:'Scan gestart', scanAllStarted:'Alle bibliotheken worden gescand',
@@ -1108,8 +1120,52 @@ function applyLanguage() {
   if (libPathInput) libPathInput.placeholder = '/media/films';
 
   // ── Diagnostics labels
-  const diagTitle = document.getElementById('lbl-diag-title'); if (diagTitle) diagTitle.textContent = t('diag.title');
-  const diagRun   = document.getElementById('lbl-diag-run');   if (diagRun) diagRun.textContent = t('diag.run');
+  setTexts({
+    'lbl-diag-title':  'diag.title',
+    'lbl-diag-run':    'diag.run',
+  });
+
+  // ── GPU monitor labels
+  setTexts({
+    'lbl-gpu-util':  'gpu.util',
+    'lbl-gpu-mem':   'gpu.mem',
+    'lbl-gpu-temp':  'gpu.temp',
+    'lbl-gpu-enc':   'gpu.enc',
+  });
+
+  // ── Statistieken reset knop
+  setTexts({
+    'lbl-reset-savings': 'savbtn.reset',
+  });
+
+  // ── Nav: subtitles
+  setTexts({
+    'nav-lbl-subtitles': 'nav.subtitles',
+  });
+
+  // ── Ondertiteling stat labels
+  setTexts({
+    'lbl-sub-stat-pending':    'sub.pending',
+    'lbl-sub-stat-processing': 'sub.processing',
+    'lbl-sub-stat-done':       'sub.done',
+  });
+
+  // ── Ondertiteling tabel titels, knoppen en headers
+  setTexts({
+    'sub-queue-title-lbl':   'sub.queueTitle',
+    'sub-hist-title-lbl':    'sub.histTitle',
+    'sub-clear-queue-lbl':   'sub.clearQueue',
+    'sub-clear-errors-lbl':  'sub.clearErrors',
+    'sub-q-th-file':         'sub.file',
+    'sub-q-th-lib':          'sub.lib',
+    'sub-q-th-status':       'sub.status',
+    'sub-h-th-file':         'sub.file',
+    'sub-h-th-lib':          'sub.lib',
+    'sub-h-th-lines':        'sub.lines',
+    'sub-h-th-model':        'sub.model',
+    'sub-h-th-status':       'sub.status',
+    'sub-h-th-date':         'sub.date',
+  });
 
   // ── Language button active state
   document.getElementById('lang-en')?.classList.toggle('active', lang === 'en');
