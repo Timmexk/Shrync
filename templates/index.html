@@ -509,9 +509,6 @@ tr:hover td{background:var(--row-hover)}
     <div class="nav-item" onclick="navigate('subtitles')">
       <div class="nav-icon">⊶</div><span class="nav-label" id="nav-lbl-subtitles">Ondertiteling</span>
     </div>
-    <div class="nav-item" onclick="navigate('exclusions')">
-      <div class="nav-icon">⊗</div><span class="nav-label" id="nav-lbl-exclusions">Uitsluitingen</span>
-    </div>
     <div class="nav-item" onclick="navigate('settings')">
       <div class="nav-icon">⚙</div><span class="nav-label" id="nav-lbl-settings">Instellingen</span>
     </div>
@@ -818,35 +815,6 @@ tr:hover td{background:var(--row-hover)}
 
     </div>
 
-    <!-- EXCLUSIONS -->
-    <div class="page" id="page-exclusions">
-      <div class="sec-hdr">
-        <span class="sec-title" id="lbl-excl-title">Uitsluitingen</span>
-        <span style="font-size:11px;color:var(--text-s)" id="lbl-excl-sub">Bestanden die worden overgeslagen bij conversie en/of ondertiteling</span>
-      </div>
-      <div class="table-wrap">
-        <div class="table-hdr">
-          <div class="search-wrap"><input type="text" id="excl-search" placeholder="Zoeken…" oninput="renderExclusions()"></div>
-          <button class="btn btn-sm btn-danger" onclick="bulkDeleteExcl()" id="btn-excl-clear" style="display:none">Selectie verwijderen</button>
-        </div>
-        <div class="bulk-bar" id="excl-bulk-bar">
-          <input type="checkbox" class="cb-all" id="excl-cb-all" onchange="toggleAllExcl(this.checked)">
-          <span id="excl-bulk-count">0 geselecteerd</span>
-          <button class="btn btn-sm btn-danger" onclick="bulkDeleteExcl()">Verwijderen</button>
-        </div>
-        <table><thead><tr>
-          <th style="width:30px"><input type="checkbox" class="cb-all" id="excl-th-cb" onchange="toggleAllExcl(this.checked)"></th>
-          <th id="excl-th-file">Bestand</th>
-          <th style="width:90px" id="excl-th-conv">Conversie</th>
-          <th style="width:90px" id="excl-th-sub">Ondertiteling</th>
-          <th style="width:120px" id="excl-th-date">Toegevoegd</th>
-          <th style="width:50px"></th>
-        </tr></thead>
-        <tbody id="excl-body"><tr><td colspan="6"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
     <!-- SETTINGS -->
     <div class="page" id="page-settings">
 
@@ -1107,11 +1075,7 @@ const T = {
              queueTitle:'Queue', histTitle:'History', clearQueue:'Clear queue',
              clearErrors:'Clear errors', file:'File', lib:'Library',
              lines:'Lines', model:'Model', status:'Status', date:'Date', reason:'Reason' },
-    excl:  { title:'Exclusions', sub:'Files skipped during conversion and/or subtitling',
-             file:'File', conv:'Conversion', sub_:'Subtitling', date:'Added', yes:'Yes', no:'No',
-             removed:'Exclusion removed', added:'File excluded',
-             confirmBulk:'Remove selected exclusions?',
-             srcLang:'Source language', tgtLang:'Target language',
+    sub_settings: { srcLang:'Source language', tgtLang:'Target language',
              transTest:'Test translation quality', testPlaceholder:'Enter a test sentence in the source language…',
              testBtn:'Test', testing:'Testing…', testResult:'Result:',
              loadModels:'Load models', ollamaHost:'Ollama address', ollamaModel:'Model' },
@@ -1187,11 +1151,7 @@ const T = {
              queueTitle:'Wachtrij', histTitle:'Geschiedenis', clearQueue:'Wachtrij leegmaken',
              clearErrors:'Fouten wissen', file:'Bestand', lib:'Bibliotheek',
              lines:'Regels', model:'Model', status:'Status', date:'Datum', reason:'Reden' },
-    excl:  { title:'Uitsluitingen', sub:'Bestanden die worden overgeslagen bij conversie en/of ondertiteling',
-             file:'Bestand', conv:'Conversie', sub_:'Ondertiteling', date:'Toegevoegd', yes:'Ja', no:'Nee',
-             removed:'Uitsluiting verwijderd', added:'Bestand uitgesloten',
-             confirmBulk:'Geselecteerde uitsluitingen verwijderen?',
-             srcLang:'Brontaal', tgtLang:'Doeltaal',
+    sub_settings: { srcLang:'Brontaal', tgtLang:'Doeltaal',
              transTest:'Vertaalkwaliteit testen', testPlaceholder:'Voer een testzin in de brontaal in…',
              testBtn:'Testen', testing:'Bezig…', testResult:'Resultaat:',
              loadModels:'Modellen laden', ollamaHost:'Ollama adres', ollamaModel:'Model' },
@@ -1398,21 +1358,10 @@ function applyLanguage() {
     'sub-h-th-model':        'sub.model',
     'sub-h-th-status':       'sub.status',
     'sub-h-th-date':         'sub.date',
-    'lbl-sub-src-lang':      'excl.srcLang',
-    'lbl-sub-tgt-lang':      'excl.tgtLang',
-    'lbl-trans-test':        'excl.transTest',
-    'lbl-load-models':       'excl.loadModels',
-  });
-
-  // ── Uitsluitingen pagina
-  setTexts({
-    'lbl-excl-title':   'excl.title',
-    'lbl-excl-sub':     'excl.sub',
-    'excl-th-file':     'excl.file',
-    'excl-th-conv':     'excl.conv',
-    'excl-th-sub':      'excl.sub_',
-    'excl-th-date':     'excl.date',
-    'nav-lbl-exclusions': 'excl.title',
+    'lbl-sub-src-lang':      'sub_settings.srcLang',
+    'lbl-sub-tgt-lang':      'sub_settings.tgtLang',
+    'lbl-trans-test':        'sub_settings.transTest',
+    'lbl-load-models':       'sub_settings.loadModels',
   });
 
   // ── Statistieken grafiek titel
@@ -1420,9 +1369,9 @@ function applyLanguage() {
 
   // ── Vertaaltest placeholder
   const tti = document.getElementById('trans-test-input');
-  if (tti) tti.placeholder = t('excl.testPlaceholder');
+  if (tti) tti.placeholder = t('sub_settings.testPlaceholder');
   const ttb = document.getElementById('btn-trans-test');
-  if (ttb) ttb.innerHTML = '▶ ' + t('excl.testBtn');
+  if (ttb) ttb.innerHTML = '▶ ' + t('sub_settings.testBtn');
 
   // ── Language button active state
   document.getElementById('lang-en')?.classList.toggle('active', lang === 'en');
@@ -1470,7 +1419,7 @@ function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  const navPages = ['dashboard','libraries','history','savings','subtitles','exclusions','settings'];
+  const navPages = ['dashboard','libraries','history','savings','subtitles','settings'];
   const idx = navPages.indexOf(page);
   if (idx >= 0) document.querySelectorAll('.nav-item')[idx].classList.add('active');
   document.getElementById('page-title').textContent = t('page.' + page + '.title');
@@ -1485,7 +1434,6 @@ function loadPage(page) {
   else if (page === 'history') loadHistory();
   else if (page === 'savings') loadSavings();
   else if (page === 'subtitles') loadSubtitles();
-  else if (page === 'exclusions') loadExclusions();
   else if (page === 'settings') loadSettings();
 }
 
@@ -2280,93 +2228,6 @@ async function loadSavingsChart() {
   } catch(e) {}
 }
 
-// ── Exclusions ─────────────────────────────────────────────────────────────────
-let allExclusions = [];
-let exclSelected = new Set();
-
-async function loadExclusions() {
-  try {
-    allExclusions = await fetch('/api/exclusions').then(r => r.json());
-    renderExclusions();
-  } catch(e) {}
-}
-
-function renderExclusions() {
-  const search = document.getElementById('excl-search')?.value.toLowerCase() || '';
-  const filtered = allExclusions.filter(e =>
-    e.file_path.toLowerCase().includes(search)
-  );
-  const tbody = document.getElementById('excl-body');
-  if (!tbody) return;
-  if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><span class="empty-icon">⊗</span><div class="empty-text">Geen uitsluitingen</div></div></td></tr>`;
-    return;
-  }
-  tbody.innerHTML = filtered.map(e => `
-    <tr>
-      <td onclick="event.stopPropagation()">
-        <input type="checkbox" class="cb-row" data-id="${e.id}"
-          ${exclSelected.has(e.id)?'checked':''}
-          onchange="if(this.checked)exclSelected.add(this.dataset.id);else exclSelected.delete(this.dataset.id);updateExclBulkBar()">
-      </td>
-      <td><div class="file-name">${basename(e.file_path)}</div><div class="file-dir">${dirname(e.file_path)}</div></td>
-      <td><span class="badge ${e.exclude_conversion?'badge-error':'badge-done'}">${e.exclude_conversion?t('excl.yes'):t('excl.no')}</span></td>
-      <td><span class="badge ${e.exclude_subtitles?'badge-error':'badge-done'}">${e.exclude_subtitles?t('excl.yes'):t('excl.no')}</span></td>
-      <td style="font-size:10px;color:var(--text-s)">${formatDate(e.added_at)}</td>
-      <td><button class="btn btn-sm" style="padding:2px 8px;font-size:10px;color:var(--danger);border-color:rgba(248,113,113,.3)"
-        onclick="removeExclusion('${e.id}')">✕</button></td>
-    </tr>`).join('');
-}
-
-function updateExclBulkBar() {
-  const bar = document.getElementById('excl-bulk-bar');
-  const cnt = document.getElementById('excl-bulk-count');
-  const btn = document.getElementById('btn-excl-clear');
-  if (exclSelected.size > 0) {
-    bar.classList.add('visible');
-    cnt.textContent = exclSelected.size + ' geselecteerd';
-    if (btn) btn.style.display = '';
-  } else {
-    bar.classList.remove('visible');
-    if (btn) btn.style.display = 'none';
-  }
-}
-
-function toggleAllExcl(checked) {
-  document.querySelectorAll('#excl-body .cb-row').forEach(cb => {
-    cb.checked = checked;
-    if (checked) exclSelected.add(cb.dataset.id); else exclSelected.delete(cb.dataset.id);
-  });
-  updateExclBulkBar();
-}
-
-async function removeExclusion(id) {
-  await fetch('/api/exclusions/' + id, { method:'DELETE' });
-  allExclusions = allExclusions.filter(e => e.id !== id);
-  exclSelected.delete(id);
-  renderExclusions();
-  toast(t('excl.removed'), 'success');
-}
-
-async function bulkDeleteExcl() {
-  if (!exclSelected.size) return;
-  if (!confirm(t('excl.confirmBulk'))) return;
-  await Promise.all([...exclSelected].map(id => fetch('/api/exclusions/' + id, { method:'DELETE' })));
-  toast(exclSelected.size + ' uitsluitingen verwijderd', 'success');
-  exclSelected.clear();
-  loadExclusions();
-}
-
-async function excludeFile(filePath, excludeConversion=true, excludeSubtitles=true) {
-  try {
-    await fetch('/api/exclusions', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ file_path: filePath, exclude_conversion: excludeConversion, exclude_subtitles: excludeSubtitles })
-    });
-    toast(t('excl.added'), 'success');
-  } catch(e) { toast('Fout', 'error'); }
-}
 
 // ── Translation test ───────────────────────────────────────────────────────────
 async function runTranslationTest() {
@@ -2377,7 +2238,7 @@ async function runTranslationTest() {
   if (!text) { toast('Voer een testtekst in', 'error'); return; }
 
   btn.disabled = true;
-  if (status) status.textContent = t('excl.testing');
+  if (status) status.textContent = t('sub_settings.testing');
   if (result) result.style.display = 'none';
 
   try {
@@ -2393,7 +2254,7 @@ async function runTranslationTest() {
 
     if (result) {
       result.style.display = 'block';
-      result.innerHTML = `<span style="font-size:10px;color:var(--text-t);display:block;margin-bottom:4px">${t('excl.testResult')}</span>${d.translation}`;
+      result.innerHTML = `<span style="font-size:10px;color:var(--text-t);display:block;margin-bottom:4px">${t('sub_settings.testResult')}</span>${d.translation}`;
     }
     if (status) status.textContent = '✓ ' + d.model;
   } catch(e) {

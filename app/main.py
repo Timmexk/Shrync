@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.40")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.41")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -131,16 +131,6 @@ def init_db():
     c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('subtitle_source_lang', 'eng')")
     c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('subtitle_target_lang', 'nld')")
     c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'dark')")
-
-    # Uitsluitingen tabel
-    c.execute("""CREATE TABLE IF NOT EXISTS exclusions (
-        id TEXT PRIMARY KEY,
-        file_path TEXT NOT NULL UNIQUE,
-        reason TEXT DEFAULT '',
-        exclude_conversion INTEGER DEFAULT 1,
-        exclude_subtitles INTEGER DEFAULT 1,
-        added_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )""")
 
     conn.commit()
     conn.close()
@@ -538,11 +528,6 @@ def scan_library(library_id: str):
             fpath = os.path.join(root, fname)
             # Sla tijdelijke Shrync-bestanden over (shryncing-*.mkv)
             if fname.startswith("shryncing-"):
-                continue
-            # Sla uitgesloten bestanden over
-            if conn.execute(
-                "SELECT id FROM exclusions WHERE file_path=? AND exclude_conversion=1", (fpath,)
-            ).fetchone():
                 continue
             scanned += 1
             scan_status[library_id]["scanned"] = scanned
@@ -1205,12 +1190,6 @@ def maybe_queue_subtitle(file_path: str, library_id: str):
         logger.info(f"Ondertitel: geen stream gevonden ({source_lang}) in {Path(file_path).name}")
         return
     conn = get_db()
-    excluded = conn.execute(
-        "SELECT id FROM exclusions WHERE file_path=? AND exclude_subtitles=1", (file_path,)
-    ).fetchone()
-    if excluded:
-        conn.close()
-        return
     existing = conn.execute(
         "SELECT id FROM subtitle_queue WHERE file_path=? AND status IN ('pending','processing')",
         (file_path,)
@@ -2405,45 +2384,6 @@ def api_subtitle_add(data: dict):
     return {"id": jid}
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# ── Uitsluitingen API ─────────────────────────────────────────────────────────
-# ══════════════════════════════════════════════════════════════════════════════
-
-@app.get("/api/exclusions")
-def api_get_exclusions():
-    conn = get_db()
-    rows = conn.execute("SELECT * FROM exclusions ORDER BY added_at DESC").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
-
-@app.post("/api/exclusions")
-def api_add_exclusion(data: dict):
-    file_path = data.get("file_path", "").strip()
-    if not file_path:
-        raise HTTPException(400, "file_path verplicht")
-    conn = get_db()
-    existing = conn.execute("SELECT id FROM exclusions WHERE file_path=?", (file_path,)).fetchone()
-    if existing:
-        conn.close()
-        return {"id": existing["id"], "already_existed": True}
-    eid = str(uuid.uuid4())
-    conn.execute(
-        "INSERT INTO exclusions (id, file_path, reason, exclude_conversion, exclude_subtitles) VALUES (?,?,?,?,?)",
-        (eid, file_path, data.get("reason",""), int(data.get("exclude_conversion",1)),
-         int(data.get("exclude_subtitles",1)))
-    )
-    conn.commit()
-    conn.close()
-    return {"id": eid}
-
-@app.delete("/api/exclusions/{eid}")
-def api_remove_exclusion(eid: str):
-    conn = get_db()
-    conn.execute("DELETE FROM exclusions WHERE id=?", (eid,))
-    conn.commit()
-    conn.close()
-    return {"ok": True}
-
 # ── Handmatige ondertiteling scan per bibliotheek ─────────────────────────────
 
 @app.post("/api/libraries/{lid}/scan-subtitles")
@@ -2481,12 +2421,8 @@ def api_scan_subtitles_library(lid: str):
                     "SELECT id FROM subtitle_history WHERE file_path=? AND status='success'",
                     (fpath,)
                 ).fetchone()
-                excluded = c.execute(
-                    "SELECT id FROM exclusions WHERE file_path=? AND exclude_subtitles=1",
-                    (fpath,)
-                ).fetchone()
                 c.close()
-                if existing or done or excluded:
+                if existing or done:
                     continue
                 if has_dutch_subtitle(fpath):
                     continue

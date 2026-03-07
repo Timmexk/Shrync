@@ -8,7 +8,7 @@
 set -e
 
 USERNAME=${1:-"timmex91"}
-VERSION=${2:-"0.40"}
+VERSION=${2:-"0.41"}
 IMAGE="${USERNAME}/shrync"
 
 echo "┌─────────────────────────────────────────────────────┐"
