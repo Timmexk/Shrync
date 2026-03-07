@@ -413,14 +413,13 @@ tr:hover td{background:var(--row-hover)}
   border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.07);
   flex-shrink:0;min-width:40px;min-height:40px;align-items:center;justify-content:center}
 .hamburger span{display:block;width:18px;height:2px;background:var(--text-s);border-radius:2px;transition:all .2s}
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:199;pointer-events:auto;touch-action:none;
-  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:199;pointer-events:auto;touch-action:none}
 .sidebar-overlay.open{display:block}
 
 /* ── Toast ── */
 .toast-container{position:fixed;bottom:22px;right:22px;z-index:9000;display:flex;flex-direction:column;gap:8px}
 .toast{padding:11px 16px;border-radius:13px;font-size:13px;font-weight:500;
-  background:rgba(12,22,44,.92);backdrop-filter:blur(32px) saturate(200%);
+  background:var(--sidebar-mobile-bg);
   border:1px solid rgba(255,255,255,.15);box-shadow:var(--shl);animation:toastIn .24s ease;color:var(--text)}
 .toast.success{border-color:rgba(52,211,153,.3)}
 .toast.error  {border-color:rgba(248,113,113,.3);color:#fca5a5}
@@ -2045,7 +2044,7 @@ async function loadHistory(page = 1) {
       const afterPct= h.original_size > 0 ? ((h.new_size/h.original_size)*100).toFixed(1) : 100;
       const rid     = 'detail-' + h.id;
       return `
-        <tr class="history-row">
+        <tr class="history-row" data-hid="${h.id}">
           <td onclick="event.stopPropagation()"><input type="checkbox" class="cb-row" data-id="${h.id}" ${histSelected.has(h.id)?'checked':''} onchange="if(this.checked)histSelected.add(this.dataset.id);else histSelected.delete(this.dataset.id);updateHistBulkBar()"></td>
           <td onclick="toggleHistoryDetail('${h.id}')" style="cursor:pointer"><span class="expand-icon">▶</span><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
           <td style="font-size:11px;color:var(--muted)">${h.library_name||'—'}</td>
@@ -2099,12 +2098,12 @@ async function loadHistory(page = 1) {
 }
 
 function toggleHistoryDetail(id) {
-  const row    = document.querySelector(`.history-row[onclick="toggleHistoryDetail('${id}')"]`);
+  const row    = document.querySelector(`.history-row[data-hid="${id}"]`);
   const detail = document.getElementById('detail-' + id);
-  if (!row || !detail) return;
+  if (!detail) return;
   const isOpen = detail.classList.contains('open');
   detail.classList.toggle('open', !isOpen);
-  row.classList.toggle('expanded', !isOpen);
+  if (row) row.classList.toggle('expanded', !isOpen);
 }
 
 async function clearHistory() {
