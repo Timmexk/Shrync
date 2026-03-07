@@ -93,13 +93,13 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
 @keyframes orb3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,-40px) scale(1.15)}}
 
 /* ── App shell ── */
-.app{position:relative;z-index:1;display:flex;flex:1;padding:14px;gap:12px;min-height:calc(100vh - 14px);align-items:flex-start}
+.app{position:relative;display:flex;flex:1;padding:14px;gap:12px;min-height:calc(100vh - 14px);align-items:flex-start}
 
 /* ── Sidebar ── */
 .sidebar{width:218px;flex-shrink:0;display:flex;flex-direction:column;
   background:var(--sidebar-bg);
   border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);
-  overflow:hidden;position:sticky;top:14px;height:calc(100vh - 28px);z-index:99}
+  overflow:hidden;position:sticky;top:14px;height:calc(100vh - 28px);z-index:10}
 .sidebar-top{padding:22px 18px 16px;border-bottom:1px solid var(--border);
   background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%)}
 .logo-name{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1;
@@ -413,7 +413,7 @@ tr:hover td{background:var(--row-hover)}
   border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.07);
   flex-shrink:0;min-width:40px;min-height:40px;align-items:center;justify-content:center}
 .hamburger span{display:block;width:18px;height:2px;background:var(--text-s);border-radius:2px;transition:all .2s}
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:199;pointer-events:auto;touch-action:none}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;pointer-events:auto;touch-action:none}
 .sidebar-overlay.open{display:block}
 
 /* ── Toast ── */
@@ -437,7 +437,7 @@ tr:hover td{background:var(--row-hover)}
   .content{padding:12px 14px}
   /* Sidebar als slide-in drawer */
   .sidebar{position:fixed;left:0;top:0;width:240px;height:100dvh;
-    border-radius:0 16px 16px 0;z-index:200;
+    border-radius:0 16px 16px 0;z-index:400;
     transform:translateX(-260px);
     transition:transform .28s cubic-bezier(.4,0,.2,1);
     box-shadow:4px 0 32px rgba(0,0,0,.8);
