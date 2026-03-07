@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.32")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.40")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -128,6 +128,19 @@ def init_db():
     c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('ollama_host', 'http://localhost:11434')")
     c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('ollama_model', '')")
     c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('subtitle_auto', '1')")
+    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('subtitle_source_lang', 'eng')")
+    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('subtitle_target_lang', 'nld')")
+    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'dark')")
+
+    # Uitsluitingen tabel
+    c.execute("""CREATE TABLE IF NOT EXISTS exclusions (
+        id TEXT PRIMARY KEY,
+        file_path TEXT NOT NULL UNIQUE,
+        reason TEXT DEFAULT '',
+        exclude_conversion INTEGER DEFAULT 1,
+        exclude_subtitles INTEGER DEFAULT 1,
+        added_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )""")
 
     conn.commit()
     conn.close()
@@ -526,6 +539,11 @@ def scan_library(library_id: str):
             # Sla tijdelijke Shrync-bestanden over (shryncing-*.mkv)
             if fname.startswith("shryncing-"):
                 continue
+            # Sla uitgesloten bestanden over
+            if conn.execute(
+                "SELECT id FROM exclusions WHERE file_path=? AND exclude_conversion=1", (fpath,)
+            ).fetchone():
+                continue
             scanned += 1
             scan_status[library_id]["scanned"] = scanned
             scan_status[library_id]["current_file"] = fname
@@ -819,20 +837,32 @@ def detect_subtitle_streams(file_path: str) -> list:
         return []
 
 def pick_best_english_stream(streams: list) -> dict | None:
+    """Wrapper voor achterwaartse compatibiliteit."""
+    return pick_best_source_stream(streams, "eng")
+
+def pick_best_source_stream(streams: list, source_lang: str = "eng") -> dict | None:
     """
-    Kiest het beste Engelse ondertitelspoor:
-    1. Engels zonder SDH/CC
-    2. Engels SDH als er geen normaal Engels is
-    3. None als er geen Engels is
+    Kiest het beste ondertitelspoor voor de opgegeven brontaal.
+    Voorkeur: niet-SDH. Fallback: elk spoor van die taal.
     """
-    english = [s for s in streams if s["lang"] in ("eng", "en")]
-    if not english:
+    # Normaliseer taalcodes (iso 639-2 → varianten)
+    lang_variants = {
+        "eng": ("eng", "en"), "nld": ("nld", "dut", "nl"),
+        "deu": ("deu", "ger", "de"), "fra": ("fra", "fre", "fr"),
+        "spa": ("spa", "es"),        "ita": ("ita", "it"),
+        "por": ("por", "pt"),        "rus": ("rus", "ru"),
+        "jpn": ("jpn", "ja"),        "zho": ("zho", "chi", "zh"),
+        "kor": ("kor", "ko"),        "ara": ("ara", "ar"),
+        "pol": ("pol", "pl"),        "swe": ("swe", "sv"),
+        "nor": ("nor", "nb", "nn"),  "dan": ("dan", "da"),
+        "fin": ("fin", "fi"),        "tur": ("tur", "tr"),
+    }
+    variants = lang_variants.get(source_lang, (source_lang,))
+    matches = [s for s in streams if s["lang"] in variants]
+    if not matches:
         return None
-    # Voorkeur: niet-SDH
-    normal = [s for s in english if not s["is_sdh"]]
-    if normal:
-        return normal[0]
-    return english[0]
+    normal = [s for s in matches if not s["is_sdh"]]
+    return normal[0] if normal else matches[0]
 
 def has_dutch_subtitle(file_path: str) -> bool:
     """
@@ -952,13 +982,31 @@ def translate_blocks_ollama(blocks: list, model: str, host: str,
     BATCH_SIZE = 20
     translated = []
 
+    source_lang = get_subtitle_setting("subtitle_source_lang", "eng")
+    target_lang = get_subtitle_setting("subtitle_target_lang", "nld")
+
+    # Leesbare taalcodes voor de prompt
+    lang_names = {
+        "eng": ("English","Engels"), "nld": ("Dutch","Nederlands"),
+        "deu": ("German","Duits"),   "fra": ("French","Frans"),
+        "spa": ("Spanish","Spaans"), "ita": ("Italian","Italiaans"),
+        "por": ("Portuguese","Portugees"), "rus": ("Russian","Russisch"),
+        "jpn": ("Japanese","Japans"), "zho": ("Chinese","Chinees"),
+        "kor": ("Korean","Koreaans"), "ara": ("Arabic","Arabisch"),
+        "pol": ("Polish","Pools"),   "swe": ("Swedish","Zweeds"),
+        "nor": ("Norwegian","Noors"), "dan": ("Danish","Deens"),
+        "fin": ("Finnish","Fins"),   "tur": ("Turkish","Turks"),
+    }
+    src_name = lang_names.get(source_lang, (source_lang, source_lang))[0]
+    tgt_name = lang_names.get(target_lang, (target_lang, target_lang))[0]
+
     system_prompt = (
-        "Je bent een professionele ondertitelvertaler. "
-        "Vertaal de volgende Engelse filmondertitels naar natuurlijk Nederlands. "
-        "Regels zijn genummerd. Behoud de nummering exact. "
-        "Vertaal alleen de tekst, niet de nummers. "
-        "Gebruik spreektaal, geen formele taal. "
-        "Antwoord ALLEEN met de vertaalde genummerde regels, geen uitleg."
+        f"You are a professional subtitle translator. "
+        f"Translate the following {src_name} film subtitles to natural {tgt_name}. "
+        f"Lines are numbered. Keep the numbering exactly. "
+        f"Translate only the text, not the numbers. "
+        f"Use natural spoken language. "
+        f"Reply ONLY with the translated numbered lines, no explanation."
     )
 
     for batch_start in range(0, len(blocks), BATCH_SIZE):
@@ -1097,7 +1145,12 @@ def run_subtitle_translation(job_id: str):
         # Schrijf output SRT naast het mediabestand
         base   = Path(file_path).stem
         parent = Path(file_path).parent
-        out_path = str(parent / f"{base}.nl.srt")
+        # ISO 639-1 code voor output bestandsnaam
+        iso1_map = {"nld":"nl","eng":"en","deu":"de","fra":"fr","spa":"es","ita":"it",
+                    "por":"pt","rus":"ru","jpn":"ja","zho":"zh","kor":"ko","ara":"ar",
+                    "pol":"pl","swe":"sv","nor":"no","dan":"da","fin":"fi","tur":"tr"}
+        tgt_iso1 = iso1_map.get(target_lang, target_lang[:2])
+        out_path = str(parent / f"{base}.{tgt_iso1}.srt")
         write_srt(translated, out_path)
 
         logger.info(f"Ondertitel opgeslagen: {out_path} ({len(translated)} regels)")
@@ -1145,12 +1198,19 @@ def maybe_queue_subtitle(file_path: str, library_id: str):
     if has_dutch_subtitle(file_path):
         logger.info(f"Ondertitel: NL al aanwezig voor {Path(file_path).name}")
         return
+    source_lang = get_subtitle_setting("subtitle_source_lang", "eng")
     streams = detect_subtitle_streams(file_path)
-    best = pick_best_english_stream(streams)
+    best = pick_best_source_stream(streams, source_lang)
     if not best:
-        logger.info(f"Ondertitel: geen Engelse stream in {Path(file_path).name}")
+        logger.info(f"Ondertitel: geen stream gevonden ({source_lang}) in {Path(file_path).name}")
         return
     conn = get_db()
+    excluded = conn.execute(
+        "SELECT id FROM exclusions WHERE file_path=? AND exclude_subtitles=1", (file_path,)
+    ).fetchone()
+    if excluded:
+        conn.close()
+        return
     existing = conn.execute(
         "SELECT id FROM subtitle_queue WHERE file_path=? AND status IN ('pending','processing')",
         (file_path,)
@@ -1508,8 +1568,9 @@ def scan_existing_subtitles():
                     continue
                 if has_dutch_subtitle(fpath):
                     continue
+                source_lang = get_subtitle_setting("subtitle_source_lang", "eng")
                 streams = detect_subtitle_streams(fpath)
-                best = pick_best_english_stream(streams)
+                best = pick_best_source_stream(streams, source_lang)
                 if not best:
                     continue
                 c = get_db()
@@ -1581,9 +1642,23 @@ def api_stats():
     errors     = conn.execute("SELECT COUNT(*) as c FROM history WHERE status='error'").fetchone()["c"]
     saved      = conn.execute("SELECT SUM(original_size-new_size) as s FROM history WHERE status='success'").fetchone()["s"] or 0
     libs       = conn.execute("SELECT COUNT(*) as c FROM libraries WHERE enabled=1").fetchone()["c"]
+
+    # Geschatte eindtijd — gemiddelde conversieduur van laatste 20 voltooide jobs
+    eta_seconds = None
+    if pending > 0:
+        recent = conn.execute(
+            "SELECT duration_seconds FROM history WHERE status='success' AND duration_seconds > 0 "
+            "ORDER BY finished_at DESC LIMIT 20"
+        ).fetchall()
+        if recent:
+            avg_dur = sum(r["duration_seconds"] for r in recent) / len(recent)
+            max_workers = int(conn.execute("SELECT value FROM settings WHERE key='max_workers'").fetchone()["value"] or 1)
+            eta_seconds = int((pending * avg_dur) / max(max_workers, 1))
+
     conn.close()
     return {"pending": pending, "processing": processing, "done_today": done_today,
-            "errors": errors, "saved_bytes": saved, "active_libraries": libs}
+            "errors": errors, "saved_bytes": saved, "active_libraries": libs,
+            "eta_seconds": eta_seconds}
 
 @app.get("/api/recent")
 def api_recent():
@@ -1763,6 +1838,32 @@ def api_skipped_files(lid: str):
 
     conn.close()
     return {"library": dict(lib), "skipped": skipped, "total": len(skipped)}
+
+@app.get("/api/savings/chart")
+def api_savings_chart():
+    """Wekelijkse besparingsdata voor de afgelopen 8 weken."""
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT
+            strftime('%W-%Y', finished_at) as week_key,
+            strftime('%d/%m', MIN(finished_at)) as week_label,
+            SUM(original_size - new_size) as saved_bytes,
+            COUNT(*) as files
+        FROM history
+        WHERE status='success'
+          AND finished_at >= datetime('now', '-56 days')
+        GROUP BY week_key
+        ORDER BY week_key ASC
+        LIMIT 8
+    """).fetchall()
+    conn.close()
+    if not rows:
+        return {"labels": [], "values_gb": [], "files": []}
+    return {
+        "labels":    [r["week_label"] for r in rows],
+        "values_gb": [round((r["saved_bytes"] or 0) / (1024**3), 2) for r in rows],
+        "files":     [r["files"] for r in rows],
+    }
 
 @app.get("/api/queue")
 def api_queue(status: Optional[str] = None):
@@ -2053,16 +2154,42 @@ def api_get_profiles():
     ]
 
 @app.get("/api/history")
-def api_history(page: int = 1, per_page: int = 50):
+def api_history(page: int = 1, per_page: int = 50, search: str = "",
+                sort: str = "finished_at", dir: str = "desc"):
     offset = (page - 1) * per_page
+    # Toegestane sorteerkolommen (SQL injection preventie)
+    allowed_sort = {"file_path","library_name","finished_at","status"}
+    sort_col = sort if sort in allowed_sort else "finished_at"
+    sort_dir = "DESC" if dir.lower() == "desc" else "ASC"
     conn = get_db()
-    total = conn.execute("SELECT COUNT(*) as c FROM history").fetchone()["c"]
-    rows = conn.execute(
-        "SELECT h.*, l.name as library_name FROM history h LEFT JOIN libraries l ON h.library_id=l.id "
-        "ORDER BY h.finished_at DESC LIMIT ? OFFSET ?", (per_page, offset)
-    ).fetchall()
+    if search:
+        like = f"%{search}%"
+        total = conn.execute(
+            "SELECT COUNT(*) as c FROM history h LEFT JOIN libraries l ON h.library_id=l.id "
+            "WHERE h.file_path LIKE ? OR l.name LIKE ?", (like, like)
+        ).fetchone()["c"]
+        rows = conn.execute(
+            f"SELECT h.*, l.name as library_name FROM history h LEFT JOIN libraries l ON h.library_id=l.id "
+            f"WHERE h.file_path LIKE ? OR l.name LIKE ? "
+            f"ORDER BY {sort_col} {sort_dir} LIMIT ? OFFSET ?",
+            (like, like, per_page, offset)
+        ).fetchall()
+    else:
+        total = conn.execute("SELECT COUNT(*) as c FROM history").fetchone()["c"]
+        rows = conn.execute(
+            f"SELECT h.*, l.name as library_name FROM history h LEFT JOIN libraries l ON h.library_id=l.id "
+            f"ORDER BY {sort_col} {sort_dir} LIMIT ? OFFSET ?", (per_page, offset)
+        ).fetchall()
     conn.close()
     return {"total": total, "page": page, "items": [dict(r) for r in rows]}
+
+@app.delete("/api/history/{hid}")
+def api_delete_history_item(hid: str):
+    conn = get_db()
+    conn.execute("DELETE FROM history WHERE id=?", (hid,))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
 
 
 @app.post("/api/history/{hid}/retry")
@@ -2276,4 +2403,161 @@ def api_subtitle_add(data: dict):
     conn.commit()
     conn.close()
     return {"id": jid}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── Uitsluitingen API ─────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/exclusions")
+def api_get_exclusions():
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM exclusions ORDER BY added_at DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.post("/api/exclusions")
+def api_add_exclusion(data: dict):
+    file_path = data.get("file_path", "").strip()
+    if not file_path:
+        raise HTTPException(400, "file_path verplicht")
+    conn = get_db()
+    existing = conn.execute("SELECT id FROM exclusions WHERE file_path=?", (file_path,)).fetchone()
+    if existing:
+        conn.close()
+        return {"id": existing["id"], "already_existed": True}
+    eid = str(uuid.uuid4())
+    conn.execute(
+        "INSERT INTO exclusions (id, file_path, reason, exclude_conversion, exclude_subtitles) VALUES (?,?,?,?,?)",
+        (eid, file_path, data.get("reason",""), int(data.get("exclude_conversion",1)),
+         int(data.get("exclude_subtitles",1)))
+    )
+    conn.commit()
+    conn.close()
+    return {"id": eid}
+
+@app.delete("/api/exclusions/{eid}")
+def api_remove_exclusion(eid: str):
+    conn = get_db()
+    conn.execute("DELETE FROM exclusions WHERE id=?", (eid,))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+# ── Handmatige ondertiteling scan per bibliotheek ─────────────────────────────
+
+@app.post("/api/libraries/{lid}/scan-subtitles")
+def api_scan_subtitles_library(lid: str):
+    """
+    Scant één bibliotheek op bestanden zonder ondertitel en
+    voegt ze toe aan de ondertitelwachtrij.
+    """
+    conn = get_db()
+    lib = conn.execute("SELECT * FROM libraries WHERE id=?", (lid,)).fetchone()
+    conn.close()
+    if not lib:
+        raise HTTPException(404, "Bibliotheek niet gevonden")
+
+    def do_scan():
+        source_lang = get_subtitle_setting("subtitle_source_lang", "eng")
+        added = 0
+        path = lib["path"]
+        if not os.path.isdir(path):
+            return
+        for root, dirs, files in os.walk(path):
+            dirs[:] = [d for d in dirs if not d.startswith(".")]
+            for fname in files:
+                if Path(fname).suffix.lower() not in VIDEO_EXTENSIONS:
+                    continue
+                if fname.startswith("shryncing-"):
+                    continue
+                fpath = os.path.join(root, fname)
+                c = get_db()
+                existing = c.execute(
+                    "SELECT id FROM subtitle_queue WHERE file_path=? AND status IN ('pending','processing')",
+                    (fpath,)
+                ).fetchone()
+                done = c.execute(
+                    "SELECT id FROM subtitle_history WHERE file_path=? AND status='success'",
+                    (fpath,)
+                ).fetchone()
+                excluded = c.execute(
+                    "SELECT id FROM exclusions WHERE file_path=? AND exclude_subtitles=1",
+                    (fpath,)
+                ).fetchone()
+                c.close()
+                if existing or done or excluded:
+                    continue
+                if has_dutch_subtitle(fpath):
+                    continue
+                streams = detect_subtitle_streams(fpath)
+                best = pick_best_source_stream(streams, source_lang)
+                if not best:
+                    continue
+                c = get_db()
+                jid = str(uuid.uuid4())
+                c.execute(
+                    "INSERT INTO subtitle_queue (id,library_id,file_path,file_size,subtitle_track_index,status) "
+                    "VALUES (?,?,?,?,?,'pending')",
+                    (jid, lid, fpath, os.path.getsize(fpath), best["index"])
+                )
+                c.commit()
+                c.close()
+                added += 1
+        logger.info(f"Handmatige ondertitel scan bibliotheek {lib['name']}: {added} toegevoegd")
+
+    threading.Thread(target=do_scan, daemon=True).start()
+    return {"ok": True, "message": f"Scan gestart voor '{lib['name']}'"}
+
+# ── Vertaalkwaliteit test ──────────────────────────────────────────────────────
+
+@app.post("/api/subtitle/test-translation")
+def api_test_translation(data: dict):
+    """
+    Vertaalt een kleine stuk testtekst via Ollama en geeft het resultaat terug.
+    Gebruikt de geconfigureerde host, model en taalinstellingen.
+    """
+    host   = get_subtitle_setting("ollama_host", "http://localhost:11434")
+    model  = get_subtitle_setting("ollama_model", "")
+    source_lang = data.get("source_lang") or get_subtitle_setting("subtitle_source_lang", "eng")
+    target_lang = data.get("target_lang") or get_subtitle_setting("subtitle_target_lang", "nld")
+    test_text   = data.get("text", "").strip()
+
+    if not model:
+        raise HTTPException(400, "Geen Ollama model ingesteld")
+    if not test_text:
+        raise HTTPException(400, "Geen testtekst opgegeven")
+
+    lang_names = {
+        "eng":"English","nld":"Dutch","deu":"German","fra":"French",
+        "spa":"Spanish","ita":"Italian","por":"Portuguese","rus":"Russian",
+        "jpn":"Japanese","zho":"Chinese","kor":"Korean","ara":"Arabic",
+        "pol":"Polish","swe":"Swedish","nor":"Norwegian","dan":"Danish",
+        "fin":"Finnish","tur":"Turkish",
+    }
+    src_name = lang_names.get(source_lang, source_lang)
+    tgt_name = lang_names.get(target_lang, target_lang)
+
+    prompt = (
+        f"Translate this {src_name} subtitle text to natural {tgt_name}. "
+        "Return ONLY the translation, nothing else.\n\n" + test_text
+    )
+
+    try:
+        result = subprocess.run([
+            "curl", "-s", "-X", "POST", f"{host}/api/generate",
+            "-H", "Content-Type: application/json",
+            "-d", json.dumps({
+                "model": model, "prompt": prompt, "stream": False,
+                "options": {"temperature": 0.3, "num_predict": 500}
+            })
+        ], capture_output=True, text=True, timeout=60)
+        if result.returncode != 0:
+            raise Exception(f"curl fout: {result.stderr[:200]}")
+        resp = json.loads(result.stdout)
+        translation = resp.get("response", "").strip()
+        return {"ok": True, "translation": translation, "model": model,
+                "source_lang": source_lang, "target_lang": target_lang}
+    except Exception as e:
+        raise HTTPException(500, str(e)[:300])
 

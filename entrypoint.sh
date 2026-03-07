@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.32 — entrypoint met automatische GPU-detectie (Nvidia / AMD / Intel)
+# Shrync v0.40 — entrypoint met automatische GPU-detectie (Nvidia / AMD / Intel)
 # ══════════════════════════════════════════════════════════════════════════════
 
 echo "┌─────────────────────────────────────────────┐"

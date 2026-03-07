@@ -7,7 +7,12 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f1726'/%3E%3Crect x='6' y='10' width='6' height='44' rx='2' fill='%231e293b'/%3E%3Crect x='52' y='10' width='6' height='44' rx='2' fill='%231e293b'/%3E%3Crect x='8' y='14' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='8' y='22' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='8' y='30' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='8' y='38' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='8' y='46' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='53' y='14' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='53' y='22' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='53' y='30' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='53' y='38' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='53' y='46' width='3' height='5' rx='1' fill='%230f1726'/%3E%3Crect x='14' y='24' width='13' height='3' rx='1.5' fill='%2360a5fa'/%3E%3Cpolygon points='26,20 34,32 26,44' fill='%2360a5fa'/%3E%3Crect x='37' y='24' width='13' height='3' rx='1.5' fill='%2360a5fa'/%3E%3Cpolygon points='38,20 30,32 38,44' fill='%2360a5fa'/%3E%3Crect x='28' y='26' width='8' height='12' rx='2' fill='%232563eb'/%3E%3C/svg%3E">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
+
+/* ── Dark theme (standaard) ── */
+:root,[data-theme="dark"]{
+  --bg0:    #060d1c;
+  --bg1:    #0c1528;
+  --bg2:    #0f1a30;
   --glass:  rgba(255,255,255,.075);
   --glass-h:rgba(255,255,255,.115);
   --border: rgba(255,255,255,.13);
@@ -21,17 +26,64 @@
   --blur:blur(64px) saturate(200%);
   --sh: 0 8px 40px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
   --shl:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);
+  --sidebar-bg: rgba(10,17,34,.97);
+  --sidebar-mobile-bg: #0d1729;
+  --header-mobile-bg: #080f1f;
+  --input-bg: rgba(255,255,255,.06);
+  --input-border: rgba(255,255,255,.15);
+  --th-bg: rgba(255,255,255,.03);
+  --row-hover: rgba(255,255,255,.03);
+  --orb1: rgba(59,130,246,.18);
+  --orb2: rgba(99,102,241,.12);
+  --orb3: rgba(16,185,129,.08);
+  --toggle-track: rgba(255,255,255,.15);
+  --toggle-thumb: #fff;
+  --search-bg: rgba(255,255,255,.07);
 }
+
+/* ── Light theme ── */
+[data-theme="light"]{
+  --bg0:    #f0f4f8;
+  --bg1:    #e8eef5;
+  --bg2:    #ffffff;
+  --glass:  rgba(255,255,255,.85);
+  --glass-h:rgba(255,255,255,.95);
+  --border: rgba(0,0,0,.10);
+  --bhi:    rgba(0,0,0,.20);
+  --text:   rgba(0,0,0,.88);
+  --text-s: rgba(0,0,0,.52);
+  --text-t: rgba(0,0,0,.32);
+  --blue:#2563eb;--green:#059669;--cyan:#0891b2;--orange:#ea580c;
+  --danger:#dc2626;--success:#059669;--muted:rgba(0,0,0,.52);
+  --r:20px;--rsm:14px;--rxs:10px;
+  --blur:blur(64px) saturate(180%);
+  --sh: 0 4px 24px rgba(0,0,0,.10),inset 0 1px 0 rgba(255,255,255,.8);
+  --shl:0 12px 48px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.9);
+  --sidebar-bg: rgba(255,255,255,.92);
+  --sidebar-mobile-bg: #ffffff;
+  --header-mobile-bg: #f8fafc;
+  --input-bg: rgba(0,0,0,.04);
+  --input-border: rgba(0,0,0,.15);
+  --th-bg: rgba(0,0,0,.03);
+  --row-hover: rgba(0,0,0,.025);
+  --orb1: rgba(59,130,246,.10);
+  --orb2: rgba(99,102,241,.07);
+  --orb3: rgba(16,185,129,.05);
+  --toggle-track: rgba(0,0,0,.15);
+  --toggle-thumb: #fff;
+  --search-bg: rgba(0,0,0,.06);
+}
+
 html,body{height:100%}
 body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
   background:#060a14;color:var(--text);display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden}
 
 /* ── Background ── */
-.bg{position:fixed;inset:0;z-index:0;background:linear-gradient(145deg,#06091a 0%,#0c1528 50%,#060d1c 100%)}
+.bg{position:fixed;inset:0;z-index:0;background:linear-gradient(145deg,var(--bg0) 0%,var(--bg1) 50%,var(--bg0) 100%)}
 .bg-orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none}
-.bg-orb-1{width:700px;height:500px;top:-10%;left:-10%;background:radial-gradient(circle,rgba(59,130,246,.22) 0%,transparent 70%);animation:orb1 18s ease-in-out infinite}
-.bg-orb-2{width:600px;height:600px;bottom:-15%;right:-10%;background:radial-gradient(circle,rgba(139,92,246,.18) 0%,transparent 70%);animation:orb2 22s ease-in-out infinite}
-.bg-orb-3{width:500px;height:400px;top:40%;left:30%;background:radial-gradient(circle,rgba(52,211,153,.10) 0%,transparent 70%);animation:orb3 26s ease-in-out infinite}
+.bg-orb-1{width:700px;height:500px;top:-10%;left:-10%;background:radial-gradient(circle,var(--orb1) 0%,transparent 70%);animation:orb1 18s ease-in-out infinite}
+.bg-orb-2{width:600px;height:600px;bottom:-15%;right:-10%;background:radial-gradient(circle,var(--orb2) 0%,transparent 70%);animation:orb2 22s ease-in-out infinite}
+.bg-orb-3{width:500px;height:400px;top:40%;left:30%;background:radial-gradient(circle,var(--orb3) 0%,transparent 70%);animation:orb3 26s ease-in-out infinite}
 .bg-grid{position:absolute;inset:0;
   background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
   background-size:40px 40px;
@@ -45,7 +97,7 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
 
 /* ── Sidebar ── */
 .sidebar{width:218px;flex-shrink:0;display:flex;flex-direction:column;
-  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  background:var(--sidebar-bg);
   border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);
   overflow:hidden;position:sticky;top:14px;height:calc(100vh - 28px);z-index:99}
 .sidebar-top{padding:22px 18px 16px;border-bottom:1px solid var(--border);
@@ -156,9 +208,32 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{padding:10px 16px;text-align:left;font-size:10px;letter-spacing:.8px;text-transform:uppercase;
   color:var(--text-t);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap}
+th.sortable{cursor:pointer;user-select:none;transition:color .15s}
+th.sortable:hover{color:var(--text-s)}
+th.sort-asc::after{content:" ↑";color:var(--blue)}
+th.sort-desc::after{content:" ↓";color:var(--blue)}
 td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.038);vertical-align:middle}
+[data-theme="light"] td{border-bottom-color:rgba(0,0,0,.06)}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.025)}
+tr:hover td{background:var(--row-hover)}
+
+/* ── Zoekbalk ── */
+.search-wrap{position:relative;flex:1;max-width:280px}
+.search-wrap input{width:100%;background:var(--search-bg);border:1px solid var(--border);
+  border-radius:20px;padding:6px 12px 6px 32px;font-size:11px;color:var(--text);
+  font-family:inherit;outline:none;transition:border-color .18s,background .18s}
+.search-wrap input:focus{border-color:rgba(59,130,246,.45);background:var(--input-bg)}
+.search-wrap::before{content:"⌕";position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  font-size:14px;color:var(--text-t);pointer-events:none}
+[data-theme="light"] .search-wrap input{color:var(--text)}
+
+/* ── Bulk acties ── */
+.bulk-bar{display:none;align-items:center;gap:10px;padding:8px 18px;
+  background:rgba(59,130,246,.08);border-bottom:1px solid rgba(59,130,246,.2);
+  font-size:11px;color:var(--blue)}
+.bulk-bar.visible{display:flex}
+.cb-row{width:16px;height:16px;cursor:pointer;accent-color:var(--blue)}
+.cb-all{width:14px;height:14px;cursor:pointer;accent-color:var(--blue)}
 
 /* ── Badges ── */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600}
@@ -276,11 +351,11 @@ tr:hover td{background:rgba(255,255,255,.025)}
 .form-group{margin-bottom:16px}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .form-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s);margin-bottom:8px;display:block}
-.form-input{width:100%;padding:10px 13px;background:rgba(255,255,255,.08);
-  border:1px solid var(--border);border-radius:var(--rxs);color:var(--text);
+.form-input{width:100%;padding:10px 13px;background:var(--input-bg);
+  border:1px solid var(--input-border);border-radius:var(--rxs);color:var(--text);
   font-size:13px;font-family:inherit;transition:border-color .18s,background .18s}
 .form-input:focus{outline:none;border-color:rgba(59,130,246,.55);background:rgba(59,130,246,.07);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
-.form-input option{background:#121a2e;color:var(--text)}
+.form-input option{background:var(--bg1);color:var(--text)}
 /* Profiles — encoder groepen */
 .profile-group{margin-bottom:16px}
 .profile-group-disabled{opacity:.45}
@@ -356,18 +431,18 @@ tr:hover td{background:rgba(255,255,255,.025)}
 @media(max-width:768px){
   .app{padding:0;gap:0;flex-direction:column}
   .main{border-radius:0;min-height:100dvh}
+  #page-settings > div[style*="grid-template-columns"]{grid-template-columns:1fr!important}
   .header{padding:12px 14px;position:sticky;top:0;z-index:50;
-    background:#080f1f;backdrop-filter:none;-webkit-backdrop-filter:none;
+    background:var(--header-mobile-bg);backdrop-filter:none;-webkit-backdrop-filter:none;
     border-radius:0;border-bottom:1px solid var(--border)}
   .content{padding:12px 14px}
-  /* Sidebar als slide-in drawer — GEEN backdrop-filter op mobiel, dat lekt door naar content */
+  /* Sidebar als slide-in drawer */
   .sidebar{position:fixed;left:0;top:0;width:240px;height:100dvh;
     border-radius:0 16px 16px 0;z-index:200;
     transform:translateX(-260px);
     transition:transform .28s cubic-bezier(.4,0,.2,1);
     box-shadow:4px 0 32px rgba(0,0,0,.8);
-    backdrop-filter:none;-webkit-backdrop-filter:none;
-    background:#0d1729}
+    background:var(--sidebar-mobile-bg)}
   .sidebar.open{transform:translateX(0)}
   .hamburger{display:flex}
   .btn-pause span, #btn-scan-label{display:none}
@@ -435,10 +510,24 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="nav-item" onclick="navigate('subtitles')">
       <div class="nav-icon">⊶</div><span class="nav-label" id="nav-lbl-subtitles">Ondertiteling</span>
     </div>
+    <div class="nav-item" onclick="navigate('exclusions')">
+      <div class="nav-icon">⊗</div><span class="nav-label" id="nav-lbl-exclusions">Uitsluitingen</span>
+    </div>
     <div class="nav-item" onclick="navigate('settings')">
       <div class="nav-icon">⚙</div><span class="nav-label" id="nav-lbl-settings">Instellingen</span>
     </div>
   </nav>
+
+  <!-- Theme toggle onderaan sidebar -->
+  <div style="padding:14px 16px;border-top:1px solid var(--border);margin-top:auto;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:10px;color:var(--text-t);letter-spacing:.5px;text-transform:uppercase" id="lbl-theme-toggle">Thema</span>
+    <button id="theme-toggle-btn" onclick="toggleTheme()" title="Wissel thema"
+      style="display:flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--border);
+             border-radius:20px;padding:5px 10px;cursor:pointer;font-size:11px;color:var(--text-s);transition:all .2s">
+      <span id="theme-icon">🌙</span>
+      <span id="theme-label">Dark</span>
+    </button>
+  </div>
 </aside>
 
 <div class="main">
@@ -540,7 +629,10 @@ tr:hover td{background:rgba(255,255,255,.025)}
       </div>
 
       <div class="table-wrap">
-        <div class="table-hdr"><span class="table-title" id="dash-queue-title">Wachtrij</span></div>
+        <div class="table-hdr">
+          <span class="table-title" id="dash-queue-title">Wachtrij</span>
+          <span style="font-size:10px;color:var(--text-t)" id="queue-eta"></span>
+        </div>
         <table><thead><tr>
           <th id="dash-th-file">Bestand</th><th id="dash-th-lib">Bibliotheek</th>
           <th id="dash-th-size">Grootte</th><th id="dash-th-status">Status</th>
@@ -576,17 +668,26 @@ tr:hover td{background:rgba(255,255,255,.025)}
     <div class="page" id="page-history">
       <div class="sec-hdr">
         <span class="sec-title" id="lbl-history-title">Geschiedenis</span>
-        <button class="btn btn-sm" onclick="clearHistory()"><span id="lbl-clear-history">Geschiedenis wissen</span></button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="search-wrap"><input type="text" id="hist-search" placeholder="Zoeken…" oninput="histPage=1;loadHistory()"></div>
+          <button class="btn btn-sm" onclick="clearHistory()"><span id="lbl-clear-history">Geschiedenis wissen</span></button>
+        </div>
       </div>
       <div class="table-wrap" style="margin-bottom:0">
+        <div class="bulk-bar" id="hist-bulk-bar">
+          <input type="checkbox" class="cb-all" id="hist-cb-all" onchange="toggleAllHist(this.checked)">
+          <span id="hist-bulk-count">0 geselecteerd</span>
+          <button class="btn btn-sm btn-danger" onclick="bulkDeleteHist()">Verwijderen</button>
+        </div>
         <table><thead><tr>
-          <th style="width:40%" id="hist-th-file">Bestand</th>
-          <th style="width:15%" id="hist-th-lib">Bibliotheek</th>
-          <th style="width:15%" id="hist-th-saved">Bespaard</th>
-          <th style="width:10%" id="hist-th-status">Status</th>
-          <th style="width:20%" id="hist-th-date">Datum</th>
+          <th style="width:30px"><input type="checkbox" class="cb-all" id="hist-th-cb" onchange="toggleAllHist(this.checked)"></th>
+          <th class="sortable" data-sort="file_path" id="hist-th-file" onclick="sortHistory('file_path')">Bestand</th>
+          <th class="sortable" data-sort="library_name" id="hist-th-lib" onclick="sortHistory('library_name')">Bibliotheek</th>
+          <th class="sortable" data-sort="saved" id="hist-th-saved" onclick="sortHistory('saved')">Bespaard</th>
+          <th class="sortable" data-sort="status" id="hist-th-status" onclick="sortHistory('status')">Status</th>
+          <th class="sortable sort-desc" data-sort="finished_at" id="hist-th-date" onclick="sortHistory('finished_at')">Datum</th>
         </tr></thead>
-        <tbody id="history-body"><tr><td colspan="5"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
+        <tbody id="history-body"><tr><td colspan="6"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
         </table>
       </div>
       <div id="history-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:12px"></div>
@@ -618,6 +719,12 @@ tr:hover td{background:rgba(255,255,255,.025)}
       <div class="table-wrap">
         <div class="table-hdr"><span class="table-title" id="sav-lbl-perlib">Per bibliotheek</span></div>
         <div style="padding:18px" id="sav-libs-bars"><div class="empty"><div class="empty-text">Laden…</div></div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-hdr"><span class="table-title" id="sav-lbl-chart">Besparing over tijd</span></div>
+        <div style="padding:18px 18px 10px">
+          <canvas id="savings-chart" height="140" style="width:100%;display:block"></canvas>
+        </div>
       </div>
     </div>
 
@@ -712,115 +819,220 @@ tr:hover td{background:rgba(255,255,255,.025)}
 
     </div>
 
+    <!-- EXCLUSIONS -->
+    <div class="page" id="page-exclusions">
+      <div class="sec-hdr">
+        <span class="sec-title" id="lbl-excl-title">Uitsluitingen</span>
+        <span style="font-size:11px;color:var(--text-s)" id="lbl-excl-sub">Bestanden die worden overgeslagen bij conversie en/of ondertiteling</span>
+      </div>
+      <div class="table-wrap">
+        <div class="table-hdr">
+          <div class="search-wrap"><input type="text" id="excl-search" placeholder="Zoeken…" oninput="renderExclusions()"></div>
+          <button class="btn btn-sm btn-danger" onclick="bulkDeleteExcl()" id="btn-excl-clear" style="display:none">Selectie verwijderen</button>
+        </div>
+        <div class="bulk-bar" id="excl-bulk-bar">
+          <input type="checkbox" class="cb-all" id="excl-cb-all" onchange="toggleAllExcl(this.checked)">
+          <span id="excl-bulk-count">0 geselecteerd</span>
+          <button class="btn btn-sm btn-danger" onclick="bulkDeleteExcl()">Verwijderen</button>
+        </div>
+        <table><thead><tr>
+          <th style="width:30px"><input type="checkbox" class="cb-all" id="excl-th-cb" onchange="toggleAllExcl(this.checked)"></th>
+          <th id="excl-th-file">Bestand</th>
+          <th style="width:90px" id="excl-th-conv">Conversie</th>
+          <th style="width:90px" id="excl-th-sub">Ondertiteling</th>
+          <th style="width:120px" id="excl-th-date">Toegevoegd</th>
+          <th style="width:50px"></th>
+        </tr></thead>
+        <tbody id="excl-body"><tr><td colspan="6"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- SETTINGS -->
     <div class="page" id="page-settings">
 
-      <!-- Language -->
-      <div class="panel" style="max-width:580px">
-        <div class="panel-hdr"><span class="panel-title" id="lbl-lang-title">Taal / Language</span></div>
-        <div style="padding:18px">
-          <div class="seg-ctrl">
-            <button class="seg-btn" id="lang-en" onclick="setLanguage('en')">EN &nbsp; English</button>
-            <button class="seg-btn" id="lang-nl" onclick="setLanguage('nl')">NL &nbsp; Nederlands</button>
-          </div>
-        </div>
-      </div>
+      <!-- 2-kolom grid voor compacte lay-out -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
 
-      <!-- Conversion profile -->
-      <div class="panel" style="max-width:700px">
-        <div class="panel-hdr"><span class="panel-title" id="lbl-profile-title">Conversieprofiel</span></div>
-        <div style="padding:18px">
-          <div id="gpu-status-banner" style="display:none;padding:9px 13px;border-radius:var(--rxs);border:1px solid;font-size:11px;font-weight:500;margin-bottom:14px"></div>
-          <div class="profile-grid" id="profile-grid"></div>
-          <input type="hidden" id="selected-profile" value="nvenc_max">
-          <div class="form-group" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-            <label class="form-label" id="lbl-audio-codec">Audio</label>
-            <select class="form-input" id="global-audio" style="max-width:260px">
-              <option value="copy">Kopiëren (origineel)</option>
-              <option value="aac">AAC</option>
-              <option value="ac3">AC3</option>
-            </select>
-          </div>
-          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <!-- LINKERKOLOM -->
+        <div style="display:flex;flex-direction:column;gap:16px">
 
-          </div>
-        </div>
-      </div>
-
-      <!-- Diagnostics -->
-      <div class="panel" style="max-width:700px">
-        <div class="panel-hdr">
-          <span class="panel-title" id="lbl-diag-title">Diagnostiek — map toegang</span>
-          <button class="btn btn-sm" onclick="runDiagnostics()" id="btn-diag">⟳ <span id="lbl-diag-run">Controleren</span></button>
-        </div>
-        <div style="padding:18px" id="diag-results">
-          <div style="font-size:11px;color:var(--text-t)">Klik op "Controleren" om te zien of de container jouw media-mappen kan bereiken.</div>
-        </div>
-      </div>
-
-      <!-- Workers -->
-      <div class="panel" style="max-width:580px">
-        <div class="panel-hdr"><span class="panel-title" id="workers-title">Gelijktijdige conversies</span></div>
-        <div style="padding:18px">
-          <div style="font-size:10px;color:var(--text-s);text-transform:uppercase;letter-spacing:.8px;margin-bottom:11px" id="workers-label">Gelijktijdig</div>
-          <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-            <div style="display:flex;gap:8px">
-              <button class="worker-btn" id="w1" onclick="setWorkers(1)">1</button>
-              <button class="worker-btn" id="w2" onclick="setWorkers(2)">2</button>
-              <button class="worker-btn" id="w3" onclick="setWorkers(3)">3</button>
-            </div>
-            <div style="font-size:12px;color:var(--text-s)" id="worker-desc">—</div>
-          </div>
-          <div id="nvenc-warning" style="display:none;padding:12px 14px;background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.28);border-radius:var(--rxs);font-size:11px;color:var(--orange);margin-bottom:14px">
-            <span id="nvenc-warn-text"></span>
-          </div>
-
-      <!-- AI Ondertiteling -->
-      <div class="panel" style="max-width:580px">
-        <div class="panel-hdr"><span class="panel-title">AI Ondertiteling</span></div>
-        <div style="padding:18px">
-
-          <!-- Aan/uit toggle -->
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-            <div>
-              <div style="font-size:13px;font-weight:600;margin-bottom:3px">Automatisch vertalen</div>
-              <div style="font-size:11px;color:var(--text-s)">Vertaal Engelse ondertitels naar Nederlands na conversie</div>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="subtitle-enabled" onchange="onSubtitleToggle(this.checked)">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <!-- Ollama host -->
-          <div class="form-group" style="margin-bottom:14px">
-            <label class="form-label">Ollama adres</label>
-            <div style="display:flex;gap:8px">
-              <input class="form-input" id="ollama-host" placeholder="http://192.168.1.x:11434" style="flex:1">
-              <button class="btn btn-sm" onclick="loadOllamaModels()" style="white-space:nowrap">⟳ Modellen laden</button>
+          <!-- Taal -->
+          <div class="panel">
+            <div class="panel-hdr"><span class="panel-title" id="lbl-lang-title">Taal / Language</span></div>
+            <div style="padding:16px">
+              <div class="seg-ctrl">
+                <button class="seg-btn" id="lang-en" onclick="setLanguage('en')">EN &nbsp; English</button>
+                <button class="seg-btn" id="lang-nl" onclick="setLanguage('nl')">NL &nbsp; Nederlands</button>
+              </div>
             </div>
           </div>
 
-          <!-- Model dropdown -->
-          <div class="form-group" style="margin-bottom:18px">
-            <label class="form-label">Model</label>
-            <select class="form-input" id="ollama-model-select" style="cursor:pointer">
-              <option value="">— Laad eerst modellen —</option>
-            </select>
-            <div style="font-size:10px;color:var(--text-t);margin-top:5px" id="ollama-model-hint">
-              Aanbevolen: mistral:7b, gemma2:9b of vergelijkbaar voor goede Nederlandse vertaling
+          <!-- Workers -->
+          <div class="panel">
+            <div class="panel-hdr"><span class="panel-title" id="workers-title">Gelijktijdige conversies</span></div>
+            <div style="padding:16px">
+              <div style="font-size:10px;color:var(--text-s);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px" id="workers-label">Gelijktijdig</div>
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+                <div style="display:flex;gap:8px">
+                  <button class="worker-btn" id="w1" onclick="setWorkers(1)">1</button>
+                  <button class="worker-btn" id="w2" onclick="setWorkers(2)">2</button>
+                  <button class="worker-btn" id="w3" onclick="setWorkers(3)">3</button>
+                </div>
+                <div style="font-size:12px;color:var(--text-s)" id="worker-desc">—</div>
+              </div>
+              <div id="nvenc-warning" style="display:none;padding:10px 12px;background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.28);border-radius:var(--rxs);font-size:11px;color:var(--orange)">
+                <span id="nvenc-warn-text"></span>
+              </div>
             </div>
           </div>
 
-          <!-- Status -->
-          <div id="ollama-status" style="font-size:11px;color:var(--text-s);margin-bottom:14px;min-height:16px"></div>
+          <!-- Diagnostiek -->
+          <div class="panel">
+            <div class="panel-hdr">
+              <span class="panel-title" id="lbl-diag-title">Diagnostiek</span>
+              <button class="btn btn-sm" onclick="runDiagnostics()" id="btn-diag">⟳ <span id="lbl-diag-run">Controleren</span></button>
+            </div>
+            <div style="padding:16px" id="diag-results">
+              <div style="font-size:11px;color:var(--text-t)">Klik op "Controleren" om te zien of de container jouw media-mappen kan bereiken.</div>
+            </div>
+          </div>
 
-        </div>
+        </div><!-- einde linkerkolom -->
+
+        <!-- RECHTERKOLOM -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <!-- Conversieprofiel -->
+          <div class="panel">
+            <div class="panel-hdr"><span class="panel-title" id="lbl-profile-title">Conversieprofiel</span></div>
+            <div style="padding:16px">
+              <div id="gpu-status-banner" style="display:none;padding:9px 13px;border-radius:var(--rxs);border:1px solid;font-size:11px;font-weight:500;margin-bottom:14px"></div>
+              <div class="profile-grid" id="profile-grid"></div>
+              <input type="hidden" id="selected-profile" value="nvenc_max">
+              <div class="form-group" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);margin-bottom:0">
+                <label class="form-label" id="lbl-audio-codec">Audio</label>
+                <select class="form-input" id="global-audio">
+                  <option value="copy">Kopiëren (origineel)</option>
+                  <option value="aac">AAC</option>
+                  <option value="ac3">AC3</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Ondertiteling -->
+          <div class="panel">
+            <div class="panel-hdr"><span class="panel-title" id="lbl-subtitle-title">AI Ondertiteling</span></div>
+            <div style="padding:16px">
+
+              <!-- Aan/uit toggle -->
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--glass);border:1px solid var(--border);border-radius:var(--rxs);margin-bottom:14px">
+                <div>
+                  <div style="font-size:13px;font-weight:600;margin-bottom:2px" id="lbl-subtitle-auto">Automatisch vertalen</div>
+                  <div style="font-size:11px;color:var(--text-s)" id="lbl-subtitle-auto-sub">Verwerk ondertitels na elke conversie</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="subtitle-enabled" onchange="onSubtitleToggle(this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <!-- Taalinstellingen -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label" id="lbl-sub-src-lang">Brontaal</label>
+                  <select class="form-input" id="subtitle-source-lang">
+                    <option value="eng">Engels</option>
+                    <option value="nld">Nederlands</option>
+                    <option value="deu">Duits</option>
+                    <option value="fra">Frans</option>
+                    <option value="spa">Spaans</option>
+                    <option value="ita">Italiaans</option>
+                    <option value="por">Portugees</option>
+                    <option value="rus">Russisch</option>
+                    <option value="jpn">Japans</option>
+                    <option value="zho">Chinees</option>
+                    <option value="kor">Koreaans</option>
+                    <option value="pol">Pools</option>
+                    <option value="swe">Zweeds</option>
+                    <option value="nor">Noors</option>
+                    <option value="dan">Deens</option>
+                    <option value="fin">Fins</option>
+                    <option value="tur">Turks</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label" id="lbl-sub-tgt-lang">Doeltaal</label>
+                  <select class="form-input" id="subtitle-target-lang">
+                    <option value="nld">Nederlands</option>
+                    <option value="eng">Engels</option>
+                    <option value="deu">Duits</option>
+                    <option value="fra">Frans</option>
+                    <option value="spa">Spaans</option>
+                    <option value="ita">Italiaans</option>
+                    <option value="por">Portugees</option>
+                    <option value="rus">Russisch</option>
+                    <option value="jpn">Japans</option>
+                    <option value="zho">Chinees</option>
+                    <option value="kor">Koreaans</option>
+                    <option value="pol">Pools</option>
+                    <option value="swe">Zweeds</option>
+                    <option value="nor">Noors</option>
+                    <option value="dan">Deens</option>
+                    <option value="fin">Fins</option>
+                    <option value="tur">Turks</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Ollama host + model naast elkaar -->
+              <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:10px">
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label" id="lbl-ollama-host">Ollama adres</label>
+                  <input class="form-input" id="ollama-host" placeholder="http://192.168.1.x:11434">
+                </div>
+                <button class="btn btn-sm" onclick="loadOllamaModels()" style="white-space:nowrap;margin-bottom:1px">⟳ <span id="lbl-load-models">Laden</span></button>
+              </div>
+
+              <div class="form-group" style="margin-bottom:10px">
+                <label class="form-label" id="lbl-ollama-model">Model</label>
+                <select class="form-input" id="ollama-model-select" style="cursor:pointer">
+                  <option value="">— Laad eerst modellen —</option>
+                </select>
+                <div style="font-size:10px;color:var(--text-t);margin-top:4px" id="ollama-model-hint">
+                  Aanbevolen: mistral:7b, gemma2:9b of vergelijkbaar
+                </div>
+              </div>
+
+              <div id="ollama-status" style="font-size:11px;color:var(--text-s);min-height:16px;margin-bottom:10px"></div>
+
+              <!-- Vertaalkwaliteit test -->
+              <div style="border:1px solid var(--border);border-radius:var(--rxs);padding:12px">
+                <div style="font-size:10px;font-weight:600;color:var(--text-t);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px" id="lbl-trans-test">Kwaliteitstest</div>
+                <textarea id="trans-test-input" class="form-input" rows="2" style="resize:vertical;margin-bottom:8px"
+                  placeholder="Voer een testzin in de brontaal in…"></textarea>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button class="btn btn-sm btn-accent" onclick="runTranslationTest()" id="btn-trans-test">▶ Testen</button>
+                  <span style="font-size:10px;color:var(--text-t)" id="trans-test-status"></span>
+                </div>
+                <div id="trans-test-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);border-radius:var(--rxs);font-size:12px;color:var(--text)"></div>
+              </div>
+
+            </div>
+          </div>
+
+        </div><!-- einde rechterkolom -->
+
+      </div><!-- einde grid -->
+
+      <!-- Opslaan knop — volle breedte onderaan -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+        <button class="btn btn-accent" onclick="saveSettings()" style="padding:10px 28px;font-size:13px">
+          &#128190; <span id="lbl-save-settings">Instellingen opslaan</span>
+        </button>
       </div>
 
-          <button class="btn btn-accent" onclick="saveSettings()">&#128190; <span id="lbl-save-settings">Instellingen opslaan</span></button>
-        </div>
-      </div>
     </div>
 
   </div><!-- end content -->
@@ -889,13 +1101,24 @@ const T = {
              nvencWarn:'⚠ Nvidia GPUs have a default limit of 3 concurrent NVENC sessions. Install nvidia-patch to use >1 worker with NVENC.' },
     lib:   { add:'Add library', edit:'Edit library', addBtn:'Add library', name:'Name', path:'Path (folder)',
              cancel:'Cancel', save:'Save',
-             scan:'Scan', showSkipped:'Skipped files', edit:'Edit', delete:'Delete', lastScan:'Last scan', neverScanned:'Never scanned', skippedCount:'files skipped', profile:'Profile', noSkipped:'No skipped files', skipReasonCodec:'Already correct codec', skipReasonHistory:'Already converted', skipReasonQueued:'Already in queue' },
+             scan:'Scan', scanSubs:'Scan subtitles', showSkipped:'Skipped files', edit:'Edit', delete:'Delete', lastScan:'Last scan', neverScanned:'Never scanned', skippedCount:'files skipped', profile:'Profile', noSkipped:'No skipped files', skipReasonCodec:'Already correct codec', skipReasonHistory:'Already converted', skipReasonQueued:'Already in queue' },
     btn:   { pause:'Pause', resume:'Resume', scanAll:'Scan all' },
     gpu:   { util:'GPU usage', mem:'VRAM', temp:'Temperature', enc:'Encoder' },
     sub:   { pending:'In queue', processing:'Translating', done:'Done today',
              queueTitle:'Queue', histTitle:'History', clearQueue:'Clear queue',
              clearErrors:'Clear errors', file:'File', lib:'Library',
              lines:'Lines', model:'Model', status:'Status', date:'Date', reason:'Reason' },
+    excl:  { title:'Exclusions', sub:'Files skipped during conversion and/or subtitling',
+             file:'File', conv:'Conversion', sub_:'Subtitling', date:'Added', yes:'Yes', no:'No',
+             removed:'Exclusion removed', added:'File excluded',
+             confirmBulk:'Remove selected exclusions?',
+             srcLang:'Source language', tgtLang:'Target language',
+             transTest:'Test translation quality', testPlaceholder:'Enter a test sentence in the source language…',
+             testBtn:'Test', testing:'Testing…', testResult:'Result:',
+             loadModels:'Load models', ollamaHost:'Ollama address', ollamaModel:'Model' },
+    chart: { title:'Savings over time', noData:'Not enough data yet', weeks:'Last 8 weeks',
+             saved:'Saved', files:'Files' },
+    eta:   { prefix:'~', suffix:' remaining', hours:'h', minutes:'m' },
     misc:  { activeConv:'Active conversion', jobs:'jobs', jobRemoved:'Job removed',
              libSaved:'Library saved', libUpdated:'Library updated', libAdded:'Library added', libDeleted:'Library deleted',
              scanStarted:'Scan started', scanAllStarted:'Scanning all libraries',
@@ -958,13 +1181,24 @@ const T = {
              nvencWarn:"⚠ Nvidia GPU's hebben standaard een limiet van 3 NVENC-sessies. Installeer de nvidia-patch voor meer dan 1 worker." },
     lib:   { add:'Bibliotheek toevoegen', edit:'Bibliotheek bewerken', addBtn:'Bibliotheek toevoegen',
              name:'Naam', path:'Pad (map)', cancel:'Annuleren', save:'Opslaan',
-             scan:'Scannen', showSkipped:'Overgeslagen', edit:'Bewerken', delete:'Verwijderen', lastScan:'Laatste scan', neverScanned:'Nog nooit gescand', skippedCount:'bestanden overgeslagen', profile:'Profiel', noSkipped:'Geen overgeslagen bestanden', skipReasonCodec:'Codec al correct', skipReasonHistory:'Al geconverteerd', skipReasonQueued:'Al in wachtrij' },
+             scan:'Scannen', scanSubs:'Ondertitels scannen', showSkipped:'Overgeslagen', edit:'Bewerken', delete:'Verwijderen', lastScan:'Laatste scan', neverScanned:'Nog nooit gescand', skippedCount:'bestanden overgeslagen', profile:'Profiel', noSkipped:'Geen overgeslagen bestanden', skipReasonCodec:'Codec al correct', skipReasonHistory:'Al geconverteerd', skipReasonQueued:'Al in wachtrij' },
     btn:   { pause:'Pauzeren', resume:'Hervatten', scanAll:'Alles scannen' },
     gpu:   { util:'GPU gebruik', mem:'VRAM', temp:'Temperatuur', enc:'Encoder' },
     sub:   { pending:'In wachtrij', processing:'Bezig', done:'Vandaag klaar',
              queueTitle:'Wachtrij', histTitle:'Geschiedenis', clearQueue:'Wachtrij leegmaken',
              clearErrors:'Fouten wissen', file:'Bestand', lib:'Bibliotheek',
              lines:'Regels', model:'Model', status:'Status', date:'Datum', reason:'Reden' },
+    excl:  { title:'Uitsluitingen', sub:'Bestanden die worden overgeslagen bij conversie en/of ondertiteling',
+             file:'Bestand', conv:'Conversie', sub_:'Ondertiteling', date:'Toegevoegd', yes:'Ja', no:'Nee',
+             removed:'Uitsluiting verwijderd', added:'Bestand uitgesloten',
+             confirmBulk:'Geselecteerde uitsluitingen verwijderen?',
+             srcLang:'Brontaal', tgtLang:'Doeltaal',
+             transTest:'Vertaalkwaliteit testen', testPlaceholder:'Voer een testzin in de brontaal in…',
+             testBtn:'Testen', testing:'Bezig…', testResult:'Resultaat:',
+             loadModels:'Modellen laden', ollamaHost:'Ollama adres', ollamaModel:'Model' },
+    chart: { title:'Besparing over tijd', noData:'Nog niet genoeg data', weeks:'Laatste 8 weken',
+             saved:'Bespaard', files:'Bestanden' },
+    eta:   { prefix:'~', suffix:' resterend', hours:'u', minutes:'m' },
     misc:  { activeConv:'Actieve conversie', jobs:'taken', jobRemoved:'Taak verwijderd',
              libSaved:'Bibliotheek opgeslagen', libUpdated:'Bibliotheek bijgewerkt', libAdded:'Bibliotheek toegevoegd', libDeleted:'Bibliotheek verwijderd',
              scanStarted:'Scan gestart', scanAllStarted:'Alle bibliotheken worden gescand',
@@ -1165,7 +1399,31 @@ function applyLanguage() {
     'sub-h-th-model':        'sub.model',
     'sub-h-th-status':       'sub.status',
     'sub-h-th-date':         'sub.date',
+    'lbl-sub-src-lang':      'excl.srcLang',
+    'lbl-sub-tgt-lang':      'excl.tgtLang',
+    'lbl-trans-test':        'excl.transTest',
+    'lbl-load-models':       'excl.loadModels',
   });
+
+  // ── Uitsluitingen pagina
+  setTexts({
+    'lbl-excl-title':   'excl.title',
+    'lbl-excl-sub':     'excl.sub',
+    'excl-th-file':     'excl.file',
+    'excl-th-conv':     'excl.conv',
+    'excl-th-sub':      'excl.sub_',
+    'excl-th-date':     'excl.date',
+    'nav-lbl-exclusions': 'excl.title',
+  });
+
+  // ── Statistieken grafiek titel
+  setTexts({ 'sav-lbl-chart': 'chart.title' });
+
+  // ── Vertaaltest placeholder
+  const tti = document.getElementById('trans-test-input');
+  if (tti) tti.placeholder = t('excl.testPlaceholder');
+  const ttb = document.getElementById('btn-trans-test');
+  if (ttb) ttb.innerHTML = '▶ ' + t('excl.testBtn');
 
   // ── Language button active state
   document.getElementById('lang-en')?.classList.toggle('active', lang === 'en');
@@ -1213,7 +1471,7 @@ function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  const navPages = ['dashboard','libraries','history','savings','subtitles','settings'];
+  const navPages = ['dashboard','libraries','history','savings','subtitles','exclusions','settings'];
   const idx = navPages.indexOf(page);
   if (idx >= 0) document.querySelectorAll('.nav-item')[idx].classList.add('active');
   document.getElementById('page-title').textContent = t('page.' + page + '.title');
@@ -1228,6 +1486,7 @@ function loadPage(page) {
   else if (page === 'history') loadHistory();
   else if (page === 'savings') loadSavings();
   else if (page === 'subtitles') loadSubtitles();
+  else if (page === 'exclusions') loadExclusions();
   else if (page === 'settings') loadSettings();
 }
 
@@ -1256,6 +1515,17 @@ async function loadStats() {
     // Status dot
     const dot = document.getElementById('nav-dot');
     dot.style.display = d.processing > 0 ? 'block' : 'none';
+    // ETA
+    const etaEl = document.getElementById('queue-eta');
+    if (etaEl) {
+      if (d.eta_seconds && d.eta_seconds > 0) {
+        const h = Math.floor(d.eta_seconds / 3600);
+        const m = Math.floor((d.eta_seconds % 3600) / 60);
+        etaEl.textContent = t('eta.prefix') + (h > 0 ? h + t('eta.hours') + ' ' : '') + m + t('eta.minutes') + t('eta.suffix');
+      } else {
+        etaEl.textContent = '';
+      }
+    }
   } catch(e) {}
 }
 
@@ -1533,6 +1803,7 @@ async function loadLibraries() {
           <div class="lib-actions">
             <button class="btn btn-sm" onclick="scanLib('${l.id}')">${t('lib.scan')}</button>
             <button class="btn btn-sm" onclick="showSkipped('${l.id}','${l.name}')">${t('lib.showSkipped')}</button>
+            <button class="btn btn-sm sub-scan-btn" data-lid="${l.id}" onclick="scanSubtitlesLib('${l.id}','${l.name}')" style="display:none">${t('lib.scanSubs')}</button>
             <button class="btn btn-sm" onclick="editLib(${JSON.stringify(l).replace(/"/g,'&quot;')})">${t('lib.edit')}</button>
             <button class="btn btn-sm btn-danger" onclick="deleteLib('${l.id}')">${t('lib.delete')}</button>
           </div>
@@ -1709,13 +1980,63 @@ async function scanAll() {
 document.getElementById('lib-modal').addEventListener('click', function(e) { if (e.target === this) closeLibModal(); });
 
 // ── History ────────────────────────────────────────────────────────────────────
+let histSortCol = 'finished_at', histSortDir = 'desc';
+let histSelected = new Set();
+
+function sortHistory(col) {
+  if (histSortCol === col) histSortDir = histSortDir === 'asc' ? 'desc' : 'asc';
+  else { histSortCol = col; histSortDir = 'asc'; }
+  // Sorteer indicator
+  document.querySelectorAll('#page-history th.sortable').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.sort === col) th.classList.add('sort-' + histSortDir);
+  });
+  histPage = 1;
+  loadHistory();
+}
+
+function toggleAllHist(checked) {
+  document.querySelectorAll('#history-body .cb-row').forEach(cb => {
+    cb.checked = checked;
+    const id = cb.dataset.id;
+    if (checked) histSelected.add(id); else histSelected.delete(id);
+  });
+  updateHistBulkBar();
+}
+
+function updateHistBulkBar() {
+  const bar = document.getElementById('hist-bulk-bar');
+  const cnt = document.getElementById('hist-bulk-count');
+  if (histSelected.size > 0) {
+    bar.classList.add('visible');
+    cnt.textContent = histSelected.size + ' geselecteerd';
+  } else {
+    bar.classList.remove('visible');
+    document.getElementById('hist-th-cb').checked = false;
+  }
+}
+
+async function bulkDeleteHist() {
+  if (!histSelected.size) return;
+  if (!confirm(histSelected.size + ' items verwijderen?')) return;
+  await Promise.all([...histSelected].map(id =>
+    fetch('/api/history/' + id, { method:'DELETE' })
+  ));
+  histSelected.clear();
+  updateHistBulkBar();
+  toast(t('misc.doneClear'), 'success');
+  loadHistory();
+}
+
 async function loadHistory(page = 1) {
   historyPage = page;
   try {
-    const d = await fetch('/api/history?page=' + page).then(r => r.json());
+    const q = document.getElementById('hist-search')?.value || '';
+    const url = `/api/history?page=${page}&search=${encodeURIComponent(q)}&sort=${histSortCol}&dir=${histSortDir}`;
+    const d = await fetch(url).then(r => r.json());
     const tbody = document.getElementById('history-body');
     if (!d.items.length) {
-      tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><span class="empty-icon">◷</span><div class="empty-text">${t('misc.noHistory')}</div></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><span class="empty-icon">◷</span><div class="empty-text">${t('misc.noHistory')}</div></div></td></tr>`;
       return;
     }
     tbody.innerHTML = d.items.map(h => {
@@ -1724,8 +2045,9 @@ async function loadHistory(page = 1) {
       const afterPct= h.original_size > 0 ? ((h.new_size/h.original_size)*100).toFixed(1) : 100;
       const rid     = 'detail-' + h.id;
       return `
-        <tr class="history-row" onclick="toggleHistoryDetail('${h.id}')">
-          <td><span class="expand-icon">▶</span><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
+        <tr class="history-row">
+          <td onclick="event.stopPropagation()"><input type="checkbox" class="cb-row" data-id="${h.id}" ${histSelected.has(h.id)?'checked':''} onchange="if(this.checked)histSelected.add(this.dataset.id);else histSelected.delete(this.dataset.id);updateHistBulkBar()"></td>
+          <td onclick="toggleHistoryDetail('${h.id}')" style="cursor:pointer"><span class="expand-icon">▶</span><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
           <td style="font-size:11px;color:var(--muted)">${h.library_name||'—'}</td>
           <td>${saved > 0 ? `<span class="size-saved">−${formatBytes(saved)} (${pct}%)</span>` : '—'}</td>
           <td>${h.status === 'success'
@@ -1740,7 +2062,7 @@ async function loadHistory(page = 1) {
           </td>
         </tr>
         <tr class="history-detail-row" id="${rid}">
-          <td colspan="5">
+          <td colspan="6">
             <div class="history-detail">
               <div class="detail-grid">
                 <div><div class="detail-label">${t('misc.originalSize')}</div><div class="detail-value">${formatBytes(h.original_size)}</div></div>
@@ -1853,6 +2175,260 @@ async function loadSavings() {
         <div class="bar-pct">−${savedPct}%</div>
       </div>`;
     }).join('');
+    // Laad grafiek
+    await loadSavingsChart();
+  } catch(e) {}
+}
+
+// ── Savings chart ─────────────────────────────────────────────────────────────
+let savingsChartInstance = null;
+
+async function loadSavingsChart() {
+  try {
+    const d = await fetch('/api/savings/chart').then(r => r.json());
+    const canvas = document.getElementById('savings-chart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    if (!d || !d.labels || !d.labels.length) {
+      ctx.fillStyle = 'var(--text-t)';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(t('chart.noData'), canvas.width / 2, 70);
+      return;
+    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const gridColor = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)';
+    const textColor = isDark ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.45)';
+
+    // Eenvoudige canvas chart zonder externe library
+    const W = canvas.offsetWidth || canvas.width;
+    canvas.width = W;
+    const H = 140;
+    canvas.height = H;
+    const pad = { top:10, right:10, bottom:30, left:50 };
+    const cw = W - pad.left - pad.right;
+    const ch = H - pad.top - pad.bottom;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const vals = d.values_gb;
+    const maxV = Math.max(...vals, 0.1);
+    const step = cw / (vals.length - 1 || 1);
+
+    // Gridlijnen
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 1;
+    [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+      const y = pad.top + ch * (1 - f);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+      ctx.fillStyle = textColor;
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText((maxV * f).toFixed(1) + ' GB', pad.left - 4, y + 3);
+    });
+
+    // X-as labels
+    ctx.fillStyle = textColor;
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    d.labels.forEach((lbl, i) => {
+      if (i % 2 === 0 || i === d.labels.length - 1) {
+        ctx.fillText(lbl, pad.left + i * step, H - 8);
+      }
+    });
+
+    // Gebied vulling
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
+    grad.addColorStop(0, isDark ? 'rgba(52,211,153,.35)' : 'rgba(5,150,105,.25)');
+    grad.addColorStop(1, isDark ? 'rgba(52,211,153,.02)' : 'rgba(5,150,105,.02)');
+
+    ctx.beginPath();
+    ctx.moveTo(pad.left, pad.top + ch);
+    vals.forEach((v, i) => {
+      const x = pad.left + i * step;
+      const y = pad.top + ch * (1 - v / maxV);
+      if (i === 0) ctx.lineTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(pad.left + (vals.length - 1) * step, pad.top + ch);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Lijn
+    ctx.beginPath();
+    ctx.strokeStyle = isDark ? '#34d399' : '#059669';
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    vals.forEach((v, i) => {
+      const x = pad.left + i * step;
+      const y = pad.top + ch * (1 - v / maxV);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Punten
+    vals.forEach((v, i) => {
+      const x = pad.left + i * step;
+      const y = pad.top + ch * (1 - v / maxV);
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = isDark ? '#34d399' : '#059669';
+      ctx.fill();
+    });
+
+  } catch(e) {}
+}
+
+// ── Exclusions ─────────────────────────────────────────────────────────────────
+let allExclusions = [];
+let exclSelected = new Set();
+
+async function loadExclusions() {
+  try {
+    allExclusions = await fetch('/api/exclusions').then(r => r.json());
+    renderExclusions();
+  } catch(e) {}
+}
+
+function renderExclusions() {
+  const search = document.getElementById('excl-search')?.value.toLowerCase() || '';
+  const filtered = allExclusions.filter(e =>
+    e.file_path.toLowerCase().includes(search)
+  );
+  const tbody = document.getElementById('excl-body');
+  if (!tbody) return;
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><span class="empty-icon">⊗</span><div class="empty-text">Geen uitsluitingen</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(e => `
+    <tr>
+      <td onclick="event.stopPropagation()">
+        <input type="checkbox" class="cb-row" data-id="${e.id}"
+          ${exclSelected.has(e.id)?'checked':''}
+          onchange="if(this.checked)exclSelected.add(this.dataset.id);else exclSelected.delete(this.dataset.id);updateExclBulkBar()">
+      </td>
+      <td><div class="file-name">${basename(e.file_path)}</div><div class="file-dir">${dirname(e.file_path)}</div></td>
+      <td><span class="badge ${e.exclude_conversion?'badge-error':'badge-done'}">${e.exclude_conversion?t('excl.yes'):t('excl.no')}</span></td>
+      <td><span class="badge ${e.exclude_subtitles?'badge-error':'badge-done'}">${e.exclude_subtitles?t('excl.yes'):t('excl.no')}</span></td>
+      <td style="font-size:10px;color:var(--text-s)">${formatDate(e.added_at)}</td>
+      <td><button class="btn btn-sm" style="padding:2px 8px;font-size:10px;color:var(--danger);border-color:rgba(248,113,113,.3)"
+        onclick="removeExclusion('${e.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+function updateExclBulkBar() {
+  const bar = document.getElementById('excl-bulk-bar');
+  const cnt = document.getElementById('excl-bulk-count');
+  const btn = document.getElementById('btn-excl-clear');
+  if (exclSelected.size > 0) {
+    bar.classList.add('visible');
+    cnt.textContent = exclSelected.size + ' geselecteerd';
+    if (btn) btn.style.display = '';
+  } else {
+    bar.classList.remove('visible');
+    if (btn) btn.style.display = 'none';
+  }
+}
+
+function toggleAllExcl(checked) {
+  document.querySelectorAll('#excl-body .cb-row').forEach(cb => {
+    cb.checked = checked;
+    if (checked) exclSelected.add(cb.dataset.id); else exclSelected.delete(cb.dataset.id);
+  });
+  updateExclBulkBar();
+}
+
+async function removeExclusion(id) {
+  await fetch('/api/exclusions/' + id, { method:'DELETE' });
+  allExclusions = allExclusions.filter(e => e.id !== id);
+  exclSelected.delete(id);
+  renderExclusions();
+  toast(t('excl.removed'), 'success');
+}
+
+async function bulkDeleteExcl() {
+  if (!exclSelected.size) return;
+  if (!confirm(t('excl.confirmBulk'))) return;
+  await Promise.all([...exclSelected].map(id => fetch('/api/exclusions/' + id, { method:'DELETE' })));
+  toast(exclSelected.size + ' uitsluitingen verwijderd', 'success');
+  exclSelected.clear();
+  loadExclusions();
+}
+
+async function excludeFile(filePath, excludeConversion=true, excludeSubtitles=true) {
+  try {
+    await fetch('/api/exclusions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ file_path: filePath, exclude_conversion: excludeConversion, exclude_subtitles: excludeSubtitles })
+    });
+    toast(t('excl.added'), 'success');
+  } catch(e) { toast('Fout', 'error'); }
+}
+
+// ── Translation test ───────────────────────────────────────────────────────────
+async function runTranslationTest() {
+  const text = document.getElementById('trans-test-input')?.value.trim();
+  const status = document.getElementById('trans-test-status');
+  const result = document.getElementById('trans-test-result');
+  const btn = document.getElementById('btn-trans-test');
+  if (!text) { toast('Voer een testtekst in', 'error'); return; }
+
+  btn.disabled = true;
+  if (status) status.textContent = t('excl.testing');
+  if (result) result.style.display = 'none';
+
+  try {
+    const d = await fetch('/api/subtitle/test-translation', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        text,
+        source_lang: document.getElementById('subtitle-source-lang')?.value,
+        target_lang: document.getElementById('subtitle-target-lang')?.value,
+      })
+    }).then(r => r.json());
+
+    if (result) {
+      result.style.display = 'block';
+      result.innerHTML = `<span style="font-size:10px;color:var(--text-t);display:block;margin-bottom:4px">${t('excl.testResult')}</span>${d.translation}`;
+    }
+    if (status) status.textContent = '✓ ' + d.model;
+  } catch(e) {
+    if (status) status.textContent = '✕ Fout';
+    toast('Vertaaltest mislukt', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Theme toggle ───────────────────────────────────────────────────────────────
+let currentTheme = 'dark';
+
+function applyTheme(theme) {
+  currentTheme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('theme-icon');
+  const lbl  = document.getElementById('theme-label');
+  if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+  if (lbl)  lbl.textContent  = theme === 'dark' ? 'Dark' : 'Light';
+  // Herlaad chart als die zichtbaar is
+  if (document.getElementById('page-savings')?.classList.contains('active')) {
+    loadSavingsChart();
+  }
+}
+
+async function toggleTheme() {
+  const next = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try {
+    await fetch('/api/settings', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ theme: next })
+    });
   } catch(e) {}
 }
 
@@ -2185,6 +2761,20 @@ async function loadOllamaModels() {
 function onSubtitleToggle(enabled) {
   const hint = document.getElementById('ollama-model-hint');
   if (hint) hint.style.color = enabled ? 'var(--text-s)' : 'var(--text-t)';
+  updateSubScanBtns(enabled);
+}
+
+async function scanSubtitlesLib(lid, libName) {
+  try {
+    await fetch('/api/libraries/' + lid + '/scan-subtitles', { method:'POST' });
+    toast('⊶ ' + libName + ': ondertitel scan gestart', 'success');
+  } catch(e) { toast('Fout bij starten scan', 'error'); }
+}
+
+function updateSubScanBtns(subtitleEnabled) {
+  document.querySelectorAll('.sub-scan-btn').forEach(btn => {
+    btn.style.display = subtitleEnabled ? '' : 'none';
+  });
 }
 
 async function loadSettings() {
@@ -2208,8 +2798,13 @@ async function loadSettings() {
     // Ondertiteling instellingen
     const subEnabled = document.getElementById('subtitle-enabled');
     if (subEnabled) subEnabled.checked = s.subtitle_enabled === '1';
+    updateSubScanBtns(s.subtitle_enabled === '1');
     const ollamaHost = document.getElementById('ollama-host');
     if (ollamaHost) ollamaHost.value = s.ollama_host || '';
+    const srcLang = document.getElementById('subtitle-source-lang');
+    if (srcLang) srcLang.value = s.subtitle_source_lang || 'eng';
+    const tgtLang = document.getElementById('subtitle-target-lang');
+    if (tgtLang) tgtLang.value = s.subtitle_target_lang || 'nld';
     const ollamaModel = document.getElementById('ollama-model-select');
     // Laad modellen als er al een host is
     if (s.ollama_host && s.ollama_host.length > 5) {
@@ -2224,6 +2819,8 @@ async function loadSettings() {
         }
       } catch(e) {}
     }
+    // Theme
+    applyTheme(s.theme || 'dark');
   } catch(e) {}
 }
 
@@ -2243,12 +2840,15 @@ async function saveSettings() {
   const subEnabled  = document.getElementById('subtitle-enabled')?.checked ? '1' : '0';
   const ollamaHost  = document.getElementById('ollama-host')?.value.trim() || '';
   const ollamaModel = document.getElementById('ollama-model-select')?.value || '';
+  const srcLang = document.getElementById('subtitle-source-lang')?.value || 'eng';
+  const tgtLang = document.getElementById('subtitle-target-lang')?.value || 'nld';
   await fetch('/api/settings', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       max_workers: currentWorkers, conversion_profile: profile, audio_codec: audio,
       subtitle_enabled: subEnabled, ollama_host: ollamaHost, ollama_model: ollamaModel,
+      subtitle_source_lang: srcLang, subtitle_target_lang: tgtLang,
     }),
   });
   toast(t('set.saved') + ' — ' + currentWorkers + ' worker(s)', 'success');
@@ -2376,6 +2976,11 @@ setInterval(() => {
     const verEl = document.getElementById('app-version');
     if (verEl && cfg.version) verEl.textContent = 'v' + cfg.version;
   } catch(e) {}
+  // Laad theme instelling
+  try {
+    const s = await fetch('/api/settings').then(r => r.json());
+    applyTheme(s.theme || 'dark');
+  } catch(e) { applyTheme('dark'); }
   const defaultProfile = gpuMode === 'nvidia' ? 'nvenc_max' : gpuMode === 'amd' ? 'amf_balanced' : gpuMode === 'intel' ? 'qsv_balanced' : 'cpu_medium';
   renderProfiles(defaultProfile);
   loadDashboard();
