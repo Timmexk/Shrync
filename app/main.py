@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.41")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.42")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -1074,8 +1074,10 @@ def run_subtitle_translation(job_id: str):
     )
     conn.commit()
 
-    host  = get_subtitle_setting("ollama_host", "http://localhost:11434")
-    model = get_subtitle_setting("ollama_model", "")
+    host        = get_subtitle_setting("ollama_host", "http://localhost:11434")
+    model       = get_subtitle_setting("ollama_model", "")
+    source_lang = get_subtitle_setting("subtitle_source_lang", "eng")
+    target_lang = get_subtitle_setting("subtitle_target_lang", "nld")
 
     if not model:
         conn.execute(
@@ -1089,9 +1091,9 @@ def run_subtitle_translation(job_id: str):
     try:
         # Detecteer ondertitelsporen
         streams = detect_subtitle_streams(file_path)
-        best = pick_best_english_stream(streams)
+        best = pick_best_source_stream(streams, source_lang)
         if not best:
-            raise Exception("Geen Engelse ondertitelstream gevonden in dit bestand")
+            raise Exception(f"Geen {source_lang} ondertitelstream gevonden in dit bestand")
 
         logger.info(f"Ondertitelspoor gekozen: index {best['index']} ({best['lang']}, SDH={best['is_sdh']})")
 
@@ -1195,6 +1197,14 @@ def maybe_queue_subtitle(file_path: str, library_id: str):
         (file_path,)
     ).fetchone()
     if existing:
+        conn.close()
+        return
+    failed = conn.execute(
+        "SELECT id FROM subtitle_history WHERE file_path=? AND status='error'",
+        (file_path,)
+    ).fetchone()
+    if failed:
+        logger.info(f"Ondertitel: eerder mislukt, wordt overgeslagen voor {Path(file_path).name}")
         conn.close()
         return
     jid = str(uuid.uuid4())
@@ -1542,8 +1552,12 @@ def scan_existing_subtitles():
                     "SELECT id FROM subtitle_history WHERE file_path=? AND status='success'",
                     (fpath,)
                 ).fetchone()
+                already_failed = c.execute(
+                    "SELECT id FROM subtitle_history WHERE file_path=? AND status='error'",
+                    (fpath,)
+                ).fetchone()
                 c.close()
-                if existing or already_done:
+                if existing or already_done or already_failed:
                     continue
                 if has_dutch_subtitle(fpath):
                     continue
@@ -2421,8 +2435,12 @@ def api_scan_subtitles_library(lid: str):
                     "SELECT id FROM subtitle_history WHERE file_path=? AND status='success'",
                     (fpath,)
                 ).fetchone()
+                failed = c.execute(
+                    "SELECT id FROM subtitle_history WHERE file_path=? AND status='error'",
+                    (fpath,)
+                ).fetchone()
                 c.close()
-                if existing or done:
+                if existing or done or failed:
                     continue
                 if has_dutch_subtitle(fpath):
                     continue
