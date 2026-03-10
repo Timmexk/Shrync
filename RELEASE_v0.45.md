@@ -6,6 +6,17 @@ Deze release bevat een volledige visuele opfrisbeurt van de interface, doorgevoe
 in alle pagina's van de applicatie. De functionaliteit is ongewijzigd; het gaat
 puur om een cohesievere, modernere look.
 
+### 🔵 Sidebar — active state met accent lijn
+De actieve navigatie-item in de sidebar had een blauwe achtergrond. Dit is
+vervangen door een subtiele `border-left: 3px solid var(--blue)` met een
+minimale achtergrondtint — zoals Linear en Vercel dat doen. Geeft een
+schonere, modernere look zonder de content af te leiden.
+
+### 🌤 Light mode — stat cards leesbaar
+De stat cards gebruikten een hardcoded donkere achtergrond (`rgba(8,15,28,.92)`)
+die in light mode onleesbaar werd. De achtergrond gebruikt nu het CSS variabele
+`var(--glass)` dat correct meeveert met het actieve thema.
+
 ### 🎨 Stat cards — horizontale strip met gekleurde icons
 De statistiekkaarten op het Dashboard en de Ondertitelingspagina zijn omgebouwd
 van losse kaarten naar één aaneengesloten horizontale strip. Elke metric heeft nu
