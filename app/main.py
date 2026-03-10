@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.42")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.43")
 
 app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
 
@@ -729,6 +729,23 @@ def run_conversion(job_id: str):
 
     if process.returncode == 0 and os.path.exists(tmp_out):
         new_size = os.path.getsize(tmp_out)
+
+        # Nooit groter dan origineel opslaan — verwijder het geconverteerde bestand en sla over
+        if new_size >= original_size:
+            try: os.remove(tmp_out)
+            except: pass
+            warn_msg = f"Geconverteerd bestand ({new_size} bytes) is groter dan origineel ({original_size} bytes) — origineel behouden"
+            logger.warning(warn_msg)
+            conn.execute(
+                "INSERT INTO history (id,library_id,file_path,original_size,new_size,duration_seconds,status,error_msg,finished_at) "
+                "VALUES (?,?,?,?,?,?,'skipped',?,?)",
+                (str(uuid.uuid4()), job["library_id"], src, original_size, new_size, elapsed, warn_msg, now)
+            )
+            conn.execute("DELETE FROM queue WHERE id=?", (job_id,))
+            conn.commit()
+            conn.close()
+            return
+
         try:
             os.remove(src)
             os.rename(tmp_out, src)

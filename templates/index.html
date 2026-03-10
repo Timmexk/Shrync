@@ -241,6 +241,7 @@ tr:hover td{background:var(--row-hover)}
 .badge-done,.badge-success{background:rgba(52,211,153,.12);color:#6ee7b7;border:1px solid rgba(52,211,153,.22)}
 .badge-pending{background:rgba(255,255,255,.06);color:var(--text-s);border:1px solid var(--border)}
 .badge-error{background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.22)}
+.badge-skipped{background:rgba(251,146,60,.12);color:#fdba74;border:1px solid rgba(251,146,60,.22)}
 
 /* ── Section header ── */
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
@@ -1999,6 +2000,8 @@ async function loadHistory(page = 1) {
           <td>${saved > 0 ? `<span class="size-saved">−${formatBytes(saved)} (${pct}%)</span>` : '—'}</td>
           <td>${h.status === 'success'
             ? '<span class="badge badge-success">✓ OK</span>'
+            : h.status === 'skipped'
+            ? '<span class="badge badge-skipped">⊘ Overgeslagen</span>'
             : `<span class="badge badge-error">✕ ${t('misc.error')}</span>`}
           </td>
           <td>
@@ -2808,7 +2811,7 @@ function formatDuration(s) {
   return `${sec}s`;
 }
 function statusBadge(status, progress) {
-  const map = { pending:'badge-pending', processing:'badge-processing', done:'badge-done', error:'badge-error' };
+  const map = { pending:'badge-pending', processing:'badge-processing', done:'badge-done', error:'badge-error', skipped:'badge-skipped' };
   const lbl = { pending:'⋯ ' + t('misc.waiting'), processing:`⟳ ${progress}%`, done:'✓ ' + t('misc.done'), error:'✕ ' + t('misc.error') };
   return `<span class="badge ${map[status]||'badge-pending'}">${lbl[status]||status}</span>`;
 }
