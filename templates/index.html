@@ -15,8 +15,8 @@
   --bg2:    #0f1a30;
   --glass:  rgba(255,255,255,.075);
   --glass-h:rgba(255,255,255,.115);
-  --stat-bg: var(--glass);
-  --stat-bg-h:var(--glass-h);
+  --stat-bg: var(--bg2);
+  --stat-bg-h:rgba(255,255,255,.06);
   --border: rgba(255,255,255,.13);
   --bhi:    rgba(255,255,255,.26);
   --text:   rgba(255,255,255,.94);
@@ -178,7 +178,7 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
 
 /* ── Stats ── */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:0;margin-bottom:11px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);background:var(--border)}
-.stat-card{background:var(--stat-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+.stat-card{background:var(--stat-bg);
   padding:16px 18px;
   transition:all .2s;position:relative;overflow:hidden;display:flex;align-items:center;gap:13px;
   border-right:1px solid var(--border)}
