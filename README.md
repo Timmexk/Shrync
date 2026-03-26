@@ -1,4 +1,4 @@
-# Shrync v0.45 — H.265 Media Converter
+# Shrync v0.01 — H.265 Media Converter
 
 Zelf-gehoste H.265/HEVC media converter met automatische bibliotheekbewaking.
 **Één image voor CPU én Nvidia GPU** — de container detecteert automatisch wat beschikbaar is.
@@ -16,7 +16,7 @@ docker run -d \
   -p 8988:8000 \
   -v /pad/naar/config:/config \
   -v /pad/naar/films:/media/films \
-  timmex91/shrync:latest
+  Timmex91/shrync:latest
 ```
 
 ### Nvidia GPU (voeg alleen de runtime toe — de rest gaat automatisch)
@@ -30,7 +30,7 @@ docker run -d \
   -p 8988:8000 \
   -v /pad/naar/config:/config \
   -v /pad/naar/films:/media/films \
-  timmex91/shrync:latest
+  Timmex91/shrync:latest
 ```
 
 De container detecteert de GPU automatisch en activeert NVENC. Zelfde image, geen tag-wissel nodig.
@@ -54,7 +54,7 @@ Is een GPU gevonden én ondersteunt ffmpeg `hevc_nvenc`? Dan wordt `GPU_MODE=nvi
 ```yaml
 services:
   shrync:
-    image: timmex91/shrync:latest
+    image: Timmex91/shrync:latest
     container_name: shrync
     restart: unless-stopped
 
@@ -113,11 +113,7 @@ services:
 | Tag | Beschrijving |
 |---|---|
 | `latest` | Meest recente versie — altijd CPU + automatische GPU-detectie |
-| `0.45` | Template fix + NVENC preset fix + Dockerfile ENV opgeschoond |
-| `0.03` | Bugfix NVENC parameters (onvolledig) |
-| `0.02` | Eerste bugfix poging |
-| `0.01` | Eerste release |
-| `0.01` | Eerste release |
+| `0.01`, `0.02` ... | Specifieke versies voor stabiele installaties |
 
 Er is **geen aparte GPU-tag**. Dezelfde image werkt overal.
 
@@ -146,12 +142,3 @@ Op systemen zonder GPU worden de NVENC-encoders automatisch overgeslagen.
 - Geschiedenis met foutmelding per bestand
 - Statistieken: ruimtebesparing per bibliotheek
 - Nederlands / Engels
-
----
-
-## Unraid
-
-Voeg de template toe via **Apps → ⚙️ → Template repositories**:
-```
-https://raw.githubusercontent.com/timmexk/Shrync/main/shrync.xml
-```

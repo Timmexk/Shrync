@@ -7,12 +7,12 @@
 
 set -e
 
-USERNAME=${1:-"timmex91"}
-VERSION=${2:-"0.42"}
+USERNAME=${1:-"jouwdockerhubusername"}
+VERSION=${2:-"0.46"}
 IMAGE="${USERNAME}/shrync"
 
 echo "┌─────────────────────────────────────────────────────┐"
-echo "│  Shrync v${VERSION} — Docker Hub build & push              │"
+echo "│  Shrync v${VERSION} — Docker Hub build & push          │"
 echo "└─────────────────────────────────────────────────────┘"
 echo ""
 echo "  Image  : ${IMAGE}"

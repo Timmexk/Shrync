@@ -1,12 +1,12 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.45 — docker-compose.yml
+# Shrync v0.46 — docker-compose.yml
 # ══════════════════════════════════════════════════════════════════════════════
 # Één image voor CPU én GPU. De container detecteert automatisch of een
 # Nvidia GPU beschikbaar is. Geen aparte image nodig, nooit van tag wisselen.
 
 services:
   shrync:
-    image: timmex91/shrync:latest
+    image: JOUWDOCKERHUBUSERNAME/shrync:latest
     container_name: shrync
     restart: unless-stopped
 

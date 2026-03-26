@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request
+from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
@@ -15,15 +16,35 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 import sqlite3
+import glob
+import re
 import shutil
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.45")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.46")
 
-app = FastAPI(title="Shrync", version=SHRYNC_VERSION)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global worker_running, _sub_dispatcher_running
+    worker_running = True
+    n = get_max_workers()
+    logger.info(f"Opgeslagen instelling: {n} worker(s)")
+    threading.Thread(target=initial_startup, daemon=True).start()
+    yield
+    # Shutdown
+    worker_running = False
+    _sub_dispatcher_running = False
+    for obs in _observers:
+        try:
+            obs.stop()
+            obs.join()
+        except:
+            pass
+
+app = FastAPI(title="Shrync", version=SHRYNC_VERSION, lifespan=lifespan)
 
 BASE_DIR = Path(__file__).parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -144,7 +165,6 @@ def cleanup_stale_conversions():
     stale_jobs = conn.execute("SELECT * FROM queue WHERE status='processing'").fetchall()
     for job in stale_jobs:
         # Tijdelijk bestand altijd naast het bronbestand — zoek op shryncing-*.mkv
-        import glob
         tmp_dir = str(Path(job["file_path"]).parent)
         for tmp_file in glob.glob(os.path.join(tmp_dir, "shryncing-*.mkv")):
             try:
@@ -977,8 +997,9 @@ def write_srt(blocks: list, output_path: str):
 def translate_blocks_ollama(blocks: list, model: str, host: str,
                              job_id: str, update_cb) -> list:
     """
-    Vertaalt ondertitelblokken van Engels naar Nederlands via Ollama.
-    Stuurt batches van 20 blokken tegelijk voor context en snelheid.
+    Vertaalt ondertitelblokken via Ollama.
+    Gebruikt unieke ###N### markers als scheiding zodat punten, haakjes en
+    dubbele punten in de vertaalde tekst nooit de parsing kunnen verstoren.
     Timecodes worden NOOIT aangepast — alleen de tekst wordt vertaald.
     """
     BATCH_SIZE = 20
@@ -987,7 +1008,6 @@ def translate_blocks_ollama(blocks: list, model: str, host: str,
     source_lang = get_subtitle_setting("subtitle_source_lang", "eng")
     target_lang = get_subtitle_setting("subtitle_target_lang", "nld")
 
-    # Leesbare taalcodes voor de prompt
     lang_names = {
         "eng": ("English","Engels"), "nld": ("Dutch","Nederlands"),
         "deu": ("German","Duits"),   "fra": ("French","Frans"),
@@ -1005,19 +1025,22 @@ def translate_blocks_ollama(blocks: list, model: str, host: str,
     system_prompt = (
         f"You are a professional subtitle translator. "
         f"Translate the following {src_name} film subtitles to natural {tgt_name}. "
-        f"Lines are numbered. Keep the numbering exactly. "
-        f"Translate only the text, not the numbers. "
+        f"Each subtitle is wrapped in ###N### markers where N is the subtitle number. "
+        f"You MUST output every ###N### marker exactly as given, in the same order, "
+        f"with the translated text on the next line. "
+        f"Do NOT add, remove, merge or reorder any ###N### markers. "
         f"Use natural spoken language. "
-        f"Reply ONLY with the translated numbered lines, no explanation."
+        f"Reply ONLY with the markers and translated text, no explanation."
     )
 
     for batch_start in range(0, len(blocks), BATCH_SIZE):
         batch = blocks[batch_start:batch_start + BATCH_SIZE]
 
-        # Bouw prompt: genummerde teksten
+        # Bouw prompt met unieke ###N### markers — kunnen nooit voorkomen in normale tekst
         prompt_lines = []
         for i, block in enumerate(batch):
-            prompt_lines.append(f"{i+1}. {block['text'].replace(chr(10), ' | ')}")
+            text_flat = block["text"].replace("\n", " | ")
+            prompt_lines.append(f"###{i+1}###\n{text_flat}")
         prompt = "\n".join(prompt_lines)
 
         try:
@@ -1040,21 +1063,32 @@ def translate_blocks_ollama(blocks: list, model: str, host: str,
             resp_data = json.loads(response.stdout)
             resp_text = resp_data.get("response", "").strip()
 
-            # Parse de genummerde regels terug
+            # Parse ###N### markers — splits de response op marker-regels
             result_lines = {}
-            for line in resp_text.splitlines():
-                line = line.strip()
-                if not line:
-                    continue
-                # Zoek naar "N. tekst" patroon
-                for sep in [". ", ") ", ": "]:
-                    parts = line.split(sep, 1)
-                    if len(parts) == 2 and parts[0].strip().isdigit():
-                        num = int(parts[0].strip())
-                        result_lines[num] = parts[1].strip().replace(" | ", "\n")
-                        break
+            # Splits op elke ###N### marker, vang nummer en alles erna t/m volgende marker
+            marker_pattern = re.compile(r"###(\d+)###")
+            parts = marker_pattern.split(resp_text)
+            # parts = ["voor eerste marker", "1", "tekst blok 1", "2", "tekst blok 2", ...]
+            i = 1
+            while i < len(parts) - 1:
+                try:
+                    num = int(parts[i])
+                    text = parts[i+1].strip().replace(" | ", "\n")
+                    # Alleen accepteren als nummer binnen batch-bereik valt
+                    if 1 <= num <= len(batch):
+                        result_lines[num] = text
+                except (ValueError, IndexError):
+                    pass
+                i += 2
 
-            # Voeg vertaalde tekst toe, val terug op origineel bij mislukking
+            # Controleer hoeveel markers correct terugkwamen
+            found = len(result_lines)
+            expected = len(batch)
+            if found < expected * 0.5:
+                # Minder dan 50% markers gevonden — hele batch als fout beschouwen
+                raise Exception(f"Onvoldoende markers in respons: {found}/{expected}")
+
+            # Voeg vertaalde tekst toe, val terug op origineel per ontbrekend blok
             for i, block in enumerate(batch):
                 translated_text = result_lines.get(i+1, block["text"])
                 translated.append({
@@ -1617,26 +1651,7 @@ def initial_startup():
     # Ondertitel opstartscan in aparte thread — na conversie dispatcher
     threading.Thread(target=scan_existing_subtitles, daemon=True).start()
 
-# ── App lifecycle ─────────────────────────────────────────────────────────────
-@app.on_event("startup")
-def startup():
-    global worker_running
-    worker_running = True  # zet vóór initial_startup zodat workers meteen actief zijn
-    n = get_max_workers()
-    logger.info(f"Opgeslagen instelling: {n} worker(s)")
-    threading.Thread(target=initial_startup, daemon=True).start()
-
-@app.on_event("shutdown")
-def shutdown():
-    global worker_running, _sub_dispatcher_running
-    worker_running = False
-    _sub_dispatcher_running = False
-    for obs in _observers:
-        try:
-            obs.stop()
-            obs.join()
-        except:
-            pass
+# ── App lifecycle via lifespan context (zie boven) ───────────────────────────
 
 # ── API Routes ────────────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)

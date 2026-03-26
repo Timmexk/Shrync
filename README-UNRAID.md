@@ -41,7 +41,7 @@ bash build.sh
 ```
 
 ## Toegang
-Open je browser en ga naar: `http://UNRAID-IP:8988`
+Open je browser en ga naar: `http://JOUW-SERVER-IP:8988`
 
 ## GPU werkt niet?
 Controleer of de Nvidia driver plugin actief is in Unraid.
