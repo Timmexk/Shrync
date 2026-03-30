@@ -1,5 +1,28 @@
 # Shrync v0.46
 
+## Nieuwe functie — Bulk acties in ondertitelinggeschiedenis
+
+### ☑️ Selecteren en bulk verwerken in Geschiedenis
+In het tabblad **Ondertiteling → Geschiedenis** kun je nu één of meerdere items
+selecteren via checkboxen aan de linkerkant van elke rij. Zodra je een selectie
+maakt verschijnt er een actiebalk bovenaan de tabel met twee opties:
+
+- **↺ Opnieuw verwerken** — verwijdert het bestaande SRT bestand van schijf en
+  zet het item opnieuw in de vertaalwachtrij met de huidige instellingen en het
+  verbeterde `###N###` marker-systeem. Handig om eerder vertaalde bestanden te
+  herverwerken na de timing-bugfix.
+- **✕ SRT verwijderen** — verwijdert het SRT bestand van schijf én het history
+  record. Gebruik dit om een vertaling volledig ongedaan te maken.
+
+Er is ook een **Alles selecteren** checkbox in de tabelheader, en een
+**✕ Deselecteer** knop in de actiebalk. Bij paginawisseling wordt de selectie
+automatisch gewist.
+
+Technisch: nieuw `POST /api/subtitle/history/bulk` endpoint met `action` parameter
+(`delete_srt` of `requeue`). Geeft per item terug of het geslaagd of mislukt is,
+met een foutmelding als het bronbestand niet meer bestaat of er geen
+ondertitelstream gevonden wordt.
+
 ## Security — CVE fixes
 
 ### 🔒 OS-pakket CVEs opgelost via apt-get upgrade in Dockerfile

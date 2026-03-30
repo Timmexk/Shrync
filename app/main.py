@@ -2367,6 +2367,84 @@ def api_subtitle_clear_history():
     conn.close()
     return {"ok": True}
 
+class BulkHistoryAction(BaseModel):
+    ids: list
+    action: str  # "delete_srt" | "requeue"
+
+@app.post("/api/subtitle/history/bulk")
+def api_subtitle_history_bulk(body: BulkHistoryAction):
+    """
+    Bulk actie op subtitle history items.
+    action="delete_srt"  → verwijder het .srt bestand van schijf + history record
+    action="requeue"     → voeg opnieuw toe aan vertaalwachtrij (ook voor succesvolle items)
+    """
+    if not body.ids:
+        raise HTTPException(400, "Geen items opgegeven")
+    if body.action not in ("delete_srt", "requeue"):
+        raise HTTPException(400, "Ongeldige actie")
+
+    conn = get_db()
+    results = {"ok": 0, "failed": 0, "errors": []}
+
+    placeholders = ",".join("?" * len(body.ids))
+    items = conn.execute(
+        f"SELECT * FROM subtitle_history WHERE id IN ({placeholders})",
+        body.ids
+    ).fetchall()
+
+    for item in items:
+        try:
+            if body.action == "delete_srt":
+                # Verwijder het SRT bestand van schijf als het bestaat
+                srt_path = item["output_path"]
+                if srt_path and os.path.exists(srt_path):
+                    os.remove(srt_path)
+                    logger.info(f"SRT verwijderd: {srt_path}")
+                # Verwijder history record
+                conn.execute("DELETE FROM subtitle_history WHERE id=?", (item["id"],))
+                results["ok"] += 1
+
+            elif body.action == "requeue":
+                # Controleer of bronbestand nog bestaat
+                if not os.path.exists(item["file_path"]):
+                    results["failed"] += 1
+                    results["errors"].append(f"{Path(item['file_path']).name}: bronbestand niet gevonden")
+                    continue
+                # Verwijder eventueel bestaand SRT bestand zodat het opnieuw aangemaakt wordt
+                srt_path = item["output_path"]
+                if srt_path and os.path.exists(srt_path):
+                    try:
+                        os.remove(srt_path)
+                        logger.info(f"Oud SRT verwijderd voor herverwerking: {srt_path}")
+                    except Exception as e:
+                        logger.warning(f"Kon oud SRT niet verwijderen: {srt_path} — {e}")
+                # Detecteer subtitle streams
+                streams = detect_subtitle_streams(item["file_path"])
+                source_lang = get_subtitle_setting("subtitle_source_lang", "eng")
+                best = pick_best_source_stream(streams, source_lang)
+                if not best:
+                    results["failed"] += 1
+                    results["errors"].append(f"{Path(item['file_path']).name}: geen geschikte ondertitelstream gevonden")
+                    continue
+                jid = str(uuid.uuid4())
+                conn.execute("DELETE FROM subtitle_history WHERE id=?", (item["id"],))
+                conn.execute(
+                    "INSERT INTO subtitle_queue (id,library_id,file_path,file_size,subtitle_track_index,status) "
+                    "VALUES (?,?,?,?,?,'pending')",
+                    (jid, item["library_id"], item["file_path"],
+                     os.path.getsize(item["file_path"]), best["index"])
+                )
+                results["ok"] += 1
+
+        except Exception as e:
+            results["failed"] += 1
+            results["errors"].append(f"{Path(item['file_path']).name}: {str(e)[:100]}")
+            logger.warning(f"Bulk subtitle actie fout voor {item['file_path']}: {e}")
+
+    conn.commit()
+    conn.close()
+    return results
+
 @app.get("/api/subtitle/active")
 def api_subtitle_active():
     """Live voortgang van de actieve ondertiteljob."""
