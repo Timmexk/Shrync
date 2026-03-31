@@ -11,6 +11,11 @@
 #
 # ffmpeg wordt geïnstalleerd als statische build van BtbN (met NVENC-support).
 # Op CPU-systemen gebruikt ffmpeg gewoon libx265/libx264 zonder GPU.
+#
+# Python packages worden geïnstalleerd in een virtualenv (/app/deps) zodat
+# pip volledig geïsoleerd is van het systeem-Python. Dit vermijdt het PEP 668
+# conflict op Ubuntu 24.04 én laat toe om setuptools/wheel te updaten naar
+# niet-kwetsbare versies zonder RECORD-bestand problemen.
 
 FROM ubuntu:24.04
 
@@ -24,27 +29,32 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
 # GPU_MODE: leeg = auto-detectie (aanbevolen voor alle gebruikers)
-#   leeg   → entrypoint detecteert en stelt 'nvidia' of 'cpu' in
-#   'cpu'  → forceer CPU, ook als GPU aanwezig is
-# Stel dit NOOIT handmatig op 'nvidia' in — laat de auto-detectie het doen.
 ENV GPU_MODE=
 
 # CACHE_DIR: tijdelijk bestand tijdens conversie
-# Leeg = naast het bronbestand. Stel in op /cache als je een snel SSD-pad wilt.
 ENV CACHE_DIR=
 
 ENV SHRYNC_VERSION=0.47
 
+# Virtualenv pad — Python en alle deps leven hier, volledig geïsoleerd van systeem-Python
+ENV PYTHONPATH=/app/deps
+ENV PATH=/app/deps/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 # ── Systeem dependencies ──────────────────────────────────────────────────────
-# apt-get upgrade zorgt dat alle OS-pakketten up-to-date zijn bij het bouwen,
-# inclusief security patches voor glibc, nghttp2, ncurses, systemd en tar.
-# Dit elimineert de CVE-waarschuwingen die Docker Scout rapporteert op
-# de base image snapshot. Combineer in één RUN-laag voor minimale image-grootte.
-RUN apt-get update     && apt-get upgrade -y --no-install-recommends     && apt-get install -y --no-install-recommends     xz-utils     curl     ca-certificates     python3     python3-pip     python3-dev     python3-venv     python3-setuptools     python3-wheel     && rm -rf /var/lib/apt/lists/*
+# apt-get upgrade: security patches voor glibc, nghttp2, ncurses, systemd, tar
+# python3-venv: nodig om de virtualenv aan te maken
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
+        xz-utils \
+        curl \
+        ca-certificates \
+        python3 \
+        python3-pip \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
 
 # ── ffmpeg statische build (met NVENC + libx265 + libx264) ───────────────────
-# BtbN statische build bevat: hevc_nvenc, h264_nvenc, libx265, libx264
-# Werkt op GPU én CPU — de NVENC encoders worden genegeerd zonder GPU-runtime.
 RUN curl -fsSL \
     "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz" \
     -o /tmp/ffmpeg.tar.xz \
@@ -55,11 +65,16 @@ RUN curl -fsSL \
     && rm -rf /tmp/ffmpeg* \
     && ffmpeg -version | head -1
 
-# ── Python dependencies ───────────────────────────────────────────────────────
-WORKDIR /shrync
+# ── Python virtualenv + dependencies ─────────────────────────────────────────
+# Maak een virtualenv in /app/deps — volledig geïsoleerd van systeem-Python.
+# Pip kan hier zonder restricties installeren: geen PEP 668, geen RECORD-conflict.
+# setuptools en wheel worden als eerste geüpdatet naar niet-kwetsbare versies.
+WORKDIR /app
 
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+RUN python3 -m venv /app/deps \
+    && /app/deps/bin/pip install --no-cache-dir --upgrade pip setuptools==80.1.0 wheel==0.45.1 \
+    && /app/deps/bin/pip install --no-cache-dir -r requirements.txt
 
 # ── Applicatie ────────────────────────────────────────────────────────────────
 COPY app/ ./app/
@@ -67,9 +82,9 @@ COPY templates/ ./templates/
 COPY static/ ./static/
 COPY entrypoint.sh .
 
-RUN mkdir -p /config && chmod +x /shrync/entrypoint.sh
+RUN mkdir -p /config /cache /media && chmod +x /app/entrypoint.sh
 
 EXPOSE 8000
 
 # entrypoint.sh: GPU detecteren → GPU_MODE instellen → uvicorn starten
-ENTRYPOINT ["/shrync/entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]

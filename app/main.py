@@ -28,12 +28,11 @@ SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.47")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup — worker_running en _sub_dispatcher_running zijn module-level
-    # gedefinieerd in de State sectie hieronder; initial_startup start alles op
+    global worker_running, _sub_dispatcher_running
+    worker_running = True  # zet vóór initial_startup zodat workers meteen actief zijn
     threading.Thread(target=initial_startup, daemon=True).start()
     yield
     # Shutdown
-    global worker_running, _sub_dispatcher_running
     worker_running = False
     _sub_dispatcher_running = False
     for obs in _observers:
@@ -221,7 +220,7 @@ worker_running = False
 workers_paused = False  # pauze flag: workers slaan taken over als True
 scan_status = {}        # library_id -> {status, scanned, added, skipped, already_converted, current_file, error}
 _observers = []
- # hier gedefinieerd zodat lifespan er zeker bij kan
+_sub_dispatcher_running = False  # hier gedefinieerd zodat lifespan er zeker bij kan
 
 # ── Models ────────────────────────────────────────────────────────────────────
 class LibraryCreate(BaseModel):
@@ -1269,7 +1268,6 @@ def maybe_queue_subtitle(file_path: str, library_id: str):
     logger.info(f"Ondertitel wachtrij: {Path(file_path).name} toegevoegd")
 
 # ── Ondertitel dispatcher ─────────────────────────────────────────────────────
-_sub_dispatcher_running = False
 _sub_semaphore = threading.Semaphore(1)  # altijd 1 tegelijk — Ollama is single-threaded
 
 def sub_job_thread(job_id: str):

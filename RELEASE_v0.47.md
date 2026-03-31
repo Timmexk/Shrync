@@ -64,9 +64,21 @@ Opgelost door deze te pinnen op niet-kwetsbare versies in `requirements.txt`:
 | setuptools | 68.1.2 | via apt (python3-setuptools) | CVE-2025-47273 (7.7H), CVE-2024-6345 (7.5H) |
 | wheel | 0.42.0 | via apt (python3-wheel) | CVE-2026-24049 (7.1H) |
 
-> Debian installeert setuptools en wheel zonder RECORD file, waardoor pip
-> ze niet kan overschrijven. Opgelost door ze via `apt install python3-setuptools
-> python3-wheel` te installeren in plaats van via pip.
+**Structurele fix:** Python packages worden nu geïnstalleerd in een
+virtualenv (`/app/deps`) in plaats van system-wide. Dit lost drie problemen
+tegelijk op:
+- Geen PEP 668 conflict meer (`externally-managed-environment`)
+- Geen RECORD-bestand problemen met Debian-pakketten
+- setuptools en wheel kunnen nu wél via pip geüpdatet worden binnen de venv
+
+De virtualenv wordt aangemaakt in de Dockerfile:
+```
+RUN python3 -m venv /app/deps \
+    && /app/deps/bin/pip install --upgrade pip setuptools==80.1.0 wheel==0.45.1 \
+    && /app/deps/bin/pip install -r requirements.txt
+```
+`ENV PATH=/app/deps/bin:...` zorgt dat uvicorn en alle packages automatisch
+uit de venv worden gehaald zonder de entrypoint te hoeven aanpassen.
 
 > **Opmerking over kernel CVEs:** Docker Scout toont ook kwetsbaarheden in
 > `ubuntu/linux 6.8.0-106`. Dit zijn kernel-CVEs die niet fixable zijn via
