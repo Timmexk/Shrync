@@ -59,8 +59,7 @@ RUN curl -fsSL \
 WORKDIR /shrync
 
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir --upgrade pip --break-system-packages \
-    && pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 # ── Applicatie ────────────────────────────────────────────────────────────────
 COPY app/ ./app/
