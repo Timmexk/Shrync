@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.46 — Universele image (één image voor CPU én Nvidia GPU)
+# Shrync v0.47 — Universele image (één image voor CPU én Nvidia GPU)
 # ══════════════════════════════════════════════════════════════════════════════
 #
 # Werking:
@@ -16,7 +16,7 @@ FROM ubuntu:24.04
 
 LABEL org.opencontainers.image.title="Shrync"
 LABEL org.opencontainers.image.description="Zelf-gehoste H.265 media converter — automatische GPU-detectie"
-LABEL org.opencontainers.image.version="0.46"
+LABEL org.opencontainers.image.version="0.47"
 LABEL org.opencontainers.image.authors="JOUWGITHUBUSERNAME"
 LABEL org.opencontainers.image.source="https://github.com/JOUWGITHUBUSERNAME/shrync"
 
@@ -33,7 +33,7 @@ ENV GPU_MODE=
 # Leeg = naast het bronbestand. Stel in op /cache als je een snel SSD-pad wilt.
 ENV CACHE_DIR=
 
-ENV SHRYNC_VERSION=0.46
+ENV SHRYNC_VERSION=0.47
 
 # ── Systeem dependencies ──────────────────────────────────────────────────────
 # apt-get upgrade zorgt dat alle OS-pakketten up-to-date zijn bij het bouwen,

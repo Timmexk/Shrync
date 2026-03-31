@@ -24,17 +24,16 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.46")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.47")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global worker_running, _sub_dispatcher_running
-    worker_running = True
-    n = get_max_workers()
-    logger.info(f"Opgeslagen instelling: {n} worker(s)")
+    # Startup — worker_running en _sub_dispatcher_running zijn module-level
+    # gedefinieerd in de State sectie hieronder; initial_startup start alles op
     threading.Thread(target=initial_startup, daemon=True).start()
     yield
     # Shutdown
+    global worker_running, _sub_dispatcher_running
     worker_running = False
     _sub_dispatcher_running = False
     for obs in _observers:
@@ -222,6 +221,7 @@ worker_running = False
 workers_paused = False  # pauze flag: workers slaan taken over als True
 scan_status = {}        # library_id -> {status, scanned, added, skipped, already_converted, current_file, error}
 _observers = []
+ # hier gedefinieerd zodat lifespan er zeker bij kan
 
 # ── Models ────────────────────────────────────────────────────────────────────
 class LibraryCreate(BaseModel):

@@ -8,7 +8,7 @@
 set -e
 
 USERNAME=${1:-"jouwdockerhubusername"}
-VERSION=${2:-"0.46"}
+VERSION=${2:-"0.47"}
 IMAGE="${USERNAME}/shrync"
 
 echo "┌─────────────────────────────────────────────────────┐"
