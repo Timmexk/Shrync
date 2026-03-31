@@ -61,8 +61,12 @@ Opgelost door deze te pinnen op niet-kwetsbare versies in `requirements.txt`:
 
 | Package | Was | Nu | CVEs |
 |---------|-----|----|------|
-| setuptools | 68.1.2 | **80.1.0** | CVE-2025-47273 (7.7H), CVE-2024-6345 (7.5H) |
-| wheel | 0.42.0 | **0.45.1** | CVE-2026-24049 (7.1H) |
+| setuptools | 68.1.2 | via apt (python3-setuptools) | CVE-2025-47273 (7.7H), CVE-2024-6345 (7.5H) |
+| wheel | 0.42.0 | via apt (python3-wheel) | CVE-2026-24049 (7.1H) |
+
+> Debian installeert setuptools en wheel zonder RECORD file, waardoor pip
+> ze niet kan overschrijven. Opgelost door ze via `apt install python3-setuptools
+> python3-wheel` te installeren in plaats van via pip.
 
 > **Opmerking over kernel CVEs:** Docker Scout toont ook kwetsbaarheden in
 > `ubuntu/linux 6.8.0-106`. Dit zijn kernel-CVEs die niet fixable zijn via

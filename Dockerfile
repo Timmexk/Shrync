@@ -40,7 +40,7 @@ ENV SHRYNC_VERSION=0.47
 # inclusief security patches voor glibc, nghttp2, ncurses, systemd en tar.
 # Dit elimineert de CVE-waarschuwingen die Docker Scout rapporteert op
 # de base image snapshot. Combineer in één RUN-laag voor minimale image-grootte.
-RUN apt-get update     && apt-get upgrade -y --no-install-recommends     && apt-get install -y --no-install-recommends     xz-utils     curl     ca-certificates     python3     python3-pip     python3-dev     python3-venv     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update     && apt-get upgrade -y --no-install-recommends     && apt-get install -y --no-install-recommends     xz-utils     curl     ca-certificates     python3     python3-pip     python3-dev     python3-venv     python3-setuptools     python3-wheel     && rm -rf /var/lib/apt/lists/*
 
 # ── ffmpeg statische build (met NVENC + libx265 + libx264) ───────────────────
 # BtbN statische build bevat: hevc_nvenc, h264_nvenc, libx265, libx264
