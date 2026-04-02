@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.47")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.48")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -1000,8 +1000,17 @@ def translate_blocks_ollama(blocks: list, model: str, host: str,
     Gebruikt unieke ###N### markers als scheiding zodat punten, haakjes en
     dubbele punten in de vertaalde tekst nooit de parsing kunnen verstoren.
     Timecodes worden NOOIT aangepast — alleen de tekst wordt vertaald.
+
+    Verbeteringen tov vorige versie:
+    - BATCH_SIZE verlaagd van 20 naar 10: kleinere batches zijn betrouwbaarder
+      voor lokale modellen (7B-13B) en verminderen context-verlies
+    - num_predict verhoogd van 2048 naar 4096: voorkomt afkappen van de respons
+      halverwege een batch, wat onvertaalde zinnen midden in een bestand gaf
+    - Retry-logica: als een batch onvolledig terugkomt (> 50% markers mist),
+      wordt de batch opnieuw gestuurd als losse blokken van 1 — zo worden
+      toch alle blokken vertaald ipv terugvallen op origineel
     """
-    BATCH_SIZE = 20
+    BATCH_SIZE = 10   # Verlaagd van 20: betrouwbaarder voor lokale modellen
     translated = []
 
     source_lang = get_subtitle_setting("subtitle_source_lang", "eng")
@@ -1032,10 +1041,60 @@ def translate_blocks_ollama(blocks: list, model: str, host: str,
         f"Reply ONLY with the markers and translated text, no explanation."
     )
 
+    marker_pattern = re.compile(r"###(\d+)###")
+
+    def call_ollama(prompt_text: str, timeout_sec: int = 120) -> str:
+        """Roep Ollama aan en geef de ruwe respons terug."""
+        response = subprocess.run([
+            "curl", "-s", "-X", "POST",
+            f"{host}/api/generate",
+            "-H", "Content-Type: application/json",
+            "-d", json.dumps({
+                "model": model,
+                "system": system_prompt,
+                "prompt": prompt_text,
+                "stream": False,
+                "options": {
+                    "temperature": 0.3,
+                    "num_predict": 4096,  # Verhoogd van 2048 — voorkomt afkappen
+                    "num_ctx": 8192       # Expliciet context window — Gemma 4B standaard
+                }
+            })
+        ], capture_output=True, text=True, timeout=timeout_sec)
+        if response.returncode != 0:
+            raise Exception(f"curl fout: {response.stderr[:200]}")
+        return json.loads(response.stdout).get("response", "").strip()
+
+    def parse_markers(resp_text: str, batch_size: int) -> dict:
+        """Parseer ###N### markers uit de respons. Geeft dict {num: tekst}."""
+        result = {}
+        parts = marker_pattern.split(resp_text)
+        i = 1
+        while i < len(parts) - 1:
+            try:
+                num = int(parts[i])
+                text = parts[i+1].strip().replace(" | ", "\n")
+                if 1 <= num <= batch_size:
+                    result[num] = text
+            except (ValueError, IndexError):
+                pass
+            i += 2
+        return result
+
+    def translate_single(block: dict) -> str:
+        """Vertaal één enkel blok — fallback als batch mislukt."""
+        try:
+            text_flat = block["text"].replace("\n", " | ")
+            resp = call_ollama(f"###1###\n{text_flat}", timeout_sec=60)
+            parsed = parse_markers(resp, 1)
+            return parsed.get(1, block["text"])
+        except Exception:
+            return block["text"]
+
     for batch_start in range(0, len(blocks), BATCH_SIZE):
         batch = blocks[batch_start:batch_start + BATCH_SIZE]
 
-        # Bouw prompt met unieke ###N### markers — kunnen nooit voorkomen in normale tekst
+        # Bouw prompt met unieke ###N### markers
         prompt_lines = []
         for i, block in enumerate(batch):
             text_flat = block["text"].replace("\n", " | ")
@@ -1043,58 +1102,40 @@ def translate_blocks_ollama(blocks: list, model: str, host: str,
         prompt = "\n".join(prompt_lines)
 
         try:
-            response = subprocess.run([
-                "curl", "-s", "-X", "POST",
-                f"{host}/api/generate",
-                "-H", "Content-Type: application/json",
-                "-d", json.dumps({
-                    "model": model,
-                    "system": system_prompt,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {"temperature": 0.3, "num_predict": 2048}
-                })
-            ], capture_output=True, text=True, timeout=120)
+            resp_text = call_ollama(prompt)
+            result_lines = parse_markers(resp_text, len(batch))
 
-            if response.returncode != 0:
-                raise Exception(f"curl fout: {response.stderr[:200]}")
-
-            resp_data = json.loads(response.stdout)
-            resp_text = resp_data.get("response", "").strip()
-
-            # Parse ###N### markers — splits de response op marker-regels
-            result_lines = {}
-            # Splits op elke ###N### marker, vang nummer en alles erna t/m volgende marker
-            marker_pattern = re.compile(r"###(\d+)###")
-            parts = marker_pattern.split(resp_text)
-            # parts = ["voor eerste marker", "1", "tekst blok 1", "2", "tekst blok 2", ...]
-            i = 1
-            while i < len(parts) - 1:
-                try:
-                    num = int(parts[i])
-                    text = parts[i+1].strip().replace(" | ", "\n")
-                    # Alleen accepteren als nummer binnen batch-bereik valt
-                    if 1 <= num <= len(batch):
-                        result_lines[num] = text
-                except (ValueError, IndexError):
-                    pass
-                i += 2
-
-            # Controleer hoeveel markers correct terugkwamen
-            found = len(result_lines)
+            found    = len(result_lines)
             expected = len(batch)
-            if found < expected * 0.5:
-                # Minder dan 50% markers gevonden — hele batch als fout beschouwen
-                raise Exception(f"Onvoldoende markers in respons: {found}/{expected}")
 
-            # Voeg vertaalde tekst toe, val terug op origineel per ontbrekend blok
-            for i, block in enumerate(batch):
-                translated_text = result_lines.get(i+1, block["text"])
-                translated.append({
-                    "index": block["index"],
-                    "timing": block["timing"],
-                    "text": translated_text,
-                })
+            if found < expected * 0.5:
+                # Te weinig markers — stuur elk blok individueel opnieuw
+                logger.warning(
+                    f"Batch {batch_start//BATCH_SIZE + 1}: slechts {found}/{expected} "
+                    f"markers ontvangen — elk blok individueel vertalen"
+                )
+                for i, block in enumerate(batch):
+                    translated_text = translate_single(block)
+                    translated.append({
+                        "index": block["index"],
+                        "timing": block["timing"],
+                        "text": translated_text,
+                    })
+            else:
+                # Normaal pad: gebruik batch resultaat, val per ontbrekend blok
+                # terug op individuele vertaling ipv onvertaald origineel
+                for i, block in enumerate(batch):
+                    if i+1 in result_lines:
+                        translated_text = result_lines[i+1]
+                    else:
+                        # Dit specifieke blok miste een marker — individueel vertalen
+                        logger.debug(f"Marker {i+1} ontbrak — individueel vertalen")
+                        translated_text = translate_single(block)
+                    translated.append({
+                        "index": block["index"],
+                        "timing": block["timing"],
+                        "text": translated_text,
+                    })
 
         except Exception as e:
             logger.warning(f"Ollama vertaling batch fout: {e} — origineel behouden")
@@ -1654,7 +1695,7 @@ def initial_startup():
 # ── API Routes ────────────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
 
 @app.get("/api/stats")
 def api_stats():
@@ -2611,7 +2652,7 @@ def api_test_translation(data: dict):
             "-H", "Content-Type: application/json",
             "-d", json.dumps({
                 "model": model, "prompt": prompt, "stream": False,
-                "options": {"temperature": 0.3, "num_predict": 500}
+                "options": {"temperature": 0.3, "num_predict": 1024}
             })
         ], capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
