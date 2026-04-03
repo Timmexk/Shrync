@@ -13,7 +13,7 @@ import subprocess
 import threading
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
 import glob
@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.48")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.50")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -71,8 +71,16 @@ def init_db():
         quality TEXT DEFAULT '28',
         preset TEXT DEFAULT 'p7',
         last_scan TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        exclude_patterns TEXT DEFAULT '',
+        subtitle_quality TEXT DEFAULT 'normal'
     )""")
+    # Migratie: voeg kolommen toe aan bestaande databases
+    for col, dflt in [('exclude_patterns', "''"), ('subtitle_quality', "'normal'")]:
+        try:
+            c.execute(f"ALTER TABLE libraries ADD COLUMN {col} TEXT DEFAULT {dflt}")
+        except Exception:
+            pass  # kolom bestaat al
     c.execute("""CREATE TABLE IF NOT EXISTS queue (
         id TEXT PRIMARY KEY,
         library_id TEXT,
@@ -87,8 +95,13 @@ def init_db():
         finished_at TEXT,
         error_msg TEXT,
         original_size INTEGER DEFAULT 0,
-        new_size INTEGER DEFAULT 0
+        new_size INTEGER DEFAULT 0,
+        profile_id TEXT DEFAULT ''
     )""")
+    try:
+        c.execute("ALTER TABLE queue ADD COLUMN profile_id TEXT DEFAULT ''")
+    except Exception:
+        pass
     c.execute("""CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
@@ -226,6 +239,8 @@ _sub_dispatcher_running = False  # hier gedefinieerd zodat lifespan er zeker bij
 class LibraryCreate(BaseModel):
     name: str
     path: str
+    exclude_patterns: Optional[str] = ""
+    subtitle_quality: Optional[str] = "normal"
 
 class LibraryUpdate(LibraryCreate):
     enabled: Optional[bool] = True
@@ -548,6 +563,18 @@ def scan_library(library_id: str):
             # Sla tijdelijke Shrync-bestanden over (shryncing-*.mkv)
             if fname.startswith("shryncing-"):
                 continue
+            # Uitsluitingspatronen toepassen (per bibliotheek)
+            exclude_raw = lib.get("exclude_patterns", "") or ""
+            excluded = False
+            for pat in [p.strip() for p in exclude_raw.splitlines() if p.strip()]:
+                if re.search(pat, fname, re.IGNORECASE):
+                    excluded = True
+                    scan_status[library_id]["skipped"] = scan_status[library_id].get("skipped", 0) + 1
+                    scan_status[library_id]["last_skip"] = {"file": fname, "reason": "excluded_pattern", "pattern": pat}
+                    logger.debug(f"Scan: uitgesloten door patroon '{pat}': {fname}")
+                    break
+            if excluded:
+                continue
             scanned += 1
             scan_status[library_id]["scanned"] = scanned
             scan_status[library_id]["current_file"] = fname
@@ -598,7 +625,7 @@ def scan_library(library_id: str):
             added += 1
             scan_status[library_id]["added"] = added
 
-    conn.execute("UPDATE libraries SET last_scan=? WHERE id=?", (datetime.utcnow().isoformat(), library_id))
+    conn.execute("UPDATE libraries SET last_scan=? WHERE id=?", (datetime.now(timezone.utc).isoformat(), library_id))
     conn.commit()
     conn.close()
     scan_status[library_id]["status"] = "done"
@@ -619,7 +646,7 @@ def run_conversion(job_id: str):
     src = job["file_path"]
     if not os.path.exists(src):
         conn.execute("UPDATE queue SET status='error', error_msg='Bestand niet gevonden', finished_at=? WHERE id=?",
-                     (datetime.utcnow().isoformat(), job_id))
+                     (datetime.now(timezone.utc).isoformat(), job_id))
         conn.commit()
         conn.close()
         return
@@ -685,8 +712,8 @@ def run_conversion(job_id: str):
         cmd = build_cpu_cmd(src, tmp_out, effective_codec, preset, quality, audio_codec, hdr_info)
 
     original_size = os.path.getsize(src)
-    conn.execute("UPDATE queue SET status='processing', started_at=?, original_size=? WHERE id=?",
-                 (datetime.utcnow().isoformat(), original_size, job_id))
+    conn.execute("UPDATE queue SET status='processing', started_at=?, original_size=?, profile_id=? WHERE id=?",
+                 (datetime.now(timezone.utc).isoformat(), original_size, profile, job_id))
     conn.commit()
 
     start_time = time.time()
@@ -744,7 +771,7 @@ def run_conversion(job_id: str):
         active_jobs.pop(slot_id, None)
 
     elapsed = int(time.time() - start_time)
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     if process.returncode == 0 and os.path.exists(tmp_out):
         new_size = os.path.getsize(tmp_out)
@@ -994,7 +1021,8 @@ def write_srt(blocks: list, output_path: str):
             f.write(f"{block['text']}\n\n")
 
 def translate_blocks_ollama(blocks: list, model: str, host: str,
-                             job_id: str, update_cb) -> list:
+                             job_id: str, update_cb,
+                             quality: str = "normal") -> list:
     """
     Vertaalt ondertitelblokken via Ollama.
     Gebruikt unieke ###N### markers als scheiding zodat punten, haakjes en
@@ -1010,7 +1038,18 @@ def translate_blocks_ollama(blocks: list, model: str, host: str,
       wordt de batch opnieuw gestuurd als losse blokken van 1 — zo worden
       toch alle blokken vertaald ipv terugvallen op origineel
     """
-    BATCH_SIZE = 10   # Verlaagd van 20: betrouwbaarder voor lokale modellen
+    # Kwaliteitsprofielen:
+    # fast      — batch 5,  num_ctx 4096  — snel, minder context, goed voor series
+    # normal    — batch 10, num_ctx 8192  — standaard
+    # thorough  — batch 6,  num_ctx 16384 — meer context per blok, beter voor films
+    _quality_profiles = {
+        "fast":      {"batch": 5,  "num_ctx": 4096},
+        "normal":    {"batch": 10, "num_ctx": 8192},
+        "thorough":  {"batch": 6,  "num_ctx": 16384},
+    }
+    _qp = _quality_profiles.get(quality, _quality_profiles["normal"])
+    BATCH_SIZE = _qp["batch"]
+    _num_ctx   = _qp["num_ctx"]
     translated = []
 
     source_lang = get_subtitle_setting("subtitle_source_lang", "eng")
@@ -1056,8 +1095,8 @@ def translate_blocks_ollama(blocks: list, model: str, host: str,
                 "stream": False,
                 "options": {
                     "temperature": 0.3,
-                    "num_predict": 4096,  # Verhoogd van 2048 — voorkomt afkappen
-                    "num_ctx": 8192       # Expliciet context window — Gemma 4B standaard
+                    "num_predict": min(_num_ctx, 4096),  # max = helft van context window
+                    "num_ctx": _num_ctx   # Dynamisch op basis van quality instelling
                 }
             })
         ], capture_output=True, text=True, timeout=timeout_sec)
@@ -1161,7 +1200,7 @@ def run_subtitle_translation(job_id: str):
 
     conn.execute(
         "UPDATE subtitle_queue SET status='processing', started_at=? WHERE id=?",
-        (datetime.utcnow().isoformat(), job_id)
+        (datetime.now(timezone.utc).isoformat(), job_id)
     )
     conn.commit()
 
@@ -1173,7 +1212,7 @@ def run_subtitle_translation(job_id: str):
     if not model:
         conn.execute(
             "UPDATE subtitle_queue SET status='error', error_msg='Geen Ollama model ingesteld', finished_at=? WHERE id=?",
-            (datetime.utcnow().isoformat(), job_id)
+            (datetime.now(timezone.utc).isoformat(), job_id)
         )
         conn.commit()
         conn.close()
@@ -1218,7 +1257,13 @@ def run_subtitle_translation(job_id: str):
             c.close()
 
         # Vertaal via Ollama
-        translated = translate_blocks_ollama(blocks, model, host, job_id, update_progress)
+        # Haal subtitle_quality op uit de bibliotheek-instelling
+        lib_row = conn.execute("SELECT subtitle_quality FROM libraries WHERE id=?",
+                               (job.get("library_id",""),)).fetchone()
+        sub_quality = (lib_row["subtitle_quality"] if lib_row and lib_row["subtitle_quality"]
+                       else "normal")
+        translated = translate_blocks_ollama(blocks, model, host, job_id, update_progress,
+                                             quality=sub_quality)
 
         # Schrijf output SRT naast het mediabestand
         base   = Path(file_path).stem
@@ -1240,7 +1285,7 @@ def run_subtitle_translation(job_id: str):
             "lines_translated,model_used,status,finished_at) VALUES (?,?,?,?,?,?,?,?,'success',?)",
             (hist_id, job["library_id"], file_path, out_path,
              job["source_lang"], job["target_lang"],
-             len(translated), model, datetime.utcnow().isoformat())
+             len(translated), model, datetime.now(timezone.utc).isoformat())
         )
         conn.execute("DELETE FROM subtitle_queue WHERE id=?", (job_id,))
         conn.commit()
@@ -1255,7 +1300,7 @@ def run_subtitle_translation(job_id: str):
             (hist_id, job["library_id"], file_path,
              job["source_lang"], job["target_lang"],
              get_subtitle_setting("ollama_model",""), str(e)[:500],
-             datetime.utcnow().isoformat())
+             datetime.now(timezone.utc).isoformat())
         )
         # Verwijder uit wachtrij — fouten horen in geschiedenis, niet in wachtrij
         conn.execute("DELETE FROM subtitle_queue WHERE id=?", (job_id,))
@@ -1812,8 +1857,9 @@ def api_create_library(lib: LibraryCreate):
     lid = str(uuid.uuid4())
     conn = get_db()
     conn.execute(
-        "INSERT INTO libraries (id,name,path) VALUES (?,?,?)",
-        (lid, lib.name, lib.path)
+        "INSERT INTO libraries (id,name,path,exclude_patterns,subtitle_quality) VALUES (?,?,?,?,?)",
+        (lid, lib.name, lib.path,
+         lib.exclude_patterns or "", lib.subtitle_quality or "normal")
     )
     conn.commit()
     conn.close()
@@ -1825,8 +1871,9 @@ def api_create_library(lib: LibraryCreate):
 def api_update_library(lid: str, lib: LibraryUpdate):
     conn = get_db()
     conn.execute(
-        "UPDATE libraries SET name=?,path=?,enabled=? WHERE id=?",
-        (lib.name, lib.path, 1 if lib.enabled else 0, lid)
+        "UPDATE libraries SET name=?,path=?,enabled=?,exclude_patterns=?,subtitle_quality=? WHERE id=?",
+        (lib.name, lib.path, 1 if lib.enabled else 0,
+         lib.exclude_patterns or "", lib.subtitle_quality or "normal", lid)
     )
     conn.commit()
     conn.close()

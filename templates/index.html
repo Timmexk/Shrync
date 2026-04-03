@@ -494,6 +494,33 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
   .content{padding:10px 12px}
 }
 @media(max-width:340px){.stats-grid{grid-template-columns:1fr}}
+/* ── Library quality opties ── */
+.quality-opt{display:block;cursor:pointer;border-radius:var(--rxs);border:1px solid var(--border);overflow:hidden;transition:border-color .15s}
+.quality-opt:has(input:checked){border-color:rgba(59,130,246,.5);background:rgba(59,130,246,.07)}
+.quality-opt input{display:none}
+.quality-opt-inner{padding:10px 12px}
+.quality-opt-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px}
+.quality-opt-desc{font-size:10px;color:var(--text-t);line-height:1.5}
+/* ── Activity feed ── */
+.activity-feed{overflow:hidden}
+.activity-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.activity-item:last-child{border-bottom:none}
+.activity-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.activity-dot.conv{background:#3b82f6}
+.activity-dot.sub{background:#8b5cf6}
+.activity-dot.err{background:#f87171}
+.activity-dot.done{background:#34d399}
+.activity-text{flex:1;min-width:0}
+.activity-file{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.activity-meta{font-size:10px;color:var(--text-t);margin-top:1px}
+.activity-time{font-size:10px;color:var(--text-t);flex-shrink:0;white-space:nowrap}
+/* ── Actieve job detailkaart ── */
+.active-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:0;border-top:1px solid var(--border);margin-top:12px}
+.active-detail-cell{padding:10px 14px;border-right:1px solid var(--border)}
+.active-detail-cell:last-child{border-right:none}
+.active-detail-label{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-t);margin-bottom:4px;font-weight:600}
+.active-detail-val{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.active-detail-val.eta{color:#818cf8}
 ::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
@@ -687,6 +714,17 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
         </tr></thead>
         <tbody id="dashboard-recent-body"><tr><td colspan="5"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
         </table>
+      </div>
+
+      <!-- Activity feed -->
+      <div class="table-wrap" id="activity-feed-wrap">
+        <div class="table-hdr">
+          <span class="table-title">Activiteit</span>
+          <span style="font-size:10px;color:var(--text-t)" id="activity-feed-sub">Laatste 20 acties</span>
+        </div>
+        <div style="padding:4px 18px 6px" id="activity-feed-list">
+          <div class="empty"><div class="empty-text">Laden…</div></div>
+        </div>
       </div>
     </div>
 
@@ -1046,7 +1084,7 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 
 <!-- Modal: Library — naam en pad -->
 <div class="modal-overlay" id="lib-modal">
-  <div class="modal">
+  <div class="modal" style="max-width:500px">
     <div class="modal-title" id="lib-modal-title">Bibliotheek toevoegen</div>
     <input type="hidden" id="lib-edit-id">
     <div class="form-group">
@@ -1056,6 +1094,42 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
     <div class="form-group">
       <label class="form-label" id="lbl-lib-path">Pad (map)</label>
       <input class="form-input" id="lib-path" placeholder="/media/films">
+    </div>
+    <div class="form-group">
+      <label class="form-label" style="display:flex;align-items:center;gap:6px">
+        Uitsluitingspatronen
+        <span style="font-size:9px;color:var(--text-t);font-weight:400;font-style:italic">één per regel, regex toegestaan</span>
+      </label>
+      <textarea class="form-input" id="lib-exclude" rows="3"
+        placeholder="Remux&#10;2160p&#10;\.sample\."
+        style="resize:vertical;font-family:var(--mono,monospace);font-size:11px;line-height:1.6"></textarea>
+      <div style="font-size:10px;color:var(--text-t);margin-top:4px">Bestanden waarvan de naam overeenkomt worden niet geconverteerd.</div>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Vertaalkwaliteit ondertiteling</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <label class="quality-opt" id="qopt-fast">
+          <input type="radio" name="lib-sub-quality" value="fast">
+          <div class="quality-opt-inner">
+            <div class="quality-opt-name">Snel</div>
+            <div class="quality-opt-desc">Ideaal voor series. Kleine batches, minder context.</div>
+          </div>
+        </label>
+        <label class="quality-opt" id="qopt-normal">
+          <input type="radio" name="lib-sub-quality" value="normal" checked>
+          <div class="quality-opt-inner">
+            <div class="quality-opt-name">Normaal ✓</div>
+            <div class="quality-opt-desc">Standaard instelling. Goede balans.</div>
+          </div>
+        </label>
+        <label class="quality-opt" id="qopt-thorough">
+          <input type="radio" name="lib-sub-quality" value="thorough">
+          <div class="quality-opt-inner">
+            <div class="quality-opt-name">Grondig</div>
+            <div class="quality-opt-desc">Films. Meer context per batch, hogere kwaliteit.</div>
+          </div>
+        </label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeLibModal()" id="lbl-modal-cancel">Annuleren</button>
@@ -1547,22 +1621,114 @@ async function togglePause() {
 async function loadActiveJob() {
   try {
     const jobs = await fetch('/api/queue?status=processing').then(r => r.json());
-    const sec = document.getElementById('active-job-section');
+    const sec  = document.getElementById('active-job-section');
     const list = document.getElementById('active-jobs-list');
     if (!jobs || !jobs.length) { sec.style.display = 'none'; return; }
     sec.style.display = '';
-    list.innerHTML = jobs.map((j, idx) => `
+    list.innerHTML = jobs.map((j, idx) => {
+      const pct    = j.progress || 0;
+      const fps    = (j.fps || 0).toFixed(1);
+      const eta    = j.eta || '—';
+      const origMb = j.original_size ? (j.original_size / 1048576).toFixed(0) + ' MB' : '—';
+      // Bereken verstreken tijd
+      let elapsed = '—';
+      if (j.started_at) {
+        const secs = Math.floor((Date.now() - new Date(j.started_at.endsWith('Z') ? j.started_at : j.started_at + 'Z').getTime()) / 1000);
+        elapsed = secs < 60 ? secs + 's' : Math.floor(secs/60) + 'm ' + (secs%60) + 's';
+      }
+      return `
       <div class="active-body" ${idx > 0 ? 'style="border-top:1px solid var(--border);margin-top:14px;padding-top:14px"' : ''}>
-        <div class="file-name">${basename(j.file_path)}</div>
-        <div class="file-dir">${dirname(j.file_path)}</div>
-        <div class="progress-bar" style="margin-top:10px"><div class="progress-fill" style="width:${j.progress || 0}%"></div></div>
-        <div style="display:flex;gap:20px;font-size:12px;color:var(--text-s);margin-top:6px">
-          <span>${j.progress || 0}%</span>
-          <span>${(j.fps || 0).toFixed(1)} fps</span>
-          <span>ETA: ${j.eta || '—'}</span>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div style="min-width:0">
+            <div class="file-name">${basename(j.file_path)}</div>
+            <div class="file-dir">${dirname(j.file_path)}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:22px;font-weight:800;letter-spacing:-1px;color:#818cf8;line-height:1">${pct}%</div>
+            <div style="font-size:10px;color:var(--text-t);margin-top:2px">ETA <span style="color:#818cf8;font-weight:600">${eta}</span></div>
+          </div>
         </div>
+        <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="active-detail-grid">
+          <div class="active-detail-cell">
+            <div class="active-detail-label">FPS</div>
+            <div class="active-detail-val">${fps}</div>
+          </div>
+          <div class="active-detail-cell">
+            <div class="active-detail-label">Origineel</div>
+            <div class="active-detail-val">${origMb}</div>
+          </div>
+          <div class="active-detail-cell">
+            <div class="active-detail-label">Verstreken</div>
+            <div class="active-detail-val">${elapsed}</div>
+          </div>
+          <div class="active-detail-cell">
+            <div class="active-detail-label">Encoder</div>
+            <div class="active-detail-val" style="font-size:11px">${j.profile_id || '—'}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── Activity feed ─────────────────────────────────────────────────────────────
+async function loadActivityFeed() {
+  try {
+    const [hist, subHist] = await Promise.all([
+      fetch('/api/history?page=1&per_page=10').then(r => r.json()),
+      fetch('/api/subtitle/history?page=1&per_page=10').then(r => r.json()),
+    ]);
+
+    // Combineer en sorteer op datum
+    const items = [];
+    for (const h of (hist.items || [])) {
+      items.push({
+        type: h.status === 'error' ? 'err' : 'done',
+        file: basename(h.file_path || ''),
+        meta: h.status === 'success'
+          ? 'Conversie — bespaard: ' + formatSaved(h.original_size, h.new_size)
+          : h.status === 'skipped' ? 'Conversie — overgeslagen (al optimaal)'
+          : 'Conversie mislukt',
+        time: h.finished_at,
+      });
+    }
+    for (const h of (subHist.items || [])) {
+      items.push({
+        type: h.status === 'error' ? 'err' : 'sub',
+        file: basename(h.file_path || ''),
+        meta: h.status === 'success'
+          ? `Ondertitel — ${h.lines_translated || 0} regels vertaald`
+          : 'Ondertitel mislukt',
+        time: h.finished_at,
+      });
+    }
+    items.sort((a, b) => new Date(b.time) - new Date(a.time));
+    const top = items.slice(0, 20);
+
+    const list = document.getElementById('activity-feed-list');
+    if (!list) return;
+    if (!top.length) {
+      list.innerHTML = '<div class="empty" style="padding:16px 0"><div class="empty-text">Nog geen activiteit</div></div>';
+      return;
+    }
+    list.innerHTML = top.map(item => `
+      <div class="activity-item">
+        <div class="activity-dot ${item.type}"></div>
+        <div class="activity-text">
+          <div class="activity-file">${item.file}</div>
+          <div class="activity-meta">${item.meta}</div>
+        </div>
+        <div class="activity-time">${formatDate(item.time)}</div>
       </div>`).join('');
   } catch(e) {}
+}
+
+function formatSaved(orig, nw) {
+  if (!orig || !nw) return '—';
+  const mb = ((orig - nw) / 1048576).toFixed(0);
+  const pct = ((1 - nw / orig) * 100).toFixed(0);
+  return mb + ' MB (' + pct + '%)';
 }
 
 // ── GPU Monitor ────────────────────────────────────────────────────────────────
@@ -1645,6 +1811,7 @@ async function loadDashboard() {
   await loadStats();
   await loadWorkerStatus();
   await loadActiveJob();
+  loadActivityFeed();
   await loadGpuMonitor();
   await loadSubtitleDashboard();
   await loadDashboardQueue();
@@ -1894,7 +2061,8 @@ function openAddLib() {
   document.getElementById('lib-edit-id').value   = '';
   document.getElementById('lib-name').value      = '';
   document.getElementById('lib-path').value      = '';
-  // Apply current language to modal labels
+  document.getElementById('lib-exclude').value   = '';
+  document.querySelector('input[name="lib-sub-quality"][value="normal"]').checked = true;
   document.getElementById('lbl-lib-name').textContent     = t('lib.name');
   document.getElementById('lbl-lib-path').textContent     = t('lib.path');
   document.getElementById('lbl-modal-cancel').textContent = t('lib.cancel');
@@ -1907,6 +2075,10 @@ function editLib(l) {
   document.getElementById('lib-edit-id').value  = l.id;
   document.getElementById('lib-name').value     = l.name;
   document.getElementById('lib-path').value     = l.path;
+  document.getElementById('lib-exclude').value  = l.exclude_patterns || '';
+  const q = l.subtitle_quality || 'normal';
+  const qEl = document.querySelector(`input[name="lib-sub-quality"][value="${q}"]`);
+  if (qEl) qEl.checked = true;
   document.getElementById('lbl-lib-name').textContent     = t('lib.name');
   document.getElementById('lbl-lib-path').textContent     = t('lib.path');
   document.getElementById('lbl-modal-cancel').textContent = t('lib.cancel');
@@ -1918,10 +2090,13 @@ function closeLibModal() { document.getElementById('lib-modal').classList.remove
 
 async function saveLibrary() {
   const id   = document.getElementById('lib-edit-id').value;
-  const name = document.getElementById('lib-name').value;
-  const path = document.getElementById('lib-path').value;
+  const name            = document.getElementById('lib-name').value;
+  const path            = document.getElementById('lib-path').value;
+  const exclude_patterns = document.getElementById('lib-exclude').value;
+  const qualityEl       = document.querySelector('input[name="lib-sub-quality"]:checked');
+  const subtitle_quality = qualityEl ? qualityEl.value : 'normal';
   if (!name || !path) { toast(t('misc.nameRequired'), 'error'); return; }
-  const data = { name, path };
+  const data = { name, path, exclude_patterns, subtitle_quality };
   if (id) {
     await fetch('/api/libraries/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...data, enabled: true}) });
     toast(t('misc.libUpdated'), 'success');
@@ -2909,7 +3084,12 @@ function formatBytes(b) {
 }
 function formatDate(s) {
   if (!s) return '—';
-  try { return new Date(s).toLocaleString('nl-NL', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+  try {
+    // Voeg Z toe als er geen timezone-aanduiding aanwezig is (bestaande DB-records)
+    // zodat de browser de tijd correct als UTC interpreteert en naar lokale tijd converteert
+    const iso = /[Z+]/.test(s.slice(-6)) ? s : s + 'Z';
+    return new Date(iso).toLocaleString('nl-NL', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }
   catch { return s; }
 }
 function formatDuration(s) {
