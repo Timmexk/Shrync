@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.50")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.51")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -406,6 +406,7 @@ def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec, hdr: dict = No
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
         "-nostats",
+        "-loglevel", "warning",
         tmp_out
     ]
     return cmd
@@ -434,6 +435,7 @@ def build_amf_cmd(src, tmp_out, codec, preset, qp, audio_codec, hdr: dict = None
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
         "-nostats",
+        "-loglevel", "warning",
         tmp_out
     ]
     return cmd
@@ -463,6 +465,7 @@ def build_qsv_cmd(src, tmp_out, codec, preset, q, audio_codec, hdr: dict = None)
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
         "-nostats",
+        "-loglevel", "warning",
         tmp_out
     ]
     return cmd
@@ -486,6 +489,7 @@ def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec, hdr: dict = Non
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
         "-nostats",
+        "-loglevel", "warning",
         tmp_out
     ]
     return cmd
@@ -503,7 +507,9 @@ def needs_conversion(file_path: str, target_codec: str) -> bool:
             "-show_entries", "stream=codec_name",
             "-print_format", "json",
             file_path
-        ], capture_output=True, text=True, timeout=8)
+        ], capture_output=True, text=True, timeout=5)
+        if result.returncode != 0 or not result.stdout.strip():
+            return True  # Kan bestand niet lezen — voeg toe voor de zekerheid
         info = json.loads(result.stdout)
         for stream in info.get("streams", []):
             current = stream.get("codec_name", "")
@@ -512,6 +518,9 @@ def needs_conversion(file_path: str, target_codec: str) -> bool:
             if "h264" in target_codec and current == "h264":
                 return False
         return True
+    except subprocess.TimeoutExpired:
+        logger.warning(f"ffprobe timeout bij {Path(file_path).name} — overgeslagen")
+        return False  # Timeout = sla over, niet toevoegen (voorkomt vastlopen)
     except Exception as e:
         logger.warning(f"ffprobe fout bij {file_path}: {e}")
         return True
@@ -750,7 +759,7 @@ def run_conversion(job_id: str):
                         current_sec = out_time_us / 1_000_000
                         progress = min(int((current_sec / duration) * 100), 99)
                         if fps_val > 0:
-                            remaining_sec = int((duration - current_sec) / fps_val * 25)
+                            remaining_sec = int((duration - current_sec) / fps_val)
                             eta = f"{remaining_sec // 60}m{remaining_sec % 60}s"
                     conn2 = get_db()
                     conn2.execute("UPDATE queue SET progress=?, fps=?, eta=? WHERE id=?",
@@ -764,7 +773,7 @@ def run_conversion(job_id: str):
         process.kill()
         logger.error(f"Conversie fout: {e}")
 
-    stderr_thread.join(timeout=5)
+    stderr_thread.join(timeout=30)
     stderr_out = "".join(stderr_lines)
 
     with active_jobs_lock:
@@ -1721,18 +1730,26 @@ def start_subtitle_dispatcher():
     logger.info("Ondertitel dispatcher actief.")
 
 def initial_startup():
-    logger.info("Shrync opstart — eenmalige scan van alle bibliotheken...")
+    logger.info("Shrync opstart — workers en scans starten...")
+    # Start workers EERST zodat ze meteen kunnen beginnen zodra items in de wachtrij komen
+    start_workers()
+    start_subtitle_dispatcher()
+    # Scans parallel uitvoeren — één thread per bibliotheek zodat ze
+    # de worker-start niet blokkeren
     conn = get_db()
     libs = conn.execute("SELECT * FROM libraries WHERE enabled=1").fetchall()
     conn.close()
     for lib in libs:
-        scan_library(lib["id"])
+        threading.Thread(
+            target=scan_library,
+            args=(lib["id"],),
+            name=f"Scan-{lib['id'][:8]}",
+            daemon=True
+        ).start()
     start_watchers()
     threading.Thread(target=watcher_monitor, daemon=True).start()
     logger.info("Live monitoring actief.")
-    start_workers()
-    start_subtitle_dispatcher()
-    # Ondertitel opstartscan in aparte thread — na conversie dispatcher
+    # Ondertitel opstartscan in aparte thread
     threading.Thread(target=scan_existing_subtitles, daemon=True).start()
 
 # ── App lifecycle via lifespan context (zie boven) ───────────────────────────

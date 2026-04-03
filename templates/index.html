@@ -494,13 +494,7 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
   .content{padding:10px 12px}
 }
 @media(max-width:340px){.stats-grid{grid-template-columns:1fr}}
-/* ── Library quality opties ── */
-.quality-opt{display:block;cursor:pointer;border-radius:var(--rxs);border:1px solid var(--border);overflow:hidden;transition:border-color .15s}
-.quality-opt:has(input:checked){border-color:rgba(59,130,246,.5);background:rgba(59,130,246,.07)}
-.quality-opt input{display:none}
-.quality-opt-inner{padding:10px 12px}
-.quality-opt-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px}
-.quality-opt-desc{font-size:10px;color:var(--text-t);line-height:1.5}
+
 /* ── Activity feed ── */
 .activity-feed{overflow:hidden}
 .activity-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
@@ -1050,6 +1044,19 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 
               <div id="ollama-status" style="font-size:11px;color:var(--text-s);min-height:16px;margin-bottom:10px"></div>
 
+              <!-- Vertaalkwaliteit per bibliotheek -->
+              <div style="border:1px solid var(--border);border-radius:var(--rxs);padding:12px;margin-bottom:10px">
+                <div style="font-size:10px;font-weight:600;color:var(--text-t);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Vertaalkwaliteit per bibliotheek</div>
+                <div id="sub-quality-per-lib">
+                  <div style="font-size:11px;color:var(--text-t)">Laden…</div>
+                </div>
+                <div style="font-size:10px;color:var(--text-t);margin-top:8px;line-height:1.6">
+                  Snel = kleine batches, minder context &nbsp;·&nbsp;
+                  Normaal = standaard &nbsp;·&nbsp;
+                  Grondig = meer context, beter voor films
+                </div>
+              </div>
+
               <!-- Vertaalkwaliteit test -->
               <div style="border:1px solid var(--border);border-radius:var(--rxs);padding:12px">
                 <div style="font-size:10px;font-weight:600;color:var(--text-t);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px" id="lbl-trans-test">Kwaliteitstest</div>
@@ -1104,32 +1111,6 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
         placeholder="Remux&#10;2160p&#10;\.sample\."
         style="resize:vertical;font-family:var(--mono,monospace);font-size:11px;line-height:1.6"></textarea>
       <div style="font-size:10px;color:var(--text-t);margin-top:4px">Bestanden waarvan de naam overeenkomt worden niet geconverteerd.</div>
-    </div>
-    <div class="form-group" style="margin-bottom:0">
-      <label class="form-label">Vertaalkwaliteit ondertiteling</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <label class="quality-opt" id="qopt-fast">
-          <input type="radio" name="lib-sub-quality" value="fast">
-          <div class="quality-opt-inner">
-            <div class="quality-opt-name">Snel</div>
-            <div class="quality-opt-desc">Ideaal voor series. Kleine batches, minder context.</div>
-          </div>
-        </label>
-        <label class="quality-opt" id="qopt-normal">
-          <input type="radio" name="lib-sub-quality" value="normal" checked>
-          <div class="quality-opt-inner">
-            <div class="quality-opt-name">Normaal ✓</div>
-            <div class="quality-opt-desc">Standaard instelling. Goede balans.</div>
-          </div>
-        </label>
-        <label class="quality-opt" id="qopt-thorough">
-          <input type="radio" name="lib-sub-quality" value="thorough">
-          <div class="quality-opt-inner">
-            <div class="quality-opt-name">Grondig</div>
-            <div class="quality-opt-desc">Films. Meer context per batch, hogere kwaliteit.</div>
-          </div>
-        </label>
-      </div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeLibModal()" id="lbl-modal-cancel">Annuleren</button>
@@ -2062,7 +2043,6 @@ function openAddLib() {
   document.getElementById('lib-name').value      = '';
   document.getElementById('lib-path').value      = '';
   document.getElementById('lib-exclude').value   = '';
-  document.querySelector('input[name="lib-sub-quality"][value="normal"]').checked = true;
   document.getElementById('lbl-lib-name').textContent     = t('lib.name');
   document.getElementById('lbl-lib-path').textContent     = t('lib.path');
   document.getElementById('lbl-modal-cancel').textContent = t('lib.cancel');
@@ -2076,9 +2056,6 @@ function editLib(l) {
   document.getElementById('lib-name').value     = l.name;
   document.getElementById('lib-path').value     = l.path;
   document.getElementById('lib-exclude').value  = l.exclude_patterns || '';
-  const q = l.subtitle_quality || 'normal';
-  const qEl = document.querySelector(`input[name="lib-sub-quality"][value="${q}"]`);
-  if (qEl) qEl.checked = true;
   document.getElementById('lbl-lib-name').textContent     = t('lib.name');
   document.getElementById('lbl-lib-path').textContent     = t('lib.path');
   document.getElementById('lbl-modal-cancel').textContent = t('lib.cancel');
@@ -2093,10 +2070,8 @@ async function saveLibrary() {
   const name            = document.getElementById('lib-name').value;
   const path            = document.getElementById('lib-path').value;
   const exclude_patterns = document.getElementById('lib-exclude').value;
-  const qualityEl       = document.querySelector('input[name="lib-sub-quality"]:checked');
-  const subtitle_quality = qualityEl ? qualityEl.value : 'normal';
   if (!name || !path) { toast(t('misc.nameRequired'), 'error'); return; }
-  const data = { name, path, exclude_patterns, subtitle_quality };
+  const data = { name, path, exclude_patterns };
   if (id) {
     await fetch('/api/libraries/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...data, enabled: true}) });
     toast(t('misc.libUpdated'), 'success');
@@ -2967,7 +2942,59 @@ async function loadSettings() {
     }
     // Theme
     applyTheme(s.theme || 'dark');
+    // Vertaalkwaliteit per bibliotheek laden
+    loadSubQualityPerLib();
   } catch(e) {}
+}
+
+async function loadSubQualityPerLib() {
+  try {
+    const libs = await fetch('/api/libraries').then(r => r.json());
+    const container = document.getElementById('sub-quality-per-lib');
+    if (!container) return;
+    if (!libs || !libs.length) {
+      container.innerHTML = '<div style="font-size:11px;color:var(--text-t)">Nog geen bibliotheken toegevoegd.</div>';
+      return;
+    }
+    container.innerHTML = libs.map(lib => `
+      <div style="display:flex;align-items:center;justify-content:space-between;
+                  padding:8px 0;border-bottom:1px solid var(--border)" class="sub-quality-row">
+        <div style="min-width:0;flex:1;margin-right:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);
+                      white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lib.name}</div>
+          <div style="font-size:10px;color:var(--text-t)">${lib.path}</div>
+        </div>
+        <select class="form-input" style="width:130px;padding:5px 8px;font-size:12px;flex-shrink:0"
+          onchange="saveSubQuality('${lib.id}', this.value, '${escHtml(lib.name)}', '${escHtml(lib.path)}', '${escHtml(lib.exclude_patterns||'')}')">
+          <option value="fast"      ${(lib.subtitle_quality||'normal')==='fast'      ? 'selected' : ''}>Snel</option>
+          <option value="normal"    ${(lib.subtitle_quality||'normal')==='normal'    ? 'selected' : ''}>Normaal</option>
+          <option value="thorough"  ${(lib.subtitle_quality||'normal')==='thorough'  ? 'selected' : ''}>Grondig</option>
+        </select>
+      </div>`).join('');
+    // Verwijder border van laatste rij
+    const rows = container.querySelectorAll('.sub-quality-row');
+    if (rows.length) rows[rows.length-1].style.borderBottom = 'none';
+  } catch(e) {}
+}
+
+async function saveSubQuality(id, quality, name, path, excludePatterns) {
+  try {
+    await fetch('/api/libraries/' + id, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        name, path,
+        enabled: true,
+        exclude_patterns: excludePatterns,
+        subtitle_quality: quality
+      })
+    });
+    toast('Vertaalkwaliteit opgeslagen voor ' + name);
+  } catch(e) { toast('Fout bij opslaan', true); }
+}
+
+function escHtml(s) {
+  return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
 }
 
 function setWorkers(n) { currentWorkers = n; updateWorkerUI(n); }

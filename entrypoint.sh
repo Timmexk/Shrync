@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.50 — entrypoint met automatische GPU-detectie
+# Shrync v0.51 — entrypoint met automatische GPU-detectie
 # ══════════════════════════════════════════════════════════════════════════════
 # Draait elke keer als de container start. Detecteert GPU, stelt GPU_MODE in,
 # valideert ffmpeg NVENC beschikbaarheid, dan start de app.
