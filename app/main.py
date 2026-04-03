@@ -565,6 +565,7 @@ def scan_library(library_id: str):
         # Skip hidden directories
         dirs[:] = [d for d in dirs if not d.startswith('.')]
         for fname in files:
+          try:
             ext = Path(fname).suffix.lower()
             if ext not in VIDEO_EXTENSIONS:
                 continue
@@ -573,15 +574,23 @@ def scan_library(library_id: str):
             if fname.startswith("shryncing-"):
                 continue
             # Uitsluitingspatronen toepassen (per bibliotheek)
-            exclude_raw = lib.get("exclude_patterns", "") or ""
+            # lib is een sqlite3.Row — gebruik try/except voor kolommen
+            # die mogelijk niet bestaan in oudere databases
+            try:
+                exclude_raw = lib["exclude_patterns"] or ""
+            except (IndexError, KeyError):
+                exclude_raw = ""
             excluded = False
             for pat in [p.strip() for p in exclude_raw.splitlines() if p.strip()]:
-                if re.search(pat, fname, re.IGNORECASE):
-                    excluded = True
-                    scan_status[library_id]["skipped"] = scan_status[library_id].get("skipped", 0) + 1
-                    scan_status[library_id]["last_skip"] = {"file": fname, "reason": "excluded_pattern", "pattern": pat}
-                    logger.debug(f"Scan: uitgesloten door patroon '{pat}': {fname}")
-                    break
+                try:
+                    if re.search(pat, fname, re.IGNORECASE):
+                        excluded = True
+                        scan_status[library_id]["skipped"] = scan_status[library_id].get("skipped", 0) + 1
+                        scan_status[library_id]["last_skip"] = {"file": fname, "reason": "excluded_pattern", "pattern": pat}
+                        logger.debug(f"Scan: uitgesloten door patroon '{pat}': {fname}")
+                        break
+                except re.error as e:
+                    logger.warning(f"Ongeldig uitsluitingspatroon '{pat}': {e} — patroon genegeerd")
             if excluded:
                 continue
             scanned += 1
@@ -633,6 +642,8 @@ def scan_library(library_id: str):
             conn.commit()   # direct committen zodat de worker het meteen oppakt
             added += 1
             scan_status[library_id]["added"] = added
+          except Exception as _scan_exc:
+            logger.warning(f"Scan: fout bij verwerken {fname}: {_scan_exc}")
 
     conn.execute("UPDATE libraries SET last_scan=? WHERE id=?", (datetime.now(timezone.utc).isoformat(), library_id))
     conn.commit()
@@ -1268,9 +1279,13 @@ def run_subtitle_translation(job_id: str):
         # Vertaal via Ollama
         # Haal subtitle_quality op uit de bibliotheek-instelling
         lib_row = conn.execute("SELECT subtitle_quality FROM libraries WHERE id=?",
-                               (job.get("library_id",""),)).fetchone()
-        sub_quality = (lib_row["subtitle_quality"] if lib_row and lib_row["subtitle_quality"]
-                       else "normal")
+                               (job["library_id"] if job["library_id"] else "",)).fetchone()
+        try:
+            sub_quality = lib_row["subtitle_quality"] if lib_row else "normal"
+            if not sub_quality:
+                sub_quality = "normal"
+        except (IndexError, KeyError):
+            sub_quality = "normal"
         translated = translate_blocks_ollama(blocks, model, host, job_id, update_progress,
                                              quality=sub_quality)
 
