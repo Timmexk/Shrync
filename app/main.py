@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.51")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.53")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -403,6 +403,8 @@ def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec, hdr: dict = No
     cmd += [
         "-c:a", audio_codec,
         "-c:s", "copy",
+    ]
+    cmd += [
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
         "-nostats",
@@ -432,6 +434,8 @@ def build_amf_cmd(src, tmp_out, codec, preset, qp, audio_codec, hdr: dict = None
     cmd += [
         "-c:a", audio_codec,
         "-c:s", "copy",
+    ]
+    cmd += [
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
         "-nostats",
@@ -462,6 +466,8 @@ def build_qsv_cmd(src, tmp_out, codec, preset, q, audio_codec, hdr: dict = None)
     cmd += [
         "-c:a", audio_codec,
         "-c:s", "copy",
+    ]
+    cmd += [
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
         "-nostats",
@@ -486,6 +492,8 @@ def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec, hdr: dict = Non
     cmd += [
         "-c:a", audio_codec,
         "-c:s", "copy",
+    ]
+    cmd += [
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
         "-nostats",

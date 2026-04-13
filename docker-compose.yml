@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.51 — docker-compose.yml
+# Shrync v0.53 — docker-compose.yml
 # ══════════════════════════════════════════════════════════════════════════════
 # Één image voor CPU én GPU. De container detecteert automatisch of een
 # Nvidia GPU beschikbaar is. Geen aparte image nodig, nooit van tag wisselen.

@@ -495,19 +495,7 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 }
 @media(max-width:340px){.stats-grid{grid-template-columns:1fr}}
 
-/* ── Activity feed ── */
-.activity-feed{overflow:hidden}
-.activity-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
-.activity-item:last-child{border-bottom:none}
-.activity-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
-.activity-dot.conv{background:#3b82f6}
-.activity-dot.sub{background:#8b5cf6}
-.activity-dot.err{background:#f87171}
-.activity-dot.done{background:#34d399}
-.activity-text{flex:1;min-width:0}
-.activity-file{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.activity-meta{font-size:10px;color:var(--text-t);margin-top:1px}
-.activity-time{font-size:10px;color:var(--text-t);flex-shrink:0;white-space:nowrap}
+
 /* ── Actieve job detailkaart ── */
 .active-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:0;border-top:1px solid var(--border);margin-top:12px}
 .active-detail-cell{padding:10px 14px;border-right:1px solid var(--border)}
@@ -700,26 +688,22 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
       </div>
 
       <div class="table-wrap">
-        <div class="table-hdr"><span class="table-title" id="dash-recent-title">Recent verwerkt</span></div>
+        <div class="table-hdr">
+          <span class="table-title" id="dash-recent-title">Recent verwerkt</span>
+        </div>
         <table><thead><tr>
-          <th id="dash-th-rfile">Bestand</th><th id="dash-th-rlib">Bibliotheek</th>
-          <th id="dash-th-rsaved">Bespaard</th><th id="dash-th-rdur">Tijdsduur</th>
-          <th id="dash-th-rdate">Datum</th>
+          <th id="dash-th-rfile">Bestand</th>
+          <th id="dash-th-rlib">Bibliotheek</th>
+          <th style="width:80px" id="dash-th-rtype">Type</th>
+          <th id="dash-th-rsaved">Bespaard / Info</th>
+          <th style="width:70px" id="dash-th-rdur">Duur</th>
+          <th style="width:120px" id="dash-th-rdate">Datum</th>
         </tr></thead>
-        <tbody id="dashboard-recent-body"><tr><td colspan="5"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
+        <tbody id="dashboard-recent-body"><tr><td colspan="6"><div class="empty"><div class="empty-text">Laden…</div></div></td></tr></tbody>
         </table>
       </div>
 
-      <!-- Activity feed -->
-      <div class="table-wrap" id="activity-feed-wrap">
-        <div class="table-hdr">
-          <span class="table-title">Activiteit</span>
-          <span style="font-size:10px;color:var(--text-t)" id="activity-feed-sub">Laatste 20 acties</span>
-        </div>
-        <div style="padding:4px 18px 6px" id="activity-feed-list">
-          <div class="empty"><div class="empty-text">Laden…</div></div>
-        </div>
-      </div>
+
     </div>
 
     <!-- LIBRARIES -->
@@ -1611,11 +1595,15 @@ async function loadActiveJob() {
       const fps    = (j.fps || 0).toFixed(1);
       const eta    = j.eta || '—';
       const origMb = j.original_size ? (j.original_size / 1048576).toFixed(0) + ' MB' : '—';
-      // Bereken verstreken tijd
+      // Bereken verstreken tijd — normaliseer ISO string naar UTC
       let elapsed = '—';
       if (j.started_at) {
-        const secs = Math.floor((Date.now() - new Date(j.started_at.endsWith('Z') ? j.started_at : j.started_at + 'Z').getTime()) / 1000);
-        elapsed = secs < 60 ? secs + 's' : Math.floor(secs/60) + 'm ' + (secs%60) + 's';
+        // Vervang +00:00 suffix door Z, of voeg Z toe als er geen tz is
+        const iso = j.started_at.replace(/\+00:00$/, 'Z').replace(/(\d)$/, '$1Z').replace('ZZ','Z');
+        const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+        if (!isNaN(secs) && secs >= 0) {
+          elapsed = secs < 60 ? secs + 's' : Math.floor(secs/60) + 'm ' + (secs%60) + 's';
+        }
       }
       return `
       <div class="active-body" ${idx > 0 ? 'style="border-top:1px solid var(--border);margin-top:14px;padding-top:14px"' : ''}>
@@ -1653,64 +1641,7 @@ async function loadActiveJob() {
   } catch(e) {}
 }
 
-// ── Activity feed ─────────────────────────────────────────────────────────────
-async function loadActivityFeed() {
-  try {
-    const [hist, subHist] = await Promise.all([
-      fetch('/api/history?page=1&per_page=10').then(r => r.json()),
-      fetch('/api/subtitle/history?page=1&per_page=10').then(r => r.json()),
-    ]);
 
-    // Combineer en sorteer op datum
-    const items = [];
-    for (const h of (hist.items || [])) {
-      items.push({
-        type: h.status === 'error' ? 'err' : 'done',
-        file: basename(h.file_path || ''),
-        meta: h.status === 'success'
-          ? 'Conversie — bespaard: ' + formatSaved(h.original_size, h.new_size)
-          : h.status === 'skipped' ? 'Conversie — overgeslagen (al optimaal)'
-          : 'Conversie mislukt',
-        time: h.finished_at,
-      });
-    }
-    for (const h of (subHist.items || [])) {
-      items.push({
-        type: h.status === 'error' ? 'err' : 'sub',
-        file: basename(h.file_path || ''),
-        meta: h.status === 'success'
-          ? `Ondertitel — ${h.lines_translated || 0} regels vertaald`
-          : 'Ondertitel mislukt',
-        time: h.finished_at,
-      });
-    }
-    items.sort((a, b) => new Date(b.time) - new Date(a.time));
-    const top = items.slice(0, 20);
-
-    const list = document.getElementById('activity-feed-list');
-    if (!list) return;
-    if (!top.length) {
-      list.innerHTML = '<div class="empty" style="padding:16px 0"><div class="empty-text">Nog geen activiteit</div></div>';
-      return;
-    }
-    list.innerHTML = top.map(item => `
-      <div class="activity-item">
-        <div class="activity-dot ${item.type}"></div>
-        <div class="activity-text">
-          <div class="activity-file">${item.file}</div>
-          <div class="activity-meta">${item.meta}</div>
-        </div>
-        <div class="activity-time">${formatDate(item.time)}</div>
-      </div>`).join('');
-  } catch(e) {}
-}
-
-function formatSaved(orig, nw) {
-  if (!orig || !nw) return '—';
-  const mb = ((orig - nw) / 1048576).toFixed(0);
-  const pct = ((1 - nw / orig) * 100).toFixed(0);
-  return mb + ' MB (' + pct + '%)';
-}
 
 // ── GPU Monitor ────────────────────────────────────────────────────────────────
 let _gpuMonitorInterval = null;
@@ -1792,7 +1723,6 @@ async function loadDashboard() {
   await loadStats();
   await loadWorkerStatus();
   await loadActiveJob();
-  loadActivityFeed();
   await loadGpuMonitor();
   await loadSubtitleDashboard();
   await loadDashboardQueue();
@@ -1843,24 +1773,68 @@ async function loadDashboardQueue() {
 
 async function loadRecent() {
   try {
-    const items = await fetch('/api/recent').then(r => r.json());
+    const [convData, subData] = await Promise.all([
+      fetch('/api/history?page=1&per_page=15').then(r => r.json()),
+      fetch('/api/subtitle/history?page=1&per_page=10').then(r => r.json()),
+    ]);
+
     const tbody = document.getElementById('dashboard-recent-body');
-    if (!items || !items.length) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);font-size:11px;padding:20px">${t('dash.noRecent')}</td></tr>`;
+    const rows = [];
+
+    // Conversie items
+    for (const h of (convData.items || [])) {
+      const saved   = (h.original_size || 0) - (h.new_size || 0);
+      const pct     = h.original_size > 0 ? ((saved / h.original_size) * 100).toFixed(1) : 0;
+      const dur     = h.duration_seconds ? `${Math.floor(h.duration_seconds/60)}m${h.duration_seconds%60}s` : '—';
+      const isOk    = h.status === 'success';
+      const isSkip  = h.status === 'skipped';
+      const isErr   = h.status === 'error';
+      let infoCell;
+      if (isOk)   infoCell = `<span style="color:var(--success);font-weight:600;font-size:11px">−${formatBytes(saved)} <span style="color:var(--muted);font-weight:400">(${pct}%)</span></span>`;
+      else if (isSkip) infoCell = `<span style="color:var(--orange);font-size:11px">Al optimaal</span>`;
+      else        infoCell = `<span style="color:var(--danger);font-size:10px;word-break:break-word">${(h.error_msg||'').substring(0,60)}</span>`;
+      rows.push({
+        time: h.finished_at,
+        html: `<tr>
+          <td><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
+          <td style="font-size:11px;color:var(--muted)">${h.library_name || '—'}</td>
+          <td>${isOk ? '<span class="badge badge-success">✓ Conv</span>' : isSkip ? '<span class="badge badge-skipped">⊘ Conv</span>' : '<span class="badge badge-error">✕ Conv</span>'}</td>
+          <td>${infoCell}</td>
+          <td style="font-size:11px;color:var(--muted)">${dur}</td>
+          <td style="font-size:11px;color:var(--muted)">${formatDate(h.finished_at)}</td>
+        </tr>`
+      });
+    }
+
+    // Ondertitel items
+    for (const h of (subData.items || [])) {
+      const isOk  = h.status === 'success';
+      const dur   = '—'; // ondertitelingen hebben geen duration_seconds
+      let infoCell;
+      if (isOk) infoCell = `<span style="color:var(--muted);font-size:11px">${h.lines_translated || 0} regels · ${h.model_used || '—'}</span>`;
+      else      infoCell = `<span style="color:var(--danger);font-size:10px;word-break:break-word">${(h.error_msg||'').substring(0,60)}</span>`;
+      rows.push({
+        time: h.finished_at,
+        html: `<tr>
+          <td><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
+          <td style="font-size:11px;color:var(--muted)">${h.library_name || '—'}</td>
+          <td>${isOk ? '<span class="badge" style="background:rgba(139,92,246,.08);color:#a78bfa;border:1px solid rgba(139,92,246,.2)">✓ Sub</span>' : '<span class="badge badge-error">✕ Sub</span>'}</td>
+          <td>${infoCell}</td>
+          <td style="font-size:11px;color:var(--muted)">${dur}</td>
+          <td style="font-size:11px;color:var(--muted)">${formatDate(h.finished_at)}</td>
+        </tr>`
+      });
+    }
+
+    // Sorteer op datum, nieuwste eerst, toon max 20
+    rows.sort((a, b) => new Date(b.time) - new Date(a.time));
+    const top20 = rows.slice(0, 20);
+
+    if (!top20.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);font-size:11px;padding:20px">${t('dash.noRecent')}</td></tr>`;
       return;
     }
-    tbody.innerHTML = items.map(h => {
-      const saved = (h.original_size || 0) - (h.new_size || 0);
-      const pct   = h.original_size > 0 ? ((saved / h.original_size) * 100).toFixed(1) : 0;
-      const dur   = h.duration_seconds ? `${Math.floor(h.duration_seconds/60)}m${h.duration_seconds%60}s` : '—';
-      return `<tr>
-        <td><div class="file-name">${basename(h.file_path)}</div></td>
-        <td style="font-size:11px;color:var(--muted)">${h.library_name || '—'}</td>
-        <td><span style="color:var(--success);font-weight:600;font-size:11px">−${formatBytes(saved)} <span style="color:var(--muted);font-weight:400">(${pct}%)</span></span></td>
-        <td style="font-size:11px;color:var(--muted)">${dur}</td>
-        <td style="font-size:11px;color:var(--muted)">${formatDate(h.finished_at)}</td>
-      </tr>`;
-    }).join('');
+    tbody.innerHTML = top20.map(r => r.html).join('');
   } catch(e) {}
 }
 
