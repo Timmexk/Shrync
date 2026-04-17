@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.53")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.54")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -392,6 +392,7 @@ def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec, hdr: dict = No
     cmd = [
         "ffmpeg", "-y",
         "-i", src,
+        "-map", "0",          # alle streams uit input: video, audio, subs, bijlagen
         "-c:v", codec,
         "-preset", preset,
         "-rc", "constqp",
@@ -424,6 +425,7 @@ def build_amf_cmd(src, tmp_out, codec, preset, qp, audio_codec, hdr: dict = None
     cmd = [
         "ffmpeg", "-y",
         "-i", src,
+        "-map", "0",
         "-c:v", codec,
         "-quality", preset,   # quality | balanced | speed
         "-qp_i", qp,
@@ -456,6 +458,7 @@ def build_qsv_cmd(src, tmp_out, codec, preset, q, audio_codec, hdr: dict = None)
         "ffmpeg", "-y",
         "-hwaccel", "qsv",
         "-i", src,
+        "-map", "0",
         "-c:v", codec,
         "-preset", preset,
         "-global_quality", q,
@@ -483,6 +486,7 @@ def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec, hdr: dict = Non
     cmd = [
         "ffmpeg", "-y",
         "-i", src,
+        "-map", "0",
         "-c:v", codec,
         "-preset", preset,
         "-crf", crf,
