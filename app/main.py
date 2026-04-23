@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.54")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.55")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -620,7 +620,7 @@ def scan_library(library_id: str):
                 continue
 
             done = conn.execute(
-                "SELECT id FROM history WHERE file_path=? AND status='success'", (fpath,)
+                "SELECT id FROM history WHERE file_path=? AND status IN ('success','skipped')", (fpath,)
             ).fetchone()
             if done:
                 skipped += 1
@@ -629,6 +629,7 @@ def scan_library(library_id: str):
                 continue
 
             # Mislukte conversie: verwijder oude foutmelding en voeg opnieuw toe
+            # (skipped wordt al hierboven afgehandeld — hier alleen errors)
             failed = conn.execute(
                 "SELECT id FROM history WHERE file_path=? AND status='error'", (fpath,)
             ).fetchone()
