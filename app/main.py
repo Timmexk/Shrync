@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.55")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.57")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -139,8 +139,13 @@ def init_db():
         started_at TEXT,
         finished_at TEXT,
         error_msg TEXT,
-        output_path TEXT
+        output_path TEXT,
+        model_used TEXT DEFAULT ''
     )""")
+    try:
+        c.execute("ALTER TABLE subtitle_queue ADD COLUMN model_used TEXT DEFAULT ''")
+    except Exception:
+        pass
     c.execute("""CREATE TABLE IF NOT EXISTS subtitle_history (
         id TEXT PRIMARY KEY,
         library_id TEXT,
@@ -756,7 +761,6 @@ def run_conversion(job_id: str):
     with active_jobs_lock:
         active_jobs[slot_id] = {"id": job_id, "process": process}
 
-    out_time_us = 0
     stderr_lines = []
 
     # Lees stderr in aparte thread zodat de pipe-buffer niet blokkeert
@@ -767,19 +771,24 @@ def run_conversion(job_id: str):
     stderr_thread.start()
 
     try:
+        # Buffer per progress-blok: ffmpeg schrijft keys in vaste volgorde,
+        # eindigend met "progress=". Pas na het complete blok berekenen we
+        # ETA zodat out_time_us en fps altijd van hetzelfde moment zijn.
+        blok: dict = {}
         for line in process.stdout:
             line = line.strip()
-            if line.startswith("out_time_us="):
+            if "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            blok[key] = val
+            if key == "progress":
+                # Volledig blok ontvangen — verwerk
                 try:
-                    out_time_us = int(line.split("=")[1])
-                except:
-                    pass
-            elif line.startswith("fps="):
-                try:
-                    fps_val = float(line.split("=")[1])
-                    progress = 0
-                    eta = ""
-                    if duration > 0:
+                    out_time_us = int(blok.get("out_time_us", 0))
+                    fps_val     = float(blok.get("fps", 0))
+                    progress    = 0
+                    eta         = ""
+                    if duration > 0 and out_time_us > 0:
                         current_sec = out_time_us / 1_000_000
                         progress = min(int((current_sec / duration) * 100), 99)
                         if fps_val > 0:
@@ -792,6 +801,7 @@ def run_conversion(job_id: str):
                     conn2.close()
                 except:
                     pass
+                blok = {}  # reset voor volgend blok
         process.wait()
     except Exception as e:
         process.kill()
@@ -809,7 +819,55 @@ def run_conversion(job_id: str):
     if process.returncode == 0 and os.path.exists(tmp_out):
         new_size = os.path.getsize(tmp_out)
 
-        # Nooit groter dan origineel opslaan — verwijder het geconverteerde bestand en sla over
+        # Als geconverteerd bestand groter is dan origineel:
+        # - bij .mp4/.avi/.ts/.wmv/.flv/.mov: remux naar MKV zonder hercodering
+        #   (alleen containerwijziging, geen kwaliteitsverlies, geen hercodering)
+        # - bij .mkv: origineel behouden, als skipped markeren
+        src_ext = Path(src).suffix.lower()
+        non_mkv_extensions = {".mp4", ".avi", ".ts", ".wmv", ".flv", ".mov", ".m4v"}
+
+        if new_size >= original_size and src_ext in non_mkv_extensions:
+            # Remux naar MKV — alleen containerwissel, geen hercodering
+            try: os.remove(tmp_out)
+            except: pass
+            mkv_out = str(Path(src).with_suffix(".mkv"))
+            tmp_remux = os.path.join(str(Path(src).parent), f"remux-{_rand}.mkv")
+            logger.info(f"Geconverteerd groter dan origineel — remux {src_ext} → MKV: {Path(src).name}")
+            remux_cmd = [
+                "ffmpeg", "-y", "-i", src,
+                "-map", "0",
+                "-c", "copy",
+                "-loglevel", "warning",
+                tmp_remux
+            ]
+            remux_result = subprocess.run(remux_cmd, capture_output=True, text=True, timeout=300)
+            if remux_result.returncode == 0 and os.path.exists(tmp_remux):
+                try:
+                    os.remove(src)
+                    os.rename(tmp_remux, mkv_out)
+                    remux_size = os.path.getsize(mkv_out)
+                    logger.info(f"Remux geslaagd: {mkv_out} ({original_size} → {remux_size} bytes)")
+                    conn.execute(
+                        "INSERT INTO history (id,library_id,file_path,original_size,new_size,duration_seconds,status,finished_at) "
+                        "VALUES (?,?,?,?,?,?,'success',?)",
+                        (str(uuid.uuid4()), job["library_id"], mkv_out, original_size, remux_size, elapsed, now)
+                    )
+                    conn.execute("DELETE FROM queue WHERE id=?", (job_id,))
+                    conn.commit()
+                    conn.close()
+                    maybe_queue_subtitle(mkv_out, job["library_id"])
+                    return
+                except Exception as re:
+                    if os.path.exists(tmp_remux):
+                        try: os.remove(tmp_remux)
+                        except: pass
+                    logger.error(f"Remux verplaatsen mislukt: {re}")
+            else:
+                if os.path.exists(tmp_remux):
+                    try: os.remove(tmp_remux)
+                    except: pass
+                logger.error(f"Remux mislukt: {remux_result.stderr[-500:]}")
+
         if new_size >= original_size:
             try: os.remove(tmp_out)
             except: pass
@@ -1103,14 +1161,29 @@ def translate_blocks_ollama(blocks: list, model: str, host: str,
     tgt_name = lang_names.get(target_lang, (target_lang, target_lang))[0]
 
     system_prompt = (
-        f"You are a professional subtitle translator. "
-        f"Translate the following {src_name} film subtitles to natural {tgt_name}. "
-        f"Each subtitle is wrapped in ###N### markers where N is the subtitle number. "
-        f"You MUST output every ###N### marker exactly as given, in the same order, "
-        f"with the translated text on the next line. "
-        f"Do NOT add, remove, merge or reorder any ###N### markers. "
-        f"Use natural spoken language. "
-        f"Reply ONLY with the markers and translated text, no explanation."
+        f"You are a professional {src_name}-to-{tgt_name} subtitle translator for films and series. "
+        f"Your goal is natural, fluent {tgt_name} as it would appear in a professional cinema release — "
+        f"NOT a word-for-word translation. Prioritize how native {tgt_name} speakers actually speak."
+        f"\n\nRules:"
+        f"\n- Adapt idioms and expressions to natural {tgt_name} equivalents"
+        f"\n- Restructure sentences when needed for natural flow"
+        f"\n- Keep the same register: casual stays casual, formal stays formal, humor stays funny"
+        f"\n- Preserve swearing, slang and intensity — do not sanitize"
+        f"\n- Contractions and informal speech are preferred over stiff formal language"
+        f"\n- Short punchy lines stay short — do not pad with filler words"
+        f"\n- Never translate proper names, brand names or untranslatable terms"
+        f"\n\nFormat rules:"
+        f"\n- Each subtitle is wrapped in ###N### markers"
+        f"\n- Output EVERY ###N### marker exactly as given, same order, translated text on the next line"
+        f"\n- Do NOT add, remove, merge or reorder any ###N### markers"
+        f"\n- Reply ONLY with markers and translated text, no explanation, no notes"
+        f"\n\nExamples of good vs bad translation:"
+        f"\nBAD: 'Ik heb er geen idee van wat je bedoelt te zeggen.' "
+        f"GOOD: 'Ik snap niet wat je bedoelt.'"
+        f"\nBAD: 'Dat is niet iets wat ik zou willen doen.' "
+        f"GOOD: 'Dat doe ik liever niet.'"
+        f"\nBAD: 'Je hebt het goed gedaan, man.' "
+        f"GOOD: 'Goed gedaan, man.'"
     )
 
     marker_pattern = re.compile(r"###(\d+)###")
@@ -1241,6 +1314,10 @@ def run_subtitle_translation(job_id: str):
     model       = get_subtitle_setting("ollama_model", "")
     source_lang = get_subtitle_setting("subtitle_source_lang", "eng")
     target_lang = get_subtitle_setting("subtitle_target_lang", "nld")
+
+    # Sla model op in queue zodat de UI het kan tonen bij actieve jobs
+    conn.execute("UPDATE subtitle_queue SET model_used=? WHERE id=?", (model, job_id))
+    conn.commit()
 
     if not model:
         conn.execute(
@@ -2734,7 +2811,7 @@ def api_test_translation(data: dict):
     tgt_name = lang_names.get(target_lang, target_lang)
 
     prompt = (
-        f"Translate this {src_name} subtitle text to natural {tgt_name}. "
+        f"Translate this {src_name} subtitle line to natural, fluent {tgt_name} as used in professional cinema subtitles. Adapt idioms, do NOT translate word for word. "
         "Return ONLY the translation, nothing else.\n\n" + test_text
     )
 

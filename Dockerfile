@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.55 — Universele image (één image voor CPU én Nvidia GPU)
+# Shrync v0.57 — Universele image (één image voor CPU én Nvidia GPU)
 # ══════════════════════════════════════════════════════════════════════════════
 #
 # Werking:
@@ -21,7 +21,7 @@ FROM ubuntu:24.04
 
 LABEL org.opencontainers.image.title="Shrync"
 LABEL org.opencontainers.image.description="Zelf-gehoste H.265 media converter — automatische GPU-detectie"
-LABEL org.opencontainers.image.version="0.55"
+LABEL org.opencontainers.image.version="0.57"
 LABEL org.opencontainers.image.authors="JOUWGITHUBUSERNAME"
 LABEL org.opencontainers.image.source="https://github.com/JOUWGITHUBUSERNAME/shrync"
 
@@ -34,7 +34,7 @@ ENV GPU_MODE=
 # CACHE_DIR: tijdelijk bestand tijdens conversie
 ENV CACHE_DIR=
 
-ENV SHRYNC_VERSION=0.55
+ENV SHRYNC_VERSION=0.57
 
 # Virtualenv pad — Python en alle deps leven hier, volledig geïsoleerd van systeem-Python
 ENV PYTHONPATH=/app/deps
