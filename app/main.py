@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.57")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.58")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -266,6 +266,25 @@ def get_max_workers() -> int:
         return max(1, min(3, int(v)))
     except:
         return 1
+
+def path_within_library(file_path: str) -> bool:
+    """
+    Controleert of file_path binnen een geconfigureerde bibliotheek valt.
+    Voorkomt dat de handmatige queue-API's misbruikt worden om willekeurige
+    bestanden buiten de mediamappen door ffmpeg te laten overschrijven.
+    """
+    try:
+        real = os.path.realpath(file_path)
+    except Exception:
+        return False
+    conn = get_db()
+    libs = conn.execute("SELECT path FROM libraries").fetchall()
+    conn.close()
+    for lib in libs:
+        lib_real = os.path.realpath(lib["path"])
+        if real == lib_real or real.startswith(lib_real + os.sep):
+            return True
+    return False
 
 # ── Helper: check if file needs conversion ────────────────────────────────────
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".m4v", ".ts", ".wmv", ".flv"}
@@ -2134,6 +2153,10 @@ def api_add_to_queue(data: dict):
     library_id = data.get("library_id")
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(400, "Bestand niet gevonden")
+    if Path(file_path).suffix.lower() not in VIDEO_EXTENSIONS:
+        raise HTTPException(400, "Bestandstype niet ondersteund")
+    if not path_within_library(file_path):
+        raise HTTPException(400, "Bestand valt niet binnen een geconfigureerde bibliotheek")
     conn = get_db()
     existing = conn.execute(
         "SELECT id FROM queue WHERE file_path=? AND status IN ('pending','processing')", (file_path,)
@@ -2691,6 +2714,10 @@ def api_subtitle_add(data: dict):
     library_id = data.get("library_id")
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(400, "Bestand niet gevonden")
+    if Path(file_path).suffix.lower() not in VIDEO_EXTENSIONS:
+        raise HTTPException(400, "Bestandstype niet ondersteund")
+    if not path_within_library(file_path):
+        raise HTTPException(400, "Bestand valt niet binnen een geconfigureerde bibliotheek")
     if has_dutch_subtitle(file_path):
         raise HTTPException(400, "Nederlandse ondertitel al aanwezig")
     streams = detect_subtitle_streams(file_path)
