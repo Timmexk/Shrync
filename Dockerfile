@@ -59,14 +59,22 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # ── ffmpeg statische build (met NVENC + libx265 + libx264) ───────────────────
+# checksums.sha256 wordt door BtbN meegeleverd bij elke "latest" release en
+# bevat de sha256 van alle assets — hiermee detecteren we een corrupte of
+# gemanipuleerde download vóórdat het archief wordt uitgepakt.
 RUN curl -fsSL \
     "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz" \
     -o /tmp/ffmpeg.tar.xz \
+    && curl -fsSL \
+    "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256" \
+    -o /tmp/checksums.sha256 \
+    && grep "ffmpeg-master-latest-linux64-gpl.tar.xz" /tmp/checksums.sha256 \
+    | (cd /tmp && sha256sum -c -) \
     && tar -xf /tmp/ffmpeg.tar.xz -C /tmp \
     && mv /tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg /usr/local/bin/ffmpeg \
     && mv /tmp/ffmpeg-master-latest-linux64-gpl/bin/ffprobe /usr/local/bin/ffprobe \
     && chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe \
-    && rm -rf /tmp/ffmpeg* \
+    && rm -rf /tmp/ffmpeg* /tmp/checksums.sha256 \
     && ffmpeg -version | head -1
 
 # ── Python virtualenv + dependencies ─────────────────────────────────────────
@@ -89,6 +97,11 @@ COPY entrypoint.sh .
 RUN mkdir -p /config /cache /media && chmod +x /app/entrypoint.sh
 
 EXPOSE 8000
+
+# Controleert of de webinterface daadwerkelijk antwoordt, niet alleen of
+# het proces leeft — laat Docker/Unraid een vastgelopen container herstarten.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -fsS http://localhost:8000/api/config || exit 1
 
 # entrypoint.sh: GPU detecteren → GPU_MODE instellen → uvicorn starten
 ENTRYPOINT ["/app/entrypoint.sh"]
