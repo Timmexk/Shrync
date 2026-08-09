@@ -396,6 +396,35 @@ def _hdr_video_flags(hdr: dict) -> list:
     ]
     return flags
 
+# Ondertitelcodecs die niet in een Matroska-container passen — vooral
+# mov_text (het standaard tekstformaat in MP4/MOV) komt vaak voor. Matroska
+# weigert de header te schrijven als zo'n spoor blind gekopieerd wordt
+# ("Subtitle codec mov_text is not supported"), waardoor de hele conversie
+# faalt zonder dat er iets weggeschreven wordt.
+MKV_INCOMPATIBLE_SUB_CODECS = {"mov_text", "text", "ttxt", "eia_608", "dvb_subtitle", "dvb_teletext"}
+
+def _subtitle_codec_args(src: str) -> list:
+    """
+    Bepaalt de -c:s argumenten voor een Matroska-uitvoerbestand. Sporen met
+    een codec die Matroska niet ondersteunt (bijv. mov_text uit een MP4-bron)
+    worden omgezet naar srt; de rest wordt gewoon gekopieerd zoals voorheen.
+    """
+    args = ["-c:s", "copy"]
+    try:
+        result = subprocess.run([
+            "ffprobe", "-v", "quiet", "-print_format", "json",
+            "-show_streams", "-select_streams", "s", src
+        ], capture_output=True, text=True, timeout=15)
+        if result.returncode != 0:
+            return args
+        streams = json.loads(result.stdout).get("streams", [])
+        for i, s in enumerate(streams):
+            if s.get("codec_name") in MKV_INCOMPATIBLE_SUB_CODECS:
+                args += [f"-c:s:{i}", "srt"]
+    except Exception as e:
+        logger.warning(f"Ondertitelcodec-detectie mislukt voor {src}: {e}")
+    return args
+
 # ── ffmpeg command builders ───────────────────────────────────────────────────
 
 def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec, hdr: dict = None):
@@ -427,8 +456,8 @@ def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec, hdr: dict = No
     cmd += _hdr_video_flags(hdr)
     cmd += [
         "-c:a", audio_codec,
-        "-c:s", "copy",
     ]
+    cmd += _subtitle_codec_args(src)
     cmd += [
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
@@ -459,8 +488,8 @@ def build_amf_cmd(src, tmp_out, codec, preset, qp, audio_codec, hdr: dict = None
     cmd += _hdr_video_flags(hdr)
     cmd += [
         "-c:a", audio_codec,
-        "-c:s", "copy",
     ]
+    cmd += _subtitle_codec_args(src)
     cmd += [
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
@@ -492,8 +521,8 @@ def build_qsv_cmd(src, tmp_out, codec, preset, q, audio_codec, hdr: dict = None)
     cmd += _hdr_video_flags(hdr)
     cmd += [
         "-c:a", audio_codec,
-        "-c:s", "copy",
     ]
+    cmd += _subtitle_codec_args(src)
     cmd += [
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
@@ -519,8 +548,8 @@ def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec, hdr: dict = Non
     cmd += _hdr_video_flags(hdr)
     cmd += [
         "-c:a", audio_codec,
-        "-c:s", "copy",
     ]
+    cmd += _subtitle_codec_args(src)
     cmd += [
         "-max_muxing_queue_size", "4096",
         "-progress", "pipe:1",
@@ -855,7 +884,11 @@ def run_conversion(job_id: str):
             remux_cmd = [
                 "ffmpeg", "-y", "-i", src,
                 "-map", "0",
-                "-c", "copy",
+                "-c:v", "copy",
+                "-c:a", "copy",
+            ]
+            remux_cmd += _subtitle_codec_args(src)
+            remux_cmd += [
                 "-loglevel", "warning",
                 tmp_remux
             ]
