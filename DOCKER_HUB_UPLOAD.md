@@ -113,24 +113,39 @@ Quadro's) die op een bepaalde driverversie geplafonneerd zitten.
 
 Los dit op door een oudere ffmpeg-build te kiezen via `FFMPEG_TAG`:
 
-1. Ga naar https://github.com/BtbN/FFmpeg-Builds/releases en kies een build
-   van vóór het moment waarop dit begon (test desnoods een paar tags terug).
-2. Bouw met die tag:
-   ```bash
-   docker build \
-     --platform linux/amd64 \
-     --build-arg SHRYNC_VERSION="0.59" \
-     --build-arg FFMPEG_TAG="autobuild-2026-06-30-13-34" \
-     -t <gebruikersnaam>/shrync:latest \
-     -t <gebruikersnaam>/shrync:0.59 \
-     .
-   ```
-   De exacte bestandsnaam van die release hoef je niet te weten — de
-   Dockerfile zoekt die zelf op via de GitHub API.
+```bash
+docker build \
+  --platform linux/amd64 \
+  --build-arg SHRYNC_VERSION="0.59" \
+  --build-arg FFMPEG_TAG="autobuild-2026-05-31-13-22" \
+  -t <gebruikersnaam>/shrync:latest \
+  -t <gebruikersnaam>/shrync:0.59 \
+  .
+```
 
-Nadeel: die ffmpeg-build blijft dan bevroren op die datum (ook de
-CPU-encoders libx265/libx264), tot je 'm handmatig weer op `latest` zet
-zodra je driver geüpdatet is.
+`autobuild-2026-05-31-13-22` is geverifieerd als de laatste BtbN-build die
+nog NVENC API 13.0 gebruikt (nodig voor Nvidia-driver's onder de 610.00,
+bijv. bij een Pascal-generatie Quadro naast een nieuwere kaart in dezelfde
+Nvidia-plugin). De exacte bestandsnaam van die release hoef je niet te
+weten — de Dockerfile zoekt die zelf op via de GitHub API.
+
+**Let op — tag-datums zijn onbetrouwbaar als indicator.** BtbN's build-datum
+zegt niets over welke NVENC-SDK-versie erin zit: die wordt bepaald door een
+los gepinde commit in hun eigen `scripts.d/50-ffnvcodec.sh`, die soms wéken
+vóór de officiële SDK-releasetag al naar de nieuwe versie wijst. Wil je zelf
+een andere/nieuwere tag proberen, controleer dan niet de releasedatum maar
+de daadwerkelijke header:
+```bash
+git clone -q https://github.com/BtbN/FFmpeg-Builds.git && cd FFmpeg-Builds
+git show <tag>:scripts.d/50-ffnvcodec.sh | grep SCRIPT_COMMIT=  # eerste regel = primaire pin
+git clone -q https://github.com/FFmpeg/nv-codec-headers.git && cd nv-codec-headers
+git show <die-commit>:include/ffnvcodec/nvEncodeAPI.h | grep NVENCAPI_MINOR_VERSION
+```
+`MINOR_VERSION 0` → veilig voor driver's onder 610. `MINOR_VERSION 1` → vereist driver 610+.
+
+Nadeel van een gepinde tag: die ffmpeg-build blijft dan bevroren op dat
+moment (ook de CPU-encoders libx265/libx264), tot je 'm handmatig weer op
+`latest` zet zodra je driver geüpdatet is.
 
 ---
 
