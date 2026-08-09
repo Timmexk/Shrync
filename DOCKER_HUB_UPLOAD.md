@@ -102,6 +102,38 @@ Of bekijk het op https://hub.docker.com/r/<gebruikersnaam>/shrync
 
 ---
 
+## Oudere Nvidia GPU / driver — NVENC API version foutmelding
+
+Krijg je bij het converteren een fout als *"does not support the required
+nvenc API version"* of *"minimum required Nvidia driver for nvenc is X.XX"*?
+Dan is de nieuwste ffmpeg-build (die de container standaard gebruikt) gebouwd
+tegen een NVENC-SDK-versie die een nieuwere driver vereist dan jouw GPU
+ondersteunt — dit komt vaak voor bij oudere kaarten (bijv. Pascal-generatie
+Quadro's) die op een bepaalde driverversie geplafonneerd zitten.
+
+Los dit op door een oudere ffmpeg-build te kiezen via `FFMPEG_TAG`:
+
+1. Ga naar https://github.com/BtbN/FFmpeg-Builds/releases en kies een build
+   van vóór het moment waarop dit begon (test desnoods een paar tags terug).
+2. Bouw met die tag:
+   ```bash
+   docker build \
+     --platform linux/amd64 \
+     --build-arg SHRYNC_VERSION="0.59" \
+     --build-arg FFMPEG_TAG="autobuild-2026-06-30-13-34" \
+     -t <gebruikersnaam>/shrync:latest \
+     -t <gebruikersnaam>/shrync:0.59 \
+     .
+   ```
+   De exacte bestandsnaam van die release hoef je niet te weten — de
+   Dockerfile zoekt die zelf op via de GitHub API.
+
+Nadeel: die ffmpeg-build blijft dan bevroren op die datum (ook de
+CPU-encoders libx265/libx264), tot je 'm handmatig weer op `latest` zet
+zodra je driver geüpdatet is.
+
+---
+
 ## Let op — GPU support
 
 De image werkt automatisch voor zowel CPU als Nvidia GPU.

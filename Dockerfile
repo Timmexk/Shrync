@@ -59,23 +59,39 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # ── ffmpeg statische build (met NVENC + libx265 + libx264) ───────────────────
-# checksums.sha256 wordt door BtbN meegeleverd bij elke "latest" release en
-# bevat de sha256 van alle assets — hiermee detecteren we een corrupte of
-# gemanipuleerde download vóórdat het archief wordt uitgepakt.
-RUN curl -fsSL \
-    "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz" \
-    -o /tmp/ffmpeg-master-latest-linux64-gpl.tar.xz \
-    && curl -fsSL \
-    "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256" \
-    -o /tmp/checksums.sha256 \
-    && grep "ffmpeg-master-latest-linux64-gpl.tar.xz" /tmp/checksums.sha256 \
-    | (cd /tmp && sha256sum -c -) \
-    && tar -xf /tmp/ffmpeg-master-latest-linux64-gpl.tar.xz -C /tmp \
-    && mv /tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg /usr/local/bin/ffmpeg \
-    && mv /tmp/ffmpeg-master-latest-linux64-gpl/bin/ffprobe /usr/local/bin/ffprobe \
-    && chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe \
-    && rm -rf /tmp/ffmpeg-master-latest-linux64-gpl* /tmp/checksums.sha256 \
-    && ffmpeg -version | head -1
+# FFMPEG_TAG: welke BtbN-release gebruikt wordt. Default "latest" = altijd de
+# nieuwste build (aanbevolen voor iedereen met een recente Nvidia-driver).
+# Heb je een oudere GPU (bijv. Pascal/Quadro) die niet boven een bepaalde
+# driverversie kan komen, en geeft ffmpeg een NVENC "API version" foutmelding?
+# Kies dan op https://github.com/BtbN/FFmpeg-Builds/releases een build van vóór
+# de datum waarop dit begon (te herkennen aan de foutmelding "minimum required
+# driver"), bijv.:
+#   --build-arg FFMPEG_TAG=autobuild-2026-06-30-13-34
+# De asset-naam wordt dynamisch opgezocht via de GitHub API, dus dit werkt voor
+# elke geldige tag zonder dat de exacte bestandsnaam bekend hoeft te zijn.
+ARG FFMPEG_TAG=latest
+
+# checksums.sha256 wordt door BtbN meegeleverd bij elke release en bevat de
+# sha256 van alle assets — hiermee detecteren we een corrupte of gemanipuleerde
+# download vóórdat het archief wordt uitgepakt.
+RUN set -eux; \
+    API_URL="https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/tags/${FFMPEG_TAG}"; \
+    RELEASE_JSON=$(curl -fsSL -H "Accept: application/vnd.github+json" "$API_URL"); \
+    ASSET_URL=$(echo "$RELEASE_JSON" | python3 -c \
+      "import json,sys; d=json.load(sys.stdin); print(next(a['browser_download_url'] for a in d['assets'] if a['name'].endswith('-linux64-gpl.tar.xz') and 'shared' not in a['name']))"); \
+    CHECKSUM_URL=$(echo "$RELEASE_JSON" | python3 -c \
+      "import json,sys; d=json.load(sys.stdin); print(next(a['browser_download_url'] for a in d['assets'] if a['name']=='checksums.sha256'))"); \
+    ASSET_NAME=$(basename "$ASSET_URL"); \
+    curl -fsSL "$ASSET_URL" -o "/tmp/${ASSET_NAME}"; \
+    curl -fsSL "$CHECKSUM_URL" -o /tmp/checksums.sha256; \
+    grep "$ASSET_NAME" /tmp/checksums.sha256 | (cd /tmp && sha256sum -c -); \
+    mkdir -p /tmp/ffextract; \
+    tar -xf "/tmp/${ASSET_NAME}" -C /tmp/ffextract --strip-components=1; \
+    mv /tmp/ffextract/bin/ffmpeg /usr/local/bin/ffmpeg; \
+    mv /tmp/ffextract/bin/ffprobe /usr/local/bin/ffprobe; \
+    chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe; \
+    rm -rf /tmp/ffextract "/tmp/${ASSET_NAME}" /tmp/checksums.sha256; \
+    ffmpeg -version | head -1
 
 # ── Python virtualenv + dependencies ─────────────────────────────────────────
 # Maak een virtualenv in /app/deps — volledig geïsoleerd van systeem-Python.
