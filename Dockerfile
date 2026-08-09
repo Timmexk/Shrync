@@ -61,12 +61,13 @@ RUN apt-get update \
 # ── ffmpeg statische build (met NVENC + libx265 + libx264) ───────────────────
 # FFMPEG_TAG: welke BtbN-release gebruikt wordt. Default "latest" = altijd de
 # nieuwste build (aanbevolen voor iedereen met een recente Nvidia-driver).
-# Heb je een oudere GPU (bijv. Pascal/Quadro) die niet boven een bepaalde
-# driverversie kan komen, en geeft ffmpeg een NVENC "API version" foutmelding?
-# Kies dan op https://github.com/BtbN/FFmpeg-Builds/releases een build van vóór
-# de datum waarop dit begon (te herkennen aan de foutmelding "minimum required
-# driver"), bijv.:
-#   --build-arg FFMPEG_TAG=autobuild-2026-06-30-13-34
+# Geeft ffmpeg een NVENC "API version"/"minimum required driver" foutmelding
+# (vaak bij oudere GPU's, bijv. Pascal/Quadro, die niet boven een bepaalde
+# driverversie kunnen komen)? Pin dan een oudere build, bijv.:
+#   --build-arg FFMPEG_TAG=autobuild-2026-05-31-13-22   (laatst bekende NVENC API 13.0 build)
+# Let op: de releasedatum van een BtbN-tag zegt niet betrouwbaar welke NVENC-
+# SDK-versie erin zit — zie DOCKER_HUB_UPLOAD.md voor hoe je dat zelf checkt
+# via scripts.d/50-ffnvcodec.sh in hun repo i.p.v. op de tagdatum te gokken.
 # De asset-naam wordt dynamisch opgezocht via de GitHub API, dus dit werkt voor
 # elke geldige tag zonder dat de exacte bestandsnaam bekend hoeft te zijn.
 ARG FFMPEG_TAG=latest
