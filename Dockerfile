@@ -77,7 +77,7 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN python3 -m venv /app/deps \
-    && /app/deps/bin/pip install --no-cache-dir --upgrade pip setuptools==80.1.0 wheel==0.45.1 \
+    && /app/deps/bin/pip install --no-cache-dir --upgrade pip setuptools==84.0.0 wheel==0.47.0 \
     && /app/deps/bin/pip install --no-cache-dir -r requirements.txt
 
 # ── Applicatie ────────────────────────────────────────────────────────────────
