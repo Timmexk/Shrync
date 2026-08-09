@@ -8,93 +8,100 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-/* ── Dark theme (standaard) ── */
+/* ── Dark theme (standaard) ──
+   Zachte, gedempte schil rond opake panelen — geïnspireerd op een rustig
+   pastel dashboard-ontwerp, vertaald naar donker: gedempt indigo/leisteen
+   canvas met warme pastel-accenten per statuscategorie i.p.v. felle neon. */
 :root,[data-theme="dark"]{
-  --bg0:    #060d1c;
-  --bg1:    #0c1528;
-  --bg2:    #0f1a30;
-  --glass:  rgba(255,255,255,.075);
-  --glass-h:rgba(255,255,255,.115);
-  --stat-bg: var(--bg2);
-  --stat-bg-h:rgba(255,255,255,.06);
-  --border: rgba(255,255,255,.13);
-  --bhi:    rgba(255,255,255,.26);
-  --text:   rgba(255,255,255,.94);
-  --text-s: rgba(255,255,255,.52);
-  --text-t: rgba(255,255,255,.28);
-  --blue:#3b82f6;--green:#34d399;--orange:#fb923c;
-  --danger:#f87171;--success:#34d399;--muted:rgba(255,255,255,.52);
-  --r:20px;--rsm:14px;--rxs:10px;
-  --blur:blur(64px) saturate(200%);
-  --sh: 0 8px 40px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
-  --shl:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);
-  --sidebar-bg: rgba(10,17,34,.97);
-  --sidebar-mobile-bg: #0d1729;
-  --header-mobile-bg: #080f1f;
-  --input-bg: rgba(255,255,255,.06);
-  --input-border: rgba(255,255,255,.15);
-  --th-bg: rgba(255,255,255,.03);
-  --row-hover: rgba(255,255,255,.03);
-  --orb1: rgba(59,130,246,.18);
-  --orb2: rgba(99,102,241,.12);
-  --orb3: rgba(16,185,129,.08);
-  --toggle-track: rgba(255,255,255,.15);
-  --toggle-thumb: #fff;
-  --search-bg: rgba(255,255,255,.07);
-}
-
-/* ── Light theme ── */
-[data-theme="light"]{
-  --bg0:    #f0f4f8;
-  --bg1:    #e8eef5;
-  --bg2:    #ffffff;
-  --glass:  rgba(255,255,255,.85);
-  --glass-h:rgba(255,255,255,.95);
+  --bg0:    #1b1f30;
+  --bg1:    #23283c;
+  --bg2:    #262c42;
+  --glass:  rgba(38,44,66,.92);
+  --glass-h:rgba(44,50,74,.96);
   --stat-bg: var(--glass);
   --stat-bg-h:var(--glass-h);
-  --border: rgba(0,0,0,.10);
-  --bhi:    rgba(0,0,0,.20);
-  --text:   rgba(0,0,0,.88);
-  --text-s: rgba(0,0,0,.52);
-  --text-t: rgba(0,0,0,.32);
-  --blue:#2563eb;--green:#059669;--orange:#ea580c;
-  --danger:#dc2626;--success:#059669;--muted:rgba(0,0,0,.52);
-  --r:20px;--rsm:14px;--rxs:10px;
-  --blur:blur(64px) saturate(180%);
-  --sh: 0 4px 24px rgba(0,0,0,.10),inset 0 1px 0 rgba(255,255,255,.8);
-  --shl:0 12px 48px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.9);
-  --sidebar-bg: rgba(255,255,255,.92);
-  --sidebar-mobile-bg: #ffffff;
-  --header-mobile-bg: #f8fafc;
-  --input-bg: rgba(0,0,0,.04);
-  --input-border: rgba(0,0,0,.15);
-  --th-bg: rgba(0,0,0,.03);
-  --row-hover: rgba(0,0,0,.025);
-  --orb1: rgba(59,130,246,.10);
-  --orb2: rgba(99,102,241,.07);
-  --orb3: rgba(16,185,129,.05);
-  --toggle-track: rgba(0,0,0,.15);
+  --border: rgba(255,255,255,.09);
+  --bhi:    rgba(255,255,255,.22);
+  --text:   rgba(255,255,255,.94);
+  --text-s: rgba(255,255,255,.54);
+  --text-t: rgba(255,255,255,.32);
+  --blue:#7dabff;--green:#6ee7b7;--orange:#fbbf82;
+  --danger:#f8a8a8;--success:#6ee7b7;--muted:rgba(255,255,255,.52);
+  --r:22px;--rsm:15px;--rxs:11px;
+  --blur:blur(28px) saturate(140%);
+  --sh: 0 6px 24px rgba(10,12,24,.35);
+  --shl:0 20px 60px rgba(8,10,20,.5);
+  --sidebar-bg: #21263a;
+  --sidebar-mobile-bg: #21263a;
+  --header-mobile-bg: #1b1f30;
+  --input-bg: rgba(255,255,255,.05);
+  --input-border: rgba(255,255,255,.13);
+  --th-bg: rgba(255,255,255,.03);
+  --row-hover: rgba(255,255,255,.035);
+  --toggle-track: rgba(255,255,255,.15);
   --toggle-thumb: #fff;
-  --search-bg: rgba(0,0,0,.06);
+  --search-bg: rgba(255,255,255,.06);
+  /* Pastel-accentfamilie — kaartvulling per categorie (zacht, verzadigd donker) */
+  --tint-mint-bg:   #1d3b34; --tint-mint-fg:   #7fe8c4; --tint-mint-ic:   #24473f;
+  --tint-sky-bg:    #1c3352; --tint-sky-fg:    #8ec3ff; --tint-sky-ic:    #234067;
+  --tint-rose-bg:   #3a2740; --tint-rose-fg:   #f0a8d8; --tint-rose-ic:   #47304f;
+  --tint-amber-bg:  #40331d; --tint-amber-fg:  #f6c877; --tint-amber-ic:  #4d3f24;
+  --tint-slate-bg:  #262c42; --tint-slate-fg:  #c7cbe0; --tint-slate-ic:  #2f3550;
+  --tint-red-bg:    #3f2222; --tint-red-fg:    #f2a3a3; --tint-red-ic:    #4c2929;
+  --pill-bg: #171b2a; --pill-fg: #fff;
+  --overlay-1: rgba(255,255,255,.07); --overlay-2: rgba(255,255,255,.14);
+}
+
+/* ── Light theme ──
+   Rechtstreeks op het referentiebeeld gebaseerd: gedempt lavendel/leisteen
+   canvas met opake, bijna-witte panelen en volle pastelkaarten (geen glow). */
+[data-theme="light"]{
+  --bg0:    #dfe2f2;
+  --bg1:    #cdd1e8;
+  --bg2:    #ffffff;
+  --glass:  rgba(255,255,255,.97);
+  --glass-h:#ffffff;
+  --stat-bg: var(--glass);
+  --stat-bg-h:var(--glass-h);
+  --border: rgba(30,30,60,.08);
+  --bhi:    rgba(30,30,60,.16);
+  --text:   #22243a;
+  --text-s: rgba(34,36,58,.56);
+  --text-t: rgba(34,36,58,.36);
+  --blue:#4f6bff;--green:#1fa97a;--orange:#e08a2b;
+  --danger:#e0555f;--success:#1fa97a;--muted:rgba(34,36,58,.52);
+  --r:22px;--rsm:15px;--rxs:11px;
+  --blur:blur(16px) saturate(140%);
+  --sh: 0 2px 14px rgba(40,44,80,.08);
+  --shl:0 20px 50px rgba(40,44,80,.16);
+  --sidebar-bg: #ffffff;
+  --sidebar-mobile-bg: #ffffff;
+  --header-mobile-bg: #ffffff;
+  --input-bg: rgba(30,30,60,.035);
+  --input-border: rgba(30,30,60,.12);
+  --th-bg: rgba(30,30,60,.025);
+  --row-hover: rgba(30,30,60,.025);
+  --toggle-track: rgba(30,30,60,.14);
+  --toggle-thumb: #fff;
+  --search-bg: rgba(30,30,60,.045);
+  /* Pastel-accentfamilie — kaartvulling per categorie (zacht, licht) */
+  --tint-mint-bg:   #dcf5ea; --tint-mint-fg:   #158a63; --tint-mint-ic:   #c3ecda;
+  --tint-sky-bg:    #dde7ff; --tint-sky-fg:    #3454d1; --tint-sky-ic:    #c9d8ff;
+  --tint-rose-bg:   #f8e0f0; --tint-rose-fg:   #a83a85; --tint-rose-ic:   #f2cae6;
+  --tint-amber-bg:  #fbecd2; --tint-amber-fg:  #a86b12; --tint-amber-ic:  #f6dfae;
+  --tint-slate-bg:  #eef0f9; --tint-slate-fg:  #454875; --tint-slate-ic:  #dfe2f4;
+  --tint-red-bg:    #fbe2e2; --tint-red-fg:    #c23a3a; --tint-red-ic:    #f6cccc;
+  --pill-bg: #22243a; --pill-fg: #fff;
+  --overlay-1: rgba(30,30,60,.05); --overlay-2: rgba(30,30,60,.09);
 }
 
 html,body{height:100%}
 body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
-  background:#060a14;color:var(--text);display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden}
+  background:var(--bg0);color:var(--text);display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden}
 
-/* ── Background ── */
-.bg{position:fixed;inset:0;z-index:0;background:linear-gradient(145deg,var(--bg0) 0%,var(--bg1) 50%,var(--bg0) 100%)}
-.bg-orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none}
-.bg-orb-1{width:700px;height:500px;top:-10%;left:-10%;background:radial-gradient(circle,var(--orb1) 0%,transparent 70%);animation:orb1 18s ease-in-out infinite}
-.bg-orb-2{width:600px;height:600px;bottom:-15%;right:-10%;background:radial-gradient(circle,var(--orb2) 0%,transparent 70%);animation:orb2 22s ease-in-out infinite}
-.bg-orb-3{width:500px;height:400px;top:40%;left:30%;background:radial-gradient(circle,var(--orb3) 0%,transparent 70%);animation:orb3 26s ease-in-out infinite}
-.bg-grid{position:absolute;inset:0;
-  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
-  background-size:40px 40px;
-  mask-image:radial-gradient(ellipse 85% 85% at 50% 50%,black 20%,transparent 100%)}
-@keyframes orb1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(80px,60px) scale(1.1)}66%{transform:translate(-40px,80px) scale(.95)}}
-@keyframes orb2{0%,100%{transform:translate(0,0)}40%{transform:translate(-70px,-50px) scale(1.08)}70%{transform:translate(50px,30px)}}
-@keyframes orb3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,-40px) scale(1.15)}}
+/* ── Background — vlak en rustig, geen gloeiende orbs of rastertextuur ── */
+.bg{position:fixed;inset:0;z-index:0;background:linear-gradient(160deg,var(--bg0) 0%,var(--bg1) 100%)}
+.bg-orb,.bg-grid{display:none}
 
 /* ── App shell ── */
 .app{position:relative;display:flex;flex:1;padding:14px;gap:12px;min-height:calc(100vh - 14px);align-items:flex-start}
@@ -106,9 +113,7 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
   overflow:hidden;position:sticky;top:14px;height:calc(100vh - 28px);z-index:10}
 .sidebar-top{padding:22px 18px 16px;border-bottom:1px solid var(--border);
   background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%)}
-.logo-name{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1;
-  background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,.7) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-name{font-size:23px;font-weight:800;letter-spacing:-.8px;line-height:1;color:var(--text)}
 .logo-tag{font-size:9px;font-weight:700;color:rgba(59,130,246,.9);padding:2px 7px;border-radius:20px;
   background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.25);
   letter-spacing:.8px;text-transform:uppercase;vertical-align:middle;margin-left:7px}
@@ -117,11 +122,11 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:var(--rsm);
   cursor:pointer;font-size:13px;font-weight:500;color:var(--text-s);
   transition:all .2s cubic-bezier(.4,0,.2,1);border:1px solid transparent;user-select:none}
-.nav-item:hover{background:rgba(255,255,255,.07);color:var(--text);border-color:rgba(255,255,255,.1)}
-.nav-item.active{background:rgba(59,130,246,.07);color:#fff;border-color:transparent;border-left:3px solid var(--blue);padding-left:8px}
-.nav-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
-  font-size:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);flex-shrink:0;transition:all .2s}
-.nav-item.active .nav-icon{background:rgba(59,130,246,.25);border-color:rgba(59,130,246,.35)}
+.nav-item:hover{background:var(--overlay-1);color:var(--text);border-color:transparent}
+.nav-item.active{background:var(--pill-bg);color:var(--pill-fg);border-color:transparent}
+.nav-icon{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;background:var(--overlay-1);border:1px solid transparent;flex-shrink:0;transition:all .2s;color:var(--text-s)}
+.nav-item.active .nav-icon{background:var(--overlay-2);border-color:transparent;color:#fff}
 .nav-label{flex:1}
 .status-dot{width:7px;height:7px;border-radius:50%;background:var(--success);margin-left:auto;
   box-shadow:0 0 0 2px rgba(52,211,153,.3),0 0 10px rgba(52,211,153,.6);
@@ -133,7 +138,7 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
 
 /* ── Header ── */
 .header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;
-  background:rgba(255,255,255,.07);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  background:var(--overlay-1);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);
   background-image:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%)}
 .page-title{font-size:17px;font-weight:700;letter-spacing:-.4px}
@@ -141,18 +146,18 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
 
 /* ── Buttons ── */
 .btn{padding:8px 16px;border-radius:var(--rxs);font-size:13px;font-weight:500;
-  border:1px solid var(--border);background:rgba(255,255,255,.08);color:var(--text);
+  border:1px solid var(--border);background:var(--overlay-1);color:var(--text);
   cursor:pointer;backdrop-filter:blur(20px);transition:all .18s;white-space:nowrap;font-family:inherit}
-.btn:hover{background:rgba(255,255,255,.13);border-color:var(--bhi);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.btn:hover{background:var(--overlay-2);border-color:var(--bhi);box-shadow:var(--sh)}
 .btn:active{transform:scale(.97)}
-.btn-accent{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.35);color:#fff}
-.btn-accent:hover{background:rgba(59,130,246,.32);border-color:rgba(59,130,246,.5);box-shadow:0 4px 20px rgba(59,130,246,.3)}
-.btn-danger{background:rgba(248,113,113,.14);border-color:rgba(248,113,113,.28);color:#fca5a5}
-.btn-danger:hover{background:rgba(248,113,113,.24)}
-.btn-pause {background:rgba(251,146,60,.14);border-color:rgba(251,146,60,.28);color:#fdba74}
-.btn-pause:hover{background:rgba(251,146,60,.24)}
-.btn-paused{background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.28);color:#6ee7b7}
-.btn-paused:hover{background:rgba(52,211,153,.24)}
+.btn-accent{background:var(--tint-sky-ic);border-color:transparent;color:var(--tint-sky-fg)}
+.btn-accent:hover{filter:brightness(0.94);box-shadow:var(--sh)}
+.btn-danger{background:var(--tint-red-ic);border-color:transparent;color:var(--tint-red-fg)}
+.btn-danger:hover{filter:brightness(0.94)}
+.btn-pause {background:var(--tint-amber-ic);border-color:transparent;color:var(--tint-amber-fg)}
+.btn-pause:hover{filter:brightness(0.94)}
+.btn-paused{background:var(--tint-mint-ic);border-color:transparent;color:var(--tint-mint-fg)}
+.btn-paused:hover{filter:brightness(0.94)}
 .btn-sm{padding:5px 11px;font-size:11px;border-radius:8px}
 
 /* ── Content ── */
@@ -169,30 +174,42 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
 .panel::before,.table-wrap::before{
   content:'';position:absolute;top:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);pointer-events:none}
-.panel:hover,.table-wrap:hover{border-color:rgba(255,255,255,.2)}
+.panel:hover,.table-wrap:hover{border-color:var(--bhi)}
 .panel-hdr,.table-hdr{
   padding:13px 18px;border-bottom:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between;
   background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,transparent 100%)}
 .panel-title,.table-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-s)}
 
-/* ── Stats ── */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:0;margin-bottom:11px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);background:var(--border)}
-.stat-card{background:var(--stat-bg);
+/* ── Stats — losse pastelkaarten per categorie ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:11px}
+.stat-card{background:var(--stat-bg);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);
   padding:16px 18px;
-  transition:all .2s;position:relative;overflow:hidden;display:flex;align-items:center;gap:13px;
-  border-right:1px solid var(--border)}
-.stat-card:last-child{border-right:none}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)}
-.stat-card:hover{background:var(--stat-bg-h)}
-.stat-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.stat-icon.blue{background:rgba(59,130,246,.12);box-shadow:0 0 0 1px rgba(59,130,246,.2)}
-.stat-icon.green{background:rgba(52,211,153,.1);box-shadow:0 0 0 1px rgba(52,211,153,.18)}
-.stat-icon.red{background:rgba(248,113,113,.1);box-shadow:0 0 0 1px rgba(248,113,113,.18)}
+  transition:transform .18s,box-shadow .18s;position:relative;overflow:hidden;display:flex;align-items:center;gap:13px}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shl)}
+.stat-icon{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:var(--overlay-1);color:var(--text-s)}
 .stat-text{flex:1;min-width:0}
-.stat-label{font-size:10px;color:var(--text-t);font-weight:500;margin-bottom:5px;letter-spacing:.2px}
-.stat-value{font-size:24px;font-weight:800;letter-spacing:-1.2px;line-height:1}
+.stat-label{font-size:10px;color:var(--text-t);font-weight:600;margin-bottom:5px;letter-spacing:.2px}
+.stat-value{font-size:24px;font-weight:800;letter-spacing:-1.2px;line-height:1;color:var(--text)}
+.stat-card.tint-slate{background:var(--tint-slate-bg)}
+.stat-card.tint-slate .stat-icon{background:var(--tint-slate-ic);color:var(--tint-slate-fg)}
+.stat-card.tint-slate .stat-value{color:var(--tint-slate-fg)}
+.stat-card.tint-sky{background:var(--tint-sky-bg)}
+.stat-card.tint-sky .stat-icon{background:var(--tint-sky-ic);color:var(--tint-sky-fg)}
+.stat-card.tint-sky .stat-value{color:var(--tint-sky-fg)}
+.stat-card.tint-mint{background:var(--tint-mint-bg)}
+.stat-card.tint-mint .stat-icon{background:var(--tint-mint-ic);color:var(--tint-mint-fg)}
+.stat-card.tint-mint .stat-value{color:var(--tint-mint-fg)}
+.stat-card.tint-red{background:var(--tint-red-bg)}
+.stat-card.tint-red .stat-icon{background:var(--tint-red-ic);color:var(--tint-red-fg)}
+.stat-card.tint-red .stat-value{color:var(--tint-red-fg)}
+.stat-card.tint-rose{background:var(--tint-rose-bg)}
+.stat-card.tint-rose .stat-icon{background:var(--tint-rose-ic);color:var(--tint-rose-fg)}
+.stat-card.tint-rose .stat-value{color:var(--tint-rose-fg)}
+.stat-card.tint-amber{background:var(--tint-amber-bg)}
+.stat-card.tint-amber .stat-icon{background:var(--tint-amber-ic);color:var(--tint-amber-fg)}
+.stat-card.tint-amber .stat-value{color:var(--tint-amber-fg)}
 .c-blue{color:#60a5fa}.c-green{color:var(--green)}
 
 /* ── Active conv ── */
@@ -208,7 +225,7 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
 .file-dir {font-size:11px;color:var(--text-s);margin-bottom:14px}
 
 /* ── Progress ── */
-.progress-bar{height:7px;background:rgba(255,255,255,.06);border-radius:6px;overflow:visible;margin-bottom:9px;position:relative}
+.progress-bar{height:7px;background:var(--overlay-1);border-radius:6px;overflow:visible;margin-bottom:9px;position:relative}
 .progress-fill{height:100%;border-radius:6px;
   background:linear-gradient(90deg,#2563eb,#6366f1,#8b5cf6);
   box-shadow:0 0 14px rgba(99,102,241,.55),0 0 28px rgba(99,102,241,.2);
@@ -230,7 +247,6 @@ th.sort-asc::after{content:" ↑";color:var(--blue)}
 th.sort-desc::after{content:" ↓";color:var(--blue)}
 td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.038);vertical-align:middle}
 [data-theme="light"] td{border-bottom-color:rgba(0,0,0,.06)}
-[data-theme="light"] .stats-grid{background:rgba(0,0,0,.08)}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--row-hover)}
 
@@ -252,19 +268,19 @@ tr:hover td{background:var(--row-hover)}
   background:rgba(59,130,246,.07);border-bottom:1px solid rgba(59,130,246,.2);
   animation:fade .18s ease}
 .bulk-bar.visible{display:flex}
-.bulk-count{font-size:11px;font-weight:700;color:#93c5fd;flex:1}
+.bulk-count{font-size:11px;font-weight:700;color:var(--tint-sky-fg);flex:1}
 .cb-row{width:16px;height:16px;cursor:pointer;accent-color:var(--blue)}
 .cb-all{width:14px;height:14px;cursor:pointer;accent-color:var(--blue)}
 input[type=checkbox].row-cb{width:14px;height:14px;border-radius:3px;cursor:pointer;accent-color:var(--blue);flex-shrink:0}
 tr.cb-selected td{background:rgba(59,130,246,.07)}
 
 /* ── Badges ── */
-.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:5px;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
-.badge-processing{background:rgba(99,102,241,.12);color:#a5b4fc;border:1px solid rgba(99,102,241,.22)}
-.badge-done,.badge-success{background:rgba(52,211,153,.08);color:#34d399;border:1px solid rgba(52,211,153,.18)}
-.badge-pending{background:rgba(255,255,255,.05);color:var(--text-s);border:1px solid var(--border)}
-.badge-error{background:rgba(248,113,113,.08);color:#f87171;border:1px solid rgba(248,113,113,.18)}
-.badge-skipped{background:rgba(251,146,60,.08);color:#fb923c;border:1px solid rgba(251,146,60,.18)}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.badge-processing{background:var(--tint-sky-ic);color:var(--tint-sky-fg);border:1px solid transparent}
+.badge-done,.badge-success{background:var(--tint-mint-ic);color:var(--tint-mint-fg);border:1px solid transparent}
+.badge-pending{background:var(--overlay-1);color:var(--text-s);border:1px solid var(--border)}
+.badge-error{background:var(--tint-red-ic);color:var(--tint-red-fg);border:1px solid transparent}
+.badge-skipped{background:var(--tint-amber-ic);color:var(--tint-amber-fg);border:1px solid transparent}
 
 /* ── Section header ── */
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
@@ -282,28 +298,28 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
   transition:all .2s;position:relative;overflow:hidden}
 .lib-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent)}
-.lib-card:hover{background:rgba(255,255,255,.095);border-color:rgba(255,255,255,.2);box-shadow:var(--shl)}
+.lib-card:hover{background:var(--overlay-1);border-color:var(--bhi);box-shadow:var(--shl)}
 .lib-card-add{display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:10px;min-height:160px;cursor:pointer;border:1px dashed rgba(255,255,255,.15);
-  background:rgba(255,255,255,.025)}
-.lib-card-add:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.26)}
+  background:var(--overlay-1)}
+.lib-card-add:hover{background:var(--overlay-1);border-color:var(--bhi)}
 .lib-card-add .icon{font-size:30px;color:var(--text-t)}
 .lib-card-add .label{font-size:12px;color:var(--text-s);font-weight:500}
 .lib-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px}
 .lib-name{font-size:15px;font-weight:700;letter-spacing:-.2px;margin-bottom:4px}
 .lib-path{font-size:10px;color:var(--text-t);word-break:break-all;line-height:1.5}
 .lib-meta{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
-.lib-tag{padding:2px 9px;border-radius:20px;background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.1);font-size:10px;color:var(--text-s)}
+.lib-tag{padding:2px 9px;border-radius:20px;background:var(--overlay-1);
+  border:1px solid var(--border);font-size:10px;color:var(--text-s)}
 .lib-actions{display:flex;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap}
 /* Toggle */
 .toggle{position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0}
 .toggle input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.12);
-  border-radius:22px;transition:.22s;border:1px solid rgba(255,255,255,.15)}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--overlay-2);
+  border-radius:22px;transition:.22s;border:1px solid var(--bhi)}
 .toggle input:checked+.toggle-slider{background:rgba(59,130,246,.55);border-color:rgba(59,130,246,.65)}
 .toggle-slider::before{content:'';position:absolute;height:15px;width:15px;
-  left:3px;bottom:3px;background:rgba(255,255,255,.9);border-radius:50%;transition:.22s}
+  left:3px;bottom:3px;background:var(--overlay-2);border-radius:50%;transition:.22s}
 .toggle input:checked+.toggle-slider::before{transform:translateX(16px);background:#fff}
 /* Scan progress */
 .scan-progress{margin-top:12px;padding:10px 12px;border-radius:var(--rxs);border:1px solid var(--border)}
@@ -311,26 +327,26 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 .scan-progress.done   {background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.22)}
 .scan-progress.error  {background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.22)}
 .scan-label{font-weight:600;margin-bottom:7px;font-size:11px}
-.scan-label.scanning{color:#93c5fd}.scan-label.done{color:var(--green)}.scan-label.error{color:var(--danger)}
+.scan-label.scanning{color:var(--tint-sky-fg)}.scan-label.done{color:var(--green)}.scan-label.error{color:var(--danger)}
 .scan-file{font-size:10px;color:var(--text-t);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .scan-counts{display:flex;flex-wrap:wrap;gap:10px}
 .scan-count{font-size:10px;color:var(--text-s)}
 
 /* ── History detail ── */
 .history-row{cursor:pointer}
-.history-row:hover td{background:rgba(255,255,255,.025)!important}
+.history-row:hover td{background:var(--overlay-1)!important}
 .history-detail-row{display:none}
 .history-detail-row.open{display:table-row}
-.history-detail{padding:16px 18px;background:rgba(255,255,255,.022);border-top:1px solid var(--border);animation:fade .18s ease}
+.history-detail{padding:16px 18px;background:var(--overlay-1);border-top:1px solid var(--border);animation:fade .18s ease}
 .size-saved{color:var(--green);font-weight:600;font-size:11px}
 .expand-icon{display:inline-block;font-size:9px;color:var(--text-t);transition:transform .2s,color .2s;margin-right:7px;vertical-align:middle}
-.history-row.expanded .expand-icon{transform:rotate(90deg);color:#60a5fa}
+.history-row.expanded .expand-icon{transform:rotate(90deg);color:var(--blue)}
 .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;margin-bottom:16px}
 .detail-label{font-size:10px;color:var(--text-s);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
 .detail-value{font-size:22px;font-weight:700;letter-spacing:-.8px}
 .compare-label{display:flex;justify-content:space-between;font-size:10px;color:var(--text-t);margin-bottom:5px}
-.compare-track{position:relative;height:9px;background:rgba(255,255,255,.07);border-radius:5px;overflow:hidden}
-.compare-before{position:absolute;inset:0;background:rgba(255,255,255,.07);border-radius:5px}
+.compare-track{position:relative;height:9px;background:var(--overlay-1);border-radius:5px;overflow:hidden}
+.compare-before{position:absolute;inset:0;background:var(--overlay-1);border-radius:5px}
 .compare-after{position:absolute;left:0;top:0;bottom:0;
   background:linear-gradient(90deg,rgba(52,211,153,.7),rgba(52,211,153,.4));border-radius:5px;
   display:flex;align-items:center;justify-content:flex-end;min-width:20px}
@@ -350,28 +366,28 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 .sav-div{width:1px;height:44px;background:var(--border);align-self:center}
 .sav-arrow{font-size:18px;color:var(--text-t);padding-bottom:6px}
 .sav-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-t);margin-bottom:6px}
-.sav-bar-bg{height:10px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden}
+.sav-bar-bg{height:10px;background:var(--overlay-1);border-radius:6px;overflow:hidden}
 .sav-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--success),#059669);
   box-shadow:0 0 16px rgba(52,211,153,.3);transition:width 1.4s ease}
 .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:13px}
 .bar-label{font-size:12px;font-weight:500;width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bar-track{flex:1;height:32px;background:rgba(255,255,255,.04);border-radius:9px;overflow:hidden;position:relative;border:1px solid var(--border)}
-.bar-before{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.06);border-radius:9px}
+.bar-track{flex:1;height:32px;background:var(--overlay-1);border-radius:9px;overflow:hidden;position:relative;border:1px solid var(--border)}
+.bar-before{position:absolute;left:0;top:0;bottom:0;background:var(--overlay-1);border-radius:9px}
 .bar-after{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(52,211,153,.35),rgba(52,211,153,.18));
   border-radius:9px;border-right:1px solid rgba(52,211,153,.4)}
 .bar-sizes{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:10px;font-weight:500;pointer-events:none}
 .bar-pct{font-size:12px;font-weight:700;color:var(--success);width:44px;text-align:right;flex-shrink:0}
 
 /* ── Settings ── */
-.seg-ctrl{display:inline-flex;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:12px;padding:3px;gap:2px}
+.seg-ctrl{display:inline-flex;background:var(--overlay-1);border:1px solid var(--border);border-radius:12px;padding:3px;gap:2px}
 .seg-btn{padding:7px 20px;border-radius:10px;border:none;background:transparent;color:var(--text-s);
   font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
-.seg-btn.active{background:rgba(255,255,255,.12);color:var(--text);box-shadow:0 2px 10px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.1)}
+.seg-btn.active{background:var(--pill-bg);color:var(--pill-fg);box-shadow:var(--sh)}
 .worker-btn{width:52px;height:52px;border-radius:13px;border:1px solid var(--border);
-  background:rgba(255,255,255,.07);color:var(--text-s);font-size:18px;font-weight:700;
+  background:var(--overlay-1);color:var(--text-s);font-size:18px;font-weight:700;
   cursor:pointer;transition:all .18s;font-family:inherit}
-.worker-btn:hover{background:rgba(255,255,255,.12);border-color:var(--bhi);color:var(--text)}
-.worker-btn.active{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.4);color:#93c5fd;box-shadow:0 4px 16px rgba(59,130,246,.25)}
+.worker-btn:hover{background:var(--overlay-2);border-color:var(--bhi);color:var(--text)}
+.worker-btn.active{background:var(--tint-sky-ic);border-color:transparent;color:var(--tint-sky-fg);box-shadow:var(--sh)}
 .form-group{margin-bottom:16px}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .form-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s);margin-bottom:8px;display:block}
@@ -387,16 +403,16 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 .profile-group-na{font-size:10px;color:var(--text-t);font-style:italic}
 .profile-grid-inner{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
 .profile-card{padding:12px 14px;border-radius:var(--rxs);border:1px solid var(--border);
-  background:rgba(255,255,255,.05);cursor:pointer;transition:all .18s;user-select:none}
-.profile-card:hover{background:rgba(255,255,255,.09);border-color:var(--bhi)}
+  background:var(--overlay-1);cursor:pointer;transition:all .18s;user-select:none}
+.profile-card:hover{background:var(--overlay-1);border-color:var(--bhi)}
 .profile-card.selected{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4);box-shadow:0 0 0 2px rgba(59,130,246,.2)}
 .profile-name{font-size:13px;font-weight:600;margin-bottom:4px}
 .pbadge{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;
   text-transform:uppercase;letter-spacing:.5px}
-.pbadge-nvidia{background:rgba(118,185,0,.2);color:#a3d977;border:1px solid rgba(118,185,0,.3)}
-.pbadge-amd   {background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.25)}
-.pbadge-intel {background:rgba(59,130,246,.2);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
-.pbadge-cpu   {background:rgba(52,211,153,.15);color:#6ee7b7;border:1px solid rgba(52,211,153,.25)}
+.pbadge-nvidia{background:var(--tint-mint-ic);color:var(--tint-mint-fg);border:1px solid transparent}
+.pbadge-amd   {background:var(--tint-red-ic);color:var(--tint-red-fg);border:1px solid transparent}
+.pbadge-intel {background:var(--tint-sky-ic);color:var(--tint-sky-fg);border:1px solid transparent}
+.pbadge-cpu   {background:var(--tint-mint-ic);color:var(--tint-mint-fg);border:1px solid transparent}
 .profile-desc{font-size:10px;color:var(--text-t)}
 /* GPU Monitor widget */
 .gpu-monitor{
@@ -417,7 +433,7 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 .gpu-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)}
 .gpu-card-val{font-size:22px;font-weight:700;letter-spacing:-1px;line-height:1;margin:8px 0 10px;color:var(--text)}
-.gpu-bar-track{height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.gpu-bar-track{height:3px;background:var(--overlay-1);border-radius:2px;overflow:hidden}
 .gpu-bar-fill{height:100%;border-radius:2px;transition:width .8s ease}
 
 /* ── Modal ── */
@@ -425,16 +441,15 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
   backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);z-index:1000;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex;animation:modalIn .22s ease}
 @keyframes modalIn{from{opacity:0}to{opacity:1}}
-.modal{background:rgba(14,22,42,.88);backdrop-filter:blur(64px) saturate(220%);-webkit-backdrop-filter:blur(64px) saturate(220%);
-  border:1px solid rgba(255,255,255,.18);border-radius:calc(var(--r) + 4px);
-  padding:28px;width:100%;max-width:440px;box-shadow:var(--shl);
-  background-image:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%)}
+.modal{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:calc(var(--r) + 4px);
+  padding:28px;width:100%;max-width:440px;box-shadow:var(--shl)}
 .modal-title{font-size:17px;font-weight:700;letter-spacing:-.4px;margin-bottom:22px}
 .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
 
 /* ── Hamburger ── */
 .hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:10px;
-  border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.07);
+  border:1px solid var(--border);border-radius:10px;background:var(--overlay-1);
   flex-shrink:0;min-width:40px;min-height:40px;align-items:center;justify-content:center}
 .hamburger span{display:block;width:18px;height:2px;background:var(--text-s);border-radius:2px;transition:all .2s}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;pointer-events:auto;touch-action:none}
@@ -444,9 +459,9 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 .toast-container{position:fixed;bottom:22px;right:22px;z-index:9000;display:flex;flex-direction:column;gap:8px}
 .toast{padding:11px 16px;border-radius:13px;font-size:13px;font-weight:500;
   background:var(--sidebar-mobile-bg);
-  border:1px solid rgba(255,255,255,.15);box-shadow:var(--shl);animation:toastIn .24s ease;color:var(--text)}
+  border:1px solid var(--bhi);box-shadow:var(--shl);animation:toastIn .24s ease;color:var(--text)}
 .toast.success{border-color:rgba(52,211,153,.3)}
-.toast.error  {border-color:rgba(248,113,113,.3);color:#fca5a5}
+.toast.error  {border-color:rgba(248,113,113,.3);color:var(--danger)}
 @keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
@@ -502,11 +517,11 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 .active-detail-cell:last-child{border-right:none}
 .active-detail-label{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-t);margin-bottom:4px;font-weight:600}
 .active-detail-val{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px}
-.active-detail-val.eta{color:#818cf8}
+.active-detail-val.eta{color:var(--tint-rose-fg)}
 ::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
-::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}
+::-webkit-scrollbar-thumb{background:var(--overlay-2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--overlay-2)}
 
 </style>
 </head>
@@ -603,12 +618,12 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-icon blue"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 9-1 2.5-5 4-5 9M17 3c0 5-4 6.5-5 9 1 2.5 5 4 5 9"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-pending">In wachtrij</div><div class="stat-value c-blue" id="stat-pending">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon blue"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-processing">Bezig</div><div class="stat-value c-blue" id="stat-processing">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon green"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-done">Vandaag klaar</div><div class="stat-value c-green" id="stat-done">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon red"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4"/><circle cx="12" cy="17.3" r="0.5" fill="currentColor" stroke="none"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-errors">Fouten</div><div class="stat-value" id="stat-errors" style="color:var(--danger)">—</div></div></div>
-        <div class="stat-card" onclick="navigate('savings')" style="cursor:pointer"><div class="stat-icon green"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-saved">Ruimte bespaard ↗</div><div class="stat-value c-green" id="stat-saved">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon blue"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-libs">Bibliotheken</div><div class="stat-value" id="stat-libs">—</div></div></div>
+        <div class="stat-card tint-slate"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 9-1 2.5-5 4-5 9M17 3c0 5-4 6.5-5 9 1 2.5 5 4 5 9"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-pending">In wachtrij</div><div class="stat-value" id="stat-pending">—</div></div></div>
+        <div class="stat-card tint-sky"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-processing">Bezig</div><div class="stat-value" id="stat-processing">—</div></div></div>
+        <div class="stat-card tint-mint"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-done">Vandaag klaar</div><div class="stat-value" id="stat-done">—</div></div></div>
+        <div class="stat-card tint-red"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4"/><circle cx="12" cy="17.3" r="0.5" fill="currentColor" stroke="none"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-errors">Fouten</div><div class="stat-value" id="stat-errors">—</div></div></div>
+        <div class="stat-card tint-mint" onclick="navigate('savings')" style="cursor:pointer"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-saved">Ruimte bespaard ↗</div><div class="stat-value" id="stat-saved">—</div></div></div>
+        <div class="stat-card tint-slate"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-libs">Bibliotheken</div><div class="stat-value" id="stat-libs">—</div></div></div>
       </div>
 
       <!-- Ondertiteling status balk — alleen zichtbaar als subtitle_enabled=1 -->
@@ -760,7 +775,7 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
           <div><div class="sav-item-lbl" id="sav-lbl-after">Na conversie</div><div class="sav-item-val" style="color:var(--green)" id="sav-total-after">—</div></div>
           <div class="sav-div"></div>
           <div><div class="sav-item-lbl" id="sav-lbl-saved">Bespaard</div><div class="sav-item-val" style="color:var(--green)" id="sav-total-saved">—</div></div>
-          <div><div class="sav-item-lbl" id="sav-lbl-pct">Reductie</div><div class="sav-item-val" style="color:#60a5fa" id="sav-total-pct">—</div></div>
+          <div><div class="sav-item-lbl" id="sav-lbl-pct">Reductie</div><div class="sav-item-val" style="color:var(--blue)" id="sav-total-pct">—</div></div>
           <div><div class="sav-item-lbl" id="sav-lbl-files">Bestanden</div><div class="sav-item-val" id="sav-total-files">—</div></div>
         </div>
         <div class="sav-bar-labels">
@@ -786,11 +801,11 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 
       <!-- Dashboard tegel rij voor ondertiteling -->
       <div class="stats-grid" style="margin-bottom:11px">
-        <div class="stat-card"><div class="stat-icon blue"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 9-1 2.5-5 4-5 9M17 3c0 5-4 6.5-5 9 1 2.5 5 4 5 9"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-pending">In wachtrij</div><div class="stat-value c-blue" id="sub-stat-pending">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon blue"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-processing">Bezig</div><div class="stat-value c-blue" id="sub-stat-processing">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon green"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-done">Vandaag klaar</div><div class="stat-value c-green" id="sub-stat-done">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon blue"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h4M7 14h10M13 10h4"/></svg></div><div class="stat-text"><div class="stat-label">Totaal vertaald</div><div class="stat-value" id="sub-stat-total">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon red"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4"/><circle cx="12" cy="17.3" r="0.5" fill="currentColor" stroke="none"/></svg></div><div class="stat-text"><div class="stat-label">Fouten</div><div class="stat-value" id="sub-stat-errors" style="color:var(--danger)">—</div></div></div>
+        <div class="stat-card tint-slate"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 9-1 2.5-5 4-5 9M17 3c0 5-4 6.5-5 9 1 2.5 5 4 5 9"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-pending">In wachtrij</div><div class="stat-value" id="sub-stat-pending">—</div></div></div>
+        <div class="stat-card tint-sky"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-processing">Bezig</div><div class="stat-value" id="sub-stat-processing">—</div></div></div>
+        <div class="stat-card tint-mint"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-done">Vandaag klaar</div><div class="stat-value" id="sub-stat-done">—</div></div></div>
+        <div class="stat-card tint-slate"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h4M7 14h10M13 10h4"/></svg></div><div class="stat-text"><div class="stat-label">Totaal vertaald</div><div class="stat-value" id="sub-stat-total">—</div></div></div>
+        <div class="stat-card tint-red"><div class="stat-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4"/><circle cx="12" cy="17.3" r="0.5" fill="currentColor" stroke="none"/></svg></div><div class="stat-text"><div class="stat-label">Fouten</div><div class="stat-value" id="sub-stat-errors">—</div></div></div>
       </div>
 
       <!-- Actieve vertaling -->
@@ -848,7 +863,7 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
         <!-- Bulk action bar — zichtbaar zodra ≥1 rij geselecteerd is -->
         <div class="bulk-bar" id="sub-hist-bulk-bar">
           <span class="bulk-count" id="sub-hist-bulk-count">0 geselecteerd</span>
-          <button class="btn btn-sm" style="color:#fb923c;border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)"
+          <button class="btn btn-sm" style="color:var(--tint-amber-fg);border-color:transparent;background:var(--tint-amber-ic)"
             onclick="subHistBulkAction('requeue')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M20 11A8 8 0 1 0 18.5 16"/><path d="M20 5v6h-6"/></svg> Opnieuw verwerken</button>
           <button class="btn btn-sm" style="color:#f87171;border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.08)"
             onclick="subHistBulkAction('delete_srt')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M6 6l12 12M18 6 6 18"/></svg> SRT verwijderen</button>
@@ -1645,8 +1660,8 @@ async function loadActiveJob() {
             <div class="file-dir">${dirname(j.file_path)}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:22px;font-weight:800;letter-spacing:-1px;color:#818cf8;line-height:1">${pct}%</div>
-            <div style="font-size:10px;color:var(--text-t);margin-top:2px">ETA <span style="color:#818cf8;font-weight:600">${eta}</span></div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:-1px;color:var(--tint-rose-fg);line-height:1">${pct}%</div>
+            <div style="font-size:10px;color:var(--text-t);margin-top:2px">ETA <span style="color:var(--tint-rose-fg);font-weight:600">${eta}</span></div>
           </div>
         </div>
         <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" style="width:${pct}%"></div></div>
@@ -1850,7 +1865,7 @@ async function loadRecent() {
         html: `<tr>
           <td><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
           <td style="font-size:11px;color:var(--muted)">${h.library_name || '—'}</td>
-          <td>${isOk ? `<span class="badge" style="background:rgba(139,92,246,.08);color:#a78bfa;border:1px solid rgba(139,92,246,.2)">${ICONS.check} Sub</span>` : `<span class="badge badge-error">${ICONS.x} Sub</span>`}</td>
+          <td>${isOk ? `<span class="badge" style="background:var(--tint-rose-ic);color:var(--tint-rose-fg);border:1px solid transparent">${ICONS.check} Sub</span>` : `<span class="badge badge-error">${ICONS.x} Sub</span>`}</td>
           <td>${infoCell}</td>
           <td style="font-size:11px;color:var(--muted)">${dur}</td>
           <td style="font-size:11px;color:var(--muted)">${formatDate(h.finished_at)}</td>
@@ -2009,10 +2024,10 @@ async function showSkipped(lid, libName) {
 
     sub.innerHTML =
       '<span style="color:var(--green)">' + nConverted + ' ' + t('lib.skipReasonHistory') + '</span>' +
-      (nQueued ? ' &nbsp;·&nbsp; <span style="color:#60a5fa">' + nQueued + ' ' + t('lib.skipReasonQueued') + '</span>' : '');
+      (nQueued ? ' &nbsp;·&nbsp; <span style="color:var(--blue)">' + nQueued + ' ' + t('lib.skipReasonQueued') + '</span>' : '');
 
     let html = '<table style="width:100%;border-collapse:collapse">';
-    html += '<thead><tr style="border-bottom:1px solid var(--border);background:rgba(255,255,255,.03)">';
+    html += '<thead><tr style="border-bottom:1px solid var(--border);background:var(--overlay-1)">';
     html += '<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s)">' + t('misc.file') + '</th>';
     html += '<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s);width:160px">Reden</th>';
     html += '<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-s);width:130px">Datum</th>';
@@ -2556,13 +2571,13 @@ function renderProfiles(selected) {
       banner.style.cssText = 'background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.25);color:var(--success)';
       banner.innerHTML     = ICONS.check + ' Nvidia GPU actief — NVENC profielen ingeschakeld';
     } else if (gpuMode === 'amd') {
-      banner.style.cssText = 'background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);color:#fca5a5';
+      banner.style.cssText = 'background:var(--tint-red-ic);border-color:transparent;color:var(--tint-red-fg)';
       banner.innerHTML     = ICONS.check + ' AMD GPU actief — AMF profielen ingeschakeld';
     } else if (gpuMode === 'intel') {
-      banner.style.cssText = 'background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.25);color:#93c5fd';
+      banner.style.cssText = 'background:var(--tint-sky-ic);border-color:transparent;color:var(--tint-sky-fg)';
       banner.innerHTML     = ICONS.check + ' Intel GPU actief — QSV profielen ingeschakeld';
     } else {
-      banner.style.cssText = 'background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);color:var(--text-s)';
+      banner.style.cssText = 'background:var(--overlay-1);border-color:var(--border);color:var(--text-s)';
       banner.textContent   = 'ℹ CPU modus — geen GPU gedetecteerd. Alleen CPU-profielen beschikbaar.';
     }
     banner.style.display = '';
@@ -2619,7 +2634,7 @@ async function loadSubtitleActive() {
       <div style="margin:12px 0 4px;display:flex;justify-content:space-between;font-size:11px;color:var(--text-s)">
         <span>${done} / ${total} regels vertaald</span><span>${pct}%</span>
       </div>
-      <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden">
+      <div style="height:4px;background:var(--overlay-1);border-radius:2px;overflow:hidden">
         <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:2px;transition:width .5s ease"></div>
       </div>
       <div style="font-size:10px;color:var(--text-t);margin-top:8px">Model: ${job.model_used||'—'}</div>`;
@@ -2634,8 +2649,8 @@ function renderPagination(containerId, currentPage, total, perPage, onPageFn) {
   el.style.display = 'flex';
   const btnStyle = (active) =>
     `style="padding:4px 10px;font-size:11px;border-radius:var(--rxs);border:1px solid var(--border);cursor:pointer;${
-      active ? 'background:rgba(99,102,241,.25);color:#a5b4fc;border-color:rgba(99,102,241,.4);font-weight:700'
-             : 'background:rgba(255,255,255,.04);color:var(--text-s)'}"`;
+      active ? 'background:var(--tint-sky-ic);color:var(--tint-sky-fg);border-color:transparent;font-weight:700'
+             : 'background:var(--overlay-1);color:var(--text-s)'}"`;
   let html = '';
   html += `<button ${btnStyle(false)} onclick="${onPageFn}(${currentPage-1})" ${currentPage<=1?'disabled':''}>‹</button>`;
   // Toon max 7 pagina knoppen rondom huidige pagina
@@ -3046,7 +3061,7 @@ async function runDiagnostics() {
     let html = '';
 
     // /media root
-    html += `<div style="margin-bottom:14px;padding:10px 12px;background:rgba(255,255,255,.04);border-radius:var(--rxs);border:1px solid var(--border)">`;
+    html += `<div style="margin-bottom:14px;padding:10px 12px;background:var(--overlay-1);border-radius:var(--rxs);border:1px solid var(--border)">`;
     html += `<div style="font-size:10px;font-weight:700;color:var(--text-t);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">${t('diag.mediaRoot')}</div>`;
     if (d.media_root.error) {
       html += `<div style="color:var(--danger);font-size:11px">${ICONS.x} ${d.media_root.error}</div>`;

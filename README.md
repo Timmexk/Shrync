@@ -1,4 +1,4 @@
-# Shrync v0.59 — H.265 Media Converter
+# Shrync v0.60 — H.265 Media Converter
 
 Zelf-gehoste H.265/HEVC media converter met automatische bibliotheekbewaking.
 **Één image voor CPU én Nvidia GPU** — de container detecteert automatisch wat beschikbaar is.
