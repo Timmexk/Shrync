@@ -64,17 +64,17 @@ RUN apt-get update \
 # gemanipuleerde download vóórdat het archief wordt uitgepakt.
 RUN curl -fsSL \
     "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz" \
-    -o /tmp/ffmpeg.tar.xz \
+    -o /tmp/ffmpeg-master-latest-linux64-gpl.tar.xz \
     && curl -fsSL \
     "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256" \
     -o /tmp/checksums.sha256 \
     && grep "ffmpeg-master-latest-linux64-gpl.tar.xz" /tmp/checksums.sha256 \
     | (cd /tmp && sha256sum -c -) \
-    && tar -xf /tmp/ffmpeg.tar.xz -C /tmp \
+    && tar -xf /tmp/ffmpeg-master-latest-linux64-gpl.tar.xz -C /tmp \
     && mv /tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg /usr/local/bin/ffmpeg \
     && mv /tmp/ffmpeg-master-latest-linux64-gpl/bin/ffprobe /usr/local/bin/ffprobe \
     && chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe \
-    && rm -rf /tmp/ffmpeg* /tmp/checksums.sha256 \
+    && rm -rf /tmp/ffmpeg-master-latest-linux64-gpl* /tmp/checksums.sha256 \
     && ffmpeg -version | head -1
 
 # ── Python virtualenv + dependencies ─────────────────────────────────────────
