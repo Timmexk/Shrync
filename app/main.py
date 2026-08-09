@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.58")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.59")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
