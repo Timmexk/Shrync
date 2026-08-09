@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.61")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.62")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -445,9 +445,9 @@ def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec, hdr: dict = No
     cmd = [
         "ffmpeg", "-y",
         "-i", src,
-        "-map", "0",          # alle streams uit input: video, audio, subs, bijlagen
-        "-map", "-0:d",       # data-sporen (bijv. GoPro telemetrie, timecode) — Matroska staat dit niet toe
-        "-map", "-0:t",       # bijlagen (bijv. lettertypen) — kan Matroska-header ook laten falen
+        "-map", "0:v:0?",     # alleen de eerste/primaire videostream (voorkomt problemen met attached-pic thumbnails)
+        "-map", "0:a?",       # alle audiosporen, optioneel (geen fout als er geen audio is)
+        "-map", "0:s?",       # alle ondertitelsporen, optioneel
         "-c:v", codec,
         "-preset", preset,
         "-rc", "constqp",
@@ -480,9 +480,9 @@ def build_amf_cmd(src, tmp_out, codec, preset, qp, audio_codec, hdr: dict = None
     cmd = [
         "ffmpeg", "-y",
         "-i", src,
-        "-map", "0",
-        "-map", "-0:d",
-        "-map", "-0:t",
+        "-map", "0:v:0?",
+        "-map", "0:a?",
+        "-map", "0:s?",
         "-c:v", codec,
         "-quality", preset,   # quality | balanced | speed
         "-qp_i", qp,
@@ -515,9 +515,9 @@ def build_qsv_cmd(src, tmp_out, codec, preset, q, audio_codec, hdr: dict = None)
         "ffmpeg", "-y",
         "-hwaccel", "qsv",
         "-i", src,
-        "-map", "0",
-        "-map", "-0:d",
-        "-map", "-0:t",
+        "-map", "0:v:0?",
+        "-map", "0:a?",
+        "-map", "0:s?",
         "-c:v", codec,
         "-preset", preset,
         "-global_quality", q,
@@ -545,9 +545,9 @@ def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec, hdr: dict = Non
     cmd = [
         "ffmpeg", "-y",
         "-i", src,
-        "-map", "0",
-        "-map", "-0:d",
-        "-map", "-0:t",
+        "-map", "0:v:0?",
+        "-map", "0:a?",
+        "-map", "0:s?",
         "-c:v", codec,
         "-preset", preset,
         "-crf", crf,
@@ -891,9 +891,9 @@ def run_conversion(job_id: str):
             logger.info(f"Geconverteerd groter dan origineel — remux {src_ext} → MKV: {Path(src).name}")
             remux_cmd = [
                 "ffmpeg", "-y", "-i", src,
-                "-map", "0",
-                "-map", "-0:d",
-                "-map", "-0:t",
+                "-map", "0:v:0?",
+                "-map", "0:a?",
+                "-map", "0:s?",
                 "-c:v", "copy",
                 "-c:a", "copy",
             ]
