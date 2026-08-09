@@ -243,8 +243,11 @@ tr:hover td{background:var(--row-hover)}
   border-radius:20px;padding:6px 12px 6px 32px;font-size:11px;color:var(--text);
   font-family:inherit;outline:none;transition:border-color .18s,background .18s}
 .search-wrap input:focus{border-color:rgba(59,130,246,.45);background:var(--input-bg)}
-.search-wrap::before{content:"⌕";position:absolute;left:10px;top:50%;transform:translateY(-50%);
-  font-size:14px;color:var(--text-t);pointer-events:none}
+.search-wrap::before{content:"";position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  width:13px;height:13px;pointer-events:none;
+  background-color:var(--text-t);
+  -webkit-mask:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Ccircle cx="10.5" cy="10.5" r="6.5"/%3E%3Cpath d="m20 20-4.3-4.3"/%3E%3C/svg%3E') center/contain no-repeat;
+  mask:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Ccircle cx="10.5" cy="10.5" r="6.5"/%3E%3Cpath d="m20 20-4.3-4.3"/%3E%3C/svg%3E') center/contain no-repeat}
 [data-theme="light"] .search-wrap input{color:var(--text)}
 
 /* ── Bulk acties ── */
@@ -547,23 +550,23 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
   </div>
   <nav class="nav">
     <div class="nav-item active" onclick="navigate('dashboard')">
-      <div class="nav-icon">⊞</div><span class="nav-label">Dashboard</span>
+      <div class="nav-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div><span class="nav-label">Dashboard</span>
       <span class="status-dot" id="nav-dot"></span>
     </div>
     <div class="nav-item" onclick="navigate('libraries')">
-      <div class="nav-icon">◫</div><span class="nav-label" id="nav-lbl-libraries">Bibliotheken</span>
+      <div class="nav-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg></div><span class="nav-label" id="nav-lbl-libraries">Bibliotheken</span>
     </div>
     <div class="nav-item" onclick="navigate('history')">
-      <div class="nav-icon">◷</div><span class="nav-label" id="nav-lbl-history">Geschiedenis</span>
+      <div class="nav-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div><span class="nav-label" id="nav-lbl-history">Geschiedenis</span>
     </div>
     <div class="nav-item" onclick="navigate('savings')">
-      <div class="nav-icon">◎</div><span class="nav-label" id="nav-lbl-savings">Statistieken</span>
+      <div class="nav-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg></div><span class="nav-label" id="nav-lbl-savings">Statistieken</span>
     </div>
     <div class="nav-item" onclick="navigate('subtitles')">
-      <div class="nav-icon">⊶</div><span class="nav-label" id="nav-lbl-subtitles">Ondertiteling</span>
+      <div class="nav-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h4M7 14h10M13 10h4"/></svg></div><span class="nav-label" id="nav-lbl-subtitles">Ondertiteling</span>
     </div>
     <div class="nav-item" onclick="navigate('settings')">
-      <div class="nav-icon">⚙</div><span class="nav-label" id="nav-lbl-settings">Instellingen</span>
+      <div class="nav-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h13"/><circle cx="15" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="7" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="17" cy="18" r="2" fill="currentColor" stroke="none"/></svg></div><span class="nav-label" id="nav-lbl-settings">Instellingen</span>
     </div>
   </nav>
 
@@ -573,7 +576,7 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
     <button id="theme-toggle-btn" onclick="toggleTheme()" title="Wissel thema"
       style="display:flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--border);
              border-radius:20px;padding:5px 10px;cursor:pointer;font-size:11px;color:var(--text-s);transition:all .2s">
-      <span id="theme-icon">🌙</span>
+      <span id="theme-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></span>
       <span id="theme-label">Dark</span>
     </button>
   </div>
@@ -590,10 +593,10 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-pause" id="btn-pause" onclick="togglePause()" data-paused="0">
-        <span id="btn-pause-icon">⏸</span><span class="btn-label-text" id="btn-pause-label"> Pauzeren</span>
+        <span id="btn-pause-icon"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></span><span class="btn-label-text" id="btn-pause-label"> Pauzeren</span>
       </button>
       <button class="btn" onclick="scanAll()">
-        <span>⟳</span><span class="btn-label-text" id="btn-scan-label"> Alles scannen</span>
+        <span><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11A8 8 0 1 0 18.5 16"/><path d="M20 5v6h-6"/></svg></span><span class="btn-label-text" id="btn-scan-label"> Alles scannen</span>
       </button>
     </div>
   </div>
@@ -603,12 +606,12 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-icon blue">⏳</div><div class="stat-text"><div class="stat-label" id="lbl-stat-pending">In wachtrij</div><div class="stat-value c-blue" id="stat-pending">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon cyan">⚡</div><div class="stat-text"><div class="stat-label" id="lbl-stat-processing">Bezig</div><div class="stat-value c-cyan" id="stat-processing">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon green">✓</div><div class="stat-text"><div class="stat-label" id="lbl-stat-done">Vandaag klaar</div><div class="stat-value c-green" id="stat-done">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon red">⚠</div><div class="stat-text"><div class="stat-label" id="lbl-stat-errors">Fouten</div><div class="stat-value" id="stat-errors" style="color:var(--danger)">—</div></div></div>
-        <div class="stat-card" onclick="navigate('savings')" style="cursor:pointer"><div class="stat-icon green">💾</div><div class="stat-text"><div class="stat-label" id="lbl-stat-saved">Ruimte bespaard ↗</div><div class="stat-value c-green" id="stat-saved">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon purple">◫</div><div class="stat-text"><div class="stat-label" id="lbl-stat-libs">Bibliotheken</div><div class="stat-value" id="stat-libs">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 9-1 2.5-5 4-5 9M17 3c0 5-4 6.5-5 9 1 2.5 5 4 5 9"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-pending">In wachtrij</div><div class="stat-value c-blue" id="stat-pending">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon cyan"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-processing">Bezig</div><div class="stat-value c-cyan" id="stat-processing">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon green"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-done">Vandaag klaar</div><div class="stat-value c-green" id="stat-done">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon red"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4"/><circle cx="12" cy="17.3" r="0.5" fill="currentColor" stroke="none"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-errors">Fouten</div><div class="stat-value" id="stat-errors" style="color:var(--danger)">—</div></div></div>
+        <div class="stat-card" onclick="navigate('savings')" style="cursor:pointer"><div class="stat-icon green"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-saved">Ruimte bespaard ↗</div><div class="stat-value c-green" id="stat-saved">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon purple"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-stat-libs">Bibliotheken</div><div class="stat-value" id="stat-libs">—</div></div></div>
       </div>
 
       <!-- Ondertiteling status balk — alleen zichtbaar als subtitle_enabled=1 -->
@@ -786,11 +789,11 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 
       <!-- Dashboard tegel rij voor ondertiteling -->
       <div class="stats-grid" style="margin-bottom:11px">
-        <div class="stat-card"><div class="stat-icon blue">⏳</div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-pending">In wachtrij</div><div class="stat-value c-blue" id="sub-stat-pending">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon cyan">⚡</div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-processing">Bezig</div><div class="stat-value c-cyan" id="sub-stat-processing">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon green">✓</div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-done">Vandaag klaar</div><div class="stat-value c-green" id="sub-stat-done">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon purple">⊶</div><div class="stat-text"><div class="stat-label">Totaal vertaald</div><div class="stat-value" id="sub-stat-total">—</div></div></div>
-        <div class="stat-card"><div class="stat-icon red">⚠</div><div class="stat-text"><div class="stat-label">Fouten</div><div class="stat-value" id="sub-stat-errors" style="color:var(--danger)">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 9-1 2.5-5 4-5 9M17 3c0 5-4 6.5-5 9 1 2.5 5 4 5 9"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-pending">In wachtrij</div><div class="stat-value c-blue" id="sub-stat-pending">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon cyan"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-processing">Bezig</div><div class="stat-value c-cyan" id="sub-stat-processing">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon green"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></div><div class="stat-text"><div class="stat-label" id="lbl-sub-stat-done">Vandaag klaar</div><div class="stat-value c-green" id="sub-stat-done">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon purple"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h4M7 14h10M13 10h4"/></svg></div><div class="stat-text"><div class="stat-label">Totaal vertaald</div><div class="stat-value" id="sub-stat-total">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon red"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4"/><circle cx="12" cy="17.3" r="0.5" fill="currentColor" stroke="none"/></svg></div><div class="stat-text"><div class="stat-label">Fouten</div><div class="stat-value" id="sub-stat-errors" style="color:var(--danger)">—</div></div></div>
       </div>
 
       <!-- Actieve vertaling -->
@@ -849,10 +852,10 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
         <div class="bulk-bar" id="sub-hist-bulk-bar">
           <span class="bulk-count" id="sub-hist-bulk-count">0 geselecteerd</span>
           <button class="btn btn-sm" style="color:#fb923c;border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)"
-            onclick="subHistBulkAction('requeue')">↺ Opnieuw verwerken</button>
+            onclick="subHistBulkAction('requeue')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M20 11A8 8 0 1 0 18.5 16"/><path d="M20 5v6h-6"/></svg> Opnieuw verwerken</button>
           <button class="btn btn-sm" style="color:#f87171;border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.08)"
-            onclick="subHistBulkAction('delete_srt')">✕ SRT verwijderen</button>
-          <button class="btn btn-sm" onclick="subHistClearSelection()" style="color:var(--text-s)">✕ Deselecteer</button>
+            onclick="subHistBulkAction('delete_srt')"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M6 6l12 12M18 6 6 18"/></svg> SRT verwijderen</button>
+          <button class="btn btn-sm" onclick="subHistClearSelection()" style="color:var(--text-s)"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M6 6l12 12M18 6 6 18"/></svg> Deselecteer</button>
         </div>
         <table><thead><tr>
           <th style="width:28px;padding:9px 6px 9px 14px">
@@ -912,7 +915,7 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
           <div class="panel">
             <div class="panel-hdr">
               <span class="panel-title" id="lbl-diag-title">Diagnostiek</span>
-              <button class="btn btn-sm" onclick="runDiagnostics()" id="btn-diag">⟳ <span id="lbl-diag-run">Controleren</span></button>
+              <button class="btn btn-sm" onclick="runDiagnostics()" id="btn-diag"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11A8 8 0 1 0 18.5 16"/><path d="M20 5v6h-6"/></svg> <span id="lbl-diag-run">Controleren</span></button>
             </div>
             <div style="padding:16px" id="diag-results">
               <div style="font-size:11px;color:var(--text-t)">Klik op "Controleren" om te zien of de container jouw media-mappen kan bereiken.</div>
@@ -1013,7 +1016,7 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
                   <label class="form-label" id="lbl-ollama-host">Ollama adres</label>
                   <input class="form-input" id="ollama-host" placeholder="http://192.168.1.x:11434">
                 </div>
-                <button class="btn btn-sm" onclick="loadOllamaModels()" style="white-space:nowrap;margin-bottom:1px">⟳ <span id="lbl-load-models">Laden</span></button>
+                <button class="btn btn-sm" onclick="loadOllamaModels()" style="white-space:nowrap;margin-bottom:1px"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11A8 8 0 1 0 18.5 16"/><path d="M20 5v6h-6"/></svg> <span id="lbl-load-models">Laden</span></button>
               </div>
 
               <div class="form-group" style="margin-bottom:10px">
@@ -1047,7 +1050,7 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
                 <textarea id="trans-test-input" class="form-input" rows="2" style="resize:vertical;margin-bottom:8px"
                   placeholder="Voer een testzin in de brontaal in…"></textarea>
                 <div style="display:flex;gap:8px;align-items:center">
-                  <button class="btn btn-sm btn-accent" onclick="runTranslationTest()" id="btn-trans-test">▶ Testen</button>
+                  <button class="btn btn-sm btn-accent" onclick="runTranslationTest()" id="btn-trans-test"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:3px"><path d="M7 4.5v15l13-7.5-13-7.5Z"/></svg> Testen</button>
                   <span style="font-size:10px;color:var(--text-t)" id="trans-test-status"></span>
                 </div>
                 <div id="trans-test-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);border-radius:var(--rxs);font-size:12px;color:var(--text)"></div>
@@ -1120,6 +1123,35 @@ tr.cb-selected td{background:rgba(59,130,246,.07)}
 <div class="toast-container" id="toast-container"></div>
 
 <script>
+// ── Icon set — inline SVG (Feather-style), sized via 1em so they follow font-size ──
+const ICONS = {
+  dashboard:  '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  folder:     '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>',
+  clock:      '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+  barchart:   '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>',
+  captions:   '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h4M7 14h10M13 10h4"/></svg>',
+  settings:   '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h13"/><circle cx="15" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="7" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="17" cy="18" r="2" fill="currentColor" stroke="none"/></svg>',
+  pause:      '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>',
+  play:       '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5-13-7.5Z"/></svg>',
+  refresh:    '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11A8 8 0 1 0 18.5 16"/><path d="M20 5v6h-6"/></svg>',
+  check:      '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>',
+  x:          '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  warning:    '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4"/><circle cx="12" cy="17.3" r="0.5" fill="currentColor" stroke="none"/></svg>',
+  chevron:    '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+  moon:       '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>',
+  sun:        '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"/><path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8 6 18M18 6l1.8-1.8"/></svg>',
+  plus:       '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  zap:        '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>',
+  hourglass:  '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 9-1 2.5-5 4-5 9M17 3c0 5-4 6.5-5 9 1 2.5 5 4 5 9"/></svg>',
+  ban:        '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m5.5 5.5 13 13"/></svg>',
+  inbox:      '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h4l2 3h4l2-3h4"/><path d="M5.5 5h13L21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6L5.5 5Z"/></svg>',
+  disk:       '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg>',
+  file:       '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v5h5"/></svg>',
+  bulb:       '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.3 1 2.5h6c0-1.2.3-1.8 1-2.5A6 6 0 0 0 12 3Z"/></svg>',
+  dot:        '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg>',
+};
+function icon(name){ return ICONS[name] || ''; }
+
 // ── Translations ───────────────────────────────────────────────────────────────
 const T = {
   en: {
@@ -1142,7 +1174,7 @@ const T = {
     set:   { lang:'Language / Taal', profile:'Conversion profile', audio:'Audio', workers:'Concurrent conversions',
              simultaneous:'Simultaneous', save:'Save settings', saved:'Settings saved',
              workerDesc:{ 1:'Standard — one conversion at a time', 2:'Two conversions — higher load', 3:'Maximum — requires nvidia-patch' },
-             nvencWarn:'⚠ Nvidia GPUs have a default limit of 3 concurrent NVENC sessions. Install nvidia-patch to use >1 worker with NVENC.' },
+             nvencWarn:'Nvidia GPUs have a default limit of 3 concurrent NVENC sessions. Install nvidia-patch to use >1 worker with NVENC.' },
     lib:   { add:'Add library', edit:'Edit library', addBtn:'Add library', name:'Name', path:'Path (folder)',
              cancel:'Cancel', save:'Save',
              scan:'Scan', scanSubs:'Scan subtitles', showSkipped:'Skipped files', edit:'Edit', delete:'Delete', lastScan:'Last scan', neverScanned:'Never scanned', skippedCount:'files skipped', profile:'Profile', noSkipped:'No skipped files', skipReasonCodec:'Already correct codec', skipReasonHistory:'Already converted', skipReasonQueued:'Already in queue' },
@@ -1218,7 +1250,7 @@ const T = {
     set:   { lang:'Taal / Language', profile:'Conversieprofiel', audio:'Audio', workers:'Gelijktijdige conversies',
              simultaneous:'Gelijktijdig', save:'Instellingen opslaan', saved:'Instellingen opgeslagen',
              workerDesc:{ 1:'Standaard — één conversie tegelijk', 2:'Twee tegelijk — hogere belasting', 3:'Maximaal — vereist nvidia-patch' },
-             nvencWarn:"⚠ Nvidia GPU's hebben standaard een limiet van 3 NVENC-sessies. Installeer de nvidia-patch voor meer dan 1 worker." },
+             nvencWarn:"Nvidia GPU's hebben standaard een limiet van 3 NVENC-sessies. Installeer de nvidia-patch voor meer dan 1 worker." },
     lib:   { add:'Bibliotheek toevoegen', edit:'Bibliotheek bewerken', addBtn:'Bibliotheek toevoegen',
              name:'Naam', path:'Pad (map)', cancel:'Annuleren', save:'Opslaan',
              scan:'Scannen', scanSubs:'Ondertitels scannen', showSkipped:'Overgeslagen', edit:'Bewerken', delete:'Verwijderen', lastScan:'Laatste scan', neverScanned:'Nog nooit gescand', skippedCount:'bestanden overgeslagen', profile:'Profiel', noSkipped:'Geen overgeslagen bestanden', skipReasonCodec:'Codec al correct', skipReasonHistory:'Al geconverteerd', skipReasonQueued:'Al in wachtrij' },
@@ -1374,7 +1406,7 @@ function applyLanguage() {
     'workers-label':      'set.simultaneous',
     'lbl-save-settings':  'set.save',
   });
-  const nw = document.getElementById('nvenc-warn-text'); if (nw) nw.textContent = t('set.nvencWarn');
+  const nw = document.getElementById('nvenc-warn-text'); if (nw) nw.innerHTML = ICONS.warning + ' ' + t('set.nvencWarn');
 
   // ── Library modal
   setTexts({
@@ -1448,7 +1480,7 @@ function applyLanguage() {
   const tti = document.getElementById('trans-test-input');
   if (tti) tti.placeholder = t('sub_settings.testPlaceholder');
   const ttb = document.getElementById('btn-trans-test');
-  if (ttb) ttb.innerHTML = '▶ ' + t('sub_settings.testBtn');
+  if (ttb) ttb.innerHTML = '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:3px"><path d="M7 4.5v15l13-7.5-13-7.5Z"/></svg> ' + t('sub_settings.testBtn');
 
   // ── Language button active state
   document.getElementById('lang-en')?.classList.toggle('active', lang === 'en');
@@ -1557,13 +1589,16 @@ async function loadStats() {
 function updatePauseBtn(paused) {
   const btn = document.getElementById('btn-pause');
   const lbl = document.getElementById('btn-pause-label');
+  const ico = document.getElementById('btn-pause-icon');
   if (!btn) return;
   if (paused) {
     btn.className = 'btn btn-paused';
     if (lbl) lbl.textContent = t('btn.resume');
+    if (ico) ico.innerHTML = ICONS.play;
   } else {
     btn.className = 'btn btn-pause';
     if (lbl) lbl.textContent = t('btn.pause');
+    if (ico) ico.innerHTML = ICONS.pause;
   }
   btn.dataset.paused = paused ? '1' : '0';
 }
@@ -1758,7 +1793,7 @@ async function loadDashboardQueue() {
     const jobs = await fetch('/api/queue?status=pending').then(r => r.json());
     const tbody = document.getElementById('dashboard-queue-body');
     if (!jobs || !jobs.length) {
-      tbody.innerHTML = `<tr><td colspan="4"><div class="empty"><span class="empty-icon">◈</span><div class="empty-text">${t('dash.noQueue')}</div></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4"><div class="empty"><span class="empty-icon">${ICONS.inbox}</span><div class="empty-text">${t('dash.noQueue')}</div></div></td></tr>`;
       return;
     }
     tbody.innerHTML = jobs.slice(0, 20).map(j => `
@@ -1798,7 +1833,7 @@ async function loadRecent() {
         html: `<tr>
           <td><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
           <td style="font-size:11px;color:var(--muted)">${h.library_name || '—'}</td>
-          <td>${isOk ? '<span class="badge badge-success">✓ Conv</span>' : isSkip ? '<span class="badge badge-skipped">⊘ Conv</span>' : '<span class="badge badge-error">✕ Conv</span>'}</td>
+          <td>${isOk ? `<span class="badge badge-success">${ICONS.check} Conv</span>` : isSkip ? `<span class="badge badge-skipped">${ICONS.ban} Conv</span>` : `<span class="badge badge-error">${ICONS.x} Conv</span>`}</td>
           <td>${infoCell}</td>
           <td style="font-size:11px;color:var(--muted)">${dur}</td>
           <td style="font-size:11px;color:var(--muted)">${formatDate(h.finished_at)}</td>
@@ -1818,7 +1853,7 @@ async function loadRecent() {
         html: `<tr>
           <td><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
           <td style="font-size:11px;color:var(--muted)">${h.library_name || '—'}</td>
-          <td>${isOk ? '<span class="badge" style="background:rgba(139,92,246,.08);color:#a78bfa;border:1px solid rgba(139,92,246,.2)">✓ Sub</span>' : '<span class="badge badge-error">✕ Sub</span>'}</td>
+          <td>${isOk ? `<span class="badge" style="background:rgba(139,92,246,.08);color:#a78bfa;border:1px solid rgba(139,92,246,.2)">${ICONS.check} Sub</span>` : `<span class="badge badge-error">${ICONS.x} Sub</span>`}</td>
           <td>${infoCell}</td>
           <td style="font-size:11px;color:var(--muted)">${dur}</td>
           <td style="font-size:11px;color:var(--muted)">${formatDate(h.finished_at)}</td>
@@ -1844,8 +1879,8 @@ function scanStatusHtml(scan) {
   if (!scan || scan.status === 'idle') return '';
   if (scan.status === 'scanning') {
     return `<div class="scan-progress scanning">
-      <div class="scan-label scanning">⟳ ${t('misc.scanning')}</div>
-      ${scan.current_file ? `<div class="scan-file">📄 ${scan.current_file}</div>` : ''}
+      <div class="scan-label scanning">${ICONS.refresh} ${t('misc.scanning')}</div>
+      ${scan.current_file ? `<div class="scan-file">${ICONS.file} ${scan.current_file}</div>` : ''}
       <div class="scan-counts">
         <div class="scan-count">${t('misc.scanned')}: <strong>${scan.scanned}</strong></div>
         <div class="scan-count" style="color:var(--green)">${t('misc.toAdd')}: <strong>${scan.added}</strong></div>
@@ -1855,7 +1890,7 @@ function scanStatusHtml(scan) {
   }
   if (scan.status === 'done') {
     return `<div class="scan-progress done">
-      <div class="scan-label done">✓ ${t('misc.scanDone')}</div>
+      <div class="scan-label done">${ICONS.check} ${t('misc.scanDone')}</div>
       <div class="scan-counts">
         <div class="scan-count">${t('misc.scanned')}: <strong>${scan.scanned}</strong></div>
         <div class="scan-count" style="color:var(--green)">${t('misc.added')}: <strong>${scan.added}</strong></div>
@@ -1865,7 +1900,7 @@ function scanStatusHtml(scan) {
   }
   if (scan.status === 'error') {
     return `<div class="scan-progress error">
-      <div class="scan-label error">✕ ${t('misc.scanError')}</div>
+      <div class="scan-label error">${ICONS.x} ${t('misc.scanError')}</div>
       <div class="scan-file" style="color:var(--danger)">${scan.error||''}</div>
     </div>`;
   }
@@ -1882,7 +1917,7 @@ async function loadLibraries() {
     ]);
     const grid = document.getElementById('lib-grid');
     if (!libs.length) {
-      grid.innerHTML = `<div class="lib-card lib-card-add" onclick="openAddLib()"><div class="icon">＋</div><div class="label">${t('lib.addBtn')}</div></div>`;
+      grid.innerHTML = `<div class="lib-card lib-card-add" onclick="openAddLib()"><div class="icon">${ICONS.plus}</div><div class="label">${t('lib.addBtn')}</div></div>`;
       return;
     }
 
@@ -1915,7 +1950,7 @@ async function loadLibraries() {
             <button class="btn btn-sm btn-danger" onclick="deleteLib('${l.id}')">${t('lib.delete')}</button>
           </div>
         </div>`;
-      }).join('') + `<div class="lib-card lib-card-add" onclick="openAddLib()"><div class="icon">＋</div><div class="label">${t('lib.addBtn')}</div></div>`;
+      }).join('') + `<div class="lib-card lib-card-add" onclick="openAddLib()"><div class="icon">${ICONS.plus}</div><div class="label">${t('lib.addBtn')}</div></div>`;
     } else {
       // Selective update — only update scan status areas, no flicker
       for (const lib of libs) {
@@ -2145,7 +2180,7 @@ async function loadHistory(page = 1) {
     const d = await fetch(url).then(r => r.json());
     const tbody = document.getElementById('history-body');
     if (!d.items.length) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><span class="empty-icon">◷</span><div class="empty-text">${t('misc.noHistory')}</div></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><span class="empty-icon">${ICONS.clock}</span><div class="empty-text">${t('misc.noHistory')}</div></div></td></tr>`;
       return;
     }
     tbody.innerHTML = d.items.map(h => {
@@ -2156,19 +2191,19 @@ async function loadHistory(page = 1) {
       return `
         <tr class="history-row" data-hid="${h.id}">
           <td onclick="event.stopPropagation()"><input type="checkbox" class="cb-row" data-id="${h.id}" ${histSelected.has(h.id)?'checked':''} onchange="if(this.checked)histSelected.add(this.dataset.id);else histSelected.delete(this.dataset.id);updateHistBulkBar()"></td>
-          <td onclick="toggleHistoryDetail('${h.id}')" style="cursor:pointer"><span class="expand-icon">▶</span><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
+          <td onclick="toggleHistoryDetail('${h.id}')" style="cursor:pointer"><span class="expand-icon">${ICONS.chevron}</span><div class="file-name">${basename(h.file_path)}</div><div class="file-dir">${dirname(h.file_path)}</div></td>
           <td style="font-size:11px;color:var(--muted)">${h.library_name||'—'}</td>
           <td>${saved > 0 ? `<span class="size-saved">−${formatBytes(saved)} (${pct}%)</span>` : '—'}</td>
           <td>${h.status === 'success'
-            ? '<span class="badge badge-success">✓ OK</span>'
+            ? `<span class="badge badge-success">${ICONS.check} OK</span>`
             : h.status === 'skipped'
-            ? '<span class="badge badge-skipped">⊘ Skip</span>'
-            : `<span class="badge badge-error">✕ Fout</span>`}
+            ? `<span class="badge badge-skipped">${ICONS.ban} Skip</span>`
+            : `<span class="badge badge-error">${ICONS.x} Fout</span>`}
           </td>
           <td>
             <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)">
               ${formatDate(h.finished_at)}
-              ${h.status === 'error' ? `<button class="btn btn-sm" style="padding:2px 8px;font-size:10px;color:var(--orange);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)" onclick="event.stopPropagation();retryHistory('${h.id}')" title="Opnieuw proberen">↺</button>` : ''}
+              ${h.status === 'error' ? `<button class="btn btn-sm" style="padding:2px 8px;font-size:10px;color:var(--orange);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)" onclick="event.stopPropagation();retryHistory('${h.id}')" title="Opnieuw proberen">${ICONS.refresh}</button>` : ''}
             </div>
           </td>
         </tr>
@@ -2254,7 +2289,7 @@ async function loadSavings() {
     const d = await fetch('/api/savings').then(r => r.json());
     const tot = d.totals;
     if (!tot || !tot.total_files) {
-      document.getElementById('sav-libs-bars').innerHTML = `<div class="empty"><span class="empty-icon">◎</span><div class="empty-text">${t('sav.noData')}</div></div>`;
+      document.getElementById('sav-libs-bars').innerHTML = `<div class="empty"><span class="empty-icon">${ICONS.barchart}</span><div class="empty-text">${t('sav.noData')}</div></div>`;
       return;
     }
     document.getElementById('sav-total-before').textContent = formatBytes(tot.total_original);
@@ -2420,9 +2455,9 @@ async function runTranslationTest() {
       result.style.display = 'block';
       result.innerHTML = `<span style="font-size:10px;color:var(--text-t);display:block;margin-bottom:4px">${t('sub_settings.testResult')}</span>${d.translation}`;
     }
-    if (status) status.textContent = '✓ ' + d.model;
+    if (status) status.innerHTML = ICONS.check + ' ' + d.model;
   } catch(e) {
-    if (status) status.textContent = '✕ Fout';
+    if (status) status.innerHTML = ICONS.x + ' Fout';
     toast('Vertaaltest mislukt', 'error');
   } finally {
     btn.disabled = false;
@@ -2437,7 +2472,7 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   const icon = document.getElementById('theme-icon');
   const lbl  = document.getElementById('theme-label');
-  if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+  if (icon) icon.innerHTML = theme === 'dark' ? ICONS.moon : ICONS.sun;
   if (lbl)  lbl.textContent  = theme === 'dark' ? 'Dark' : 'Light';
   // Herlaad chart als die zichtbaar is
   if (document.getElementById('page-savings')?.classList.contains('active')) {
@@ -2522,13 +2557,13 @@ function renderProfiles(selected) {
   if (banner) {
     if (gpuMode === 'nvidia') {
       banner.style.cssText = 'background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.25);color:var(--success)';
-      banner.textContent   = '✓ Nvidia GPU actief — NVENC profielen ingeschakeld';
+      banner.innerHTML     = ICONS.check + ' Nvidia GPU actief — NVENC profielen ingeschakeld';
     } else if (gpuMode === 'amd') {
       banner.style.cssText = 'background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);color:#fca5a5';
-      banner.textContent   = '✓ AMD GPU actief — AMF profielen ingeschakeld';
+      banner.innerHTML     = ICONS.check + ' AMD GPU actief — AMF profielen ingeschakeld';
     } else if (gpuMode === 'intel') {
       banner.style.cssText = 'background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.25);color:#93c5fd';
-      banner.textContent   = '✓ Intel GPU actief — QSV profielen ingeschakeld';
+      banner.innerHTML     = ICONS.check + ' Intel GPU actief — QSV profielen ingeschakeld';
     } else {
       banner.style.cssText = 'background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);color:var(--text-s)';
       banner.textContent   = 'ℹ CPU modus — geen GPU gedetecteerd. Alleen CPU-profielen beschikbaar.';
@@ -2631,7 +2666,7 @@ async function loadSubtitleQueue(page) {
     if (countEl) countEl.textContent = d.total + ' items';
 
     if (!items.length) {
-      tbody.innerHTML = `<tr><td colspan="3"><div class="empty"><span class="empty-icon">◌</span><div class="empty-text">Geen bestanden in wachtrij</div></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="3"><div class="empty"><span class="empty-icon">${ICONS.inbox}</span><div class="empty-text">Geen bestanden in wachtrij</div></div></td></tr>`;
       renderPagination('sub-queue-pagination', subQueuePage, 0, perPage, 'loadSubtitleQueue');
       return;
     }
@@ -2643,8 +2678,8 @@ async function loadSubtitleQueue(page) {
       const badge = j.status === 'processing'
         ? `<span class="badge badge-processing">● ${j.progress||0}%</span>`
         : isErr
-        ? `<span class="badge badge-error">✕ Fout</span>`
-        : `<span class="badge badge-pending">◌ Wacht</span>`;
+        ? `<span class="badge badge-error">${ICONS.x} Fout</span>`
+        : `<span class="badge badge-pending">${ICONS.dot} Wacht</span>`;
       const errRow = isErr && j.error_msg
         ? `<tr class="history-detail-row" id="qerr-${j.id}">
             <td colspan="3">
@@ -2656,7 +2691,7 @@ async function loadSubtitleQueue(page) {
            </tr>`
         : '';
       return `<tr class="history-row" ${isErr ? `onclick="toggleQueueError('${j.id}')"` : ''} style="${isErr?'cursor:pointer':''}">
-        <td>${isErr?'<span class="expand-icon">▶</span>':''}<div class="file-name">${fname}</div><div class="file-dir">${dir}</div></td>
+        <td>${isErr?`<span class="expand-icon">${ICONS.chevron}</span>`:''}<div class="file-name">${fname}</div><div class="file-dir">${dir}</div></td>
         <td style="font-size:11px;color:var(--muted)">${j.library_name||'—'}</td>
         <td>${badge}</td>
       </tr>${errRow}`;
@@ -2672,7 +2707,7 @@ function toggleQueueError(id) {
   const open = row.classList.toggle('open');
   const tr = row.previousElementSibling;
   const icon = tr ? tr.querySelector('.expand-icon') : null;
-  if (icon) icon.textContent = open ? '▼' : '▶';
+  if (icon) icon.style.transform = open ? 'rotate(90deg)' : 'rotate(0deg)';
 }
 
 // Geselecteerde IDs in subtitle history
@@ -2687,7 +2722,7 @@ async function loadSubtitleHistory(page) {
     const d = await fetch(`/api/subtitle/history?page=${subHistPage}&per_page=${perPage}`).then(r => r.json());
     const tbody = document.getElementById('sub-history-body');
     if (!d.items.length) {
-      tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="empty-icon">◷</span><div class="empty-text">Geen geschiedenis</div></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="empty-icon">${ICONS.clock}</span><div class="empty-text">Geen geschiedenis</div></div></td></tr>`;
       renderPagination('sub-hist-pagination', subHistPage, 0, perPage, 'loadSubtitleHistory');
       return;
     }
@@ -2696,10 +2731,10 @@ async function loadSubtitleHistory(page) {
       const dir   = h.file_path ? h.file_path.replace('/' + fname,'') : '';
       const isErr = h.status === 'error';
       const badge = isErr
-        ? `<span class="badge badge-error">✕ Fout</span>`
-        : `<span class="badge badge-success">✓ OK</span>`;
+        ? `<span class="badge badge-error">${ICONS.x} Fout</span>`
+        : `<span class="badge badge-success">${ICONS.check} OK</span>`;
       const retryBtn = isErr
-        ? `<button class="btn btn-sm" style="padding:2px 7px;font-size:10px;color:var(--orange);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08);margin-left:4px" onclick="event.stopPropagation();retrySubtitle('${h.id}')">↺</button>`
+        ? `<button class="btn btn-sm" style="padding:2px 7px;font-size:10px;color:var(--orange);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08);margin-left:4px" onclick="event.stopPropagation();retrySubtitle('${h.id}')">${ICONS.refresh}</button>`
         : '';
       const errRow = isErr && h.error_msg
         ? `<tr class="history-detail-row" id="herr-${h.id}">
@@ -2718,7 +2753,7 @@ async function loadSubtitleHistory(page) {
             ${subHistSelected.has(h.id)?'checked':''}
             onchange="subHistToggleCb(this,'${h.id}')">
         </td>
-        <td>${isErr?'<span class="expand-icon">▶</span>':''}<div class="file-name">${fname}</div><div class="file-dir">${dir}</div></td>
+        <td>${isErr?`<span class="expand-icon">${ICONS.chevron}</span>`:''}<div class="file-name">${fname}</div><div class="file-dir">${dir}</div></td>
         <td style="font-size:11px;color:var(--muted)">${h.library_name||'—'}</td>
         <td style="font-size:11px;color:var(--muted)">${h.lines_translated||'—'}</td>
         <td style="font-size:11px;color:var(--muted);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h.model_used||''}">${h.model_used||'—'}</td>
@@ -2736,7 +2771,7 @@ function toggleHistError(id) {
   const open = row.classList.toggle('open');
   const tr = row.previousElementSibling;
   const icon = tr ? tr.querySelector('.expand-icon') : null;
-  if (icon) icon.textContent = open ? '▼' : '▶';
+  if (icon) icon.style.transform = open ? 'rotate(90deg)' : 'rotate(0deg)';
 }
 
 function subHistToggleCb(cb, id) {
@@ -3006,7 +3041,7 @@ async function runDiagnostics() {
   const el = document.getElementById('diag-results');
   const btn = document.getElementById('btn-diag');
   if (btn) btn.disabled = true;
-  el.innerHTML = `<div style="font-size:12px;color:var(--text-s)">⟳ ${t('diag.checking')}</div>`;
+  el.innerHTML = `<div style="font-size:12px;color:var(--text-s)">${ICONS.refresh} ${t('diag.checking')}</div>`;
 
   try {
     const d = await fetch('/api/diagnostics').then(r => r.json());
@@ -3017,7 +3052,7 @@ async function runDiagnostics() {
     html += `<div style="margin-bottom:14px;padding:10px 12px;background:rgba(255,255,255,.04);border-radius:var(--rxs);border:1px solid var(--border)">`;
     html += `<div style="font-size:10px;font-weight:700;color:var(--text-t);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">${t('diag.mediaRoot')}</div>`;
     if (d.media_root.error) {
-      html += `<div style="color:var(--danger);font-size:11px">✕ ${d.media_root.error}</div>`;
+      html += `<div style="color:var(--danger);font-size:11px">${ICONS.x} ${d.media_root.error}</div>`;
     } else {
       html += `<div style="font-size:11px;color:var(--text-s)">${(d.media_root.contents || []).join(', ') || '(leeg)'}</div>`;
     }
@@ -3029,7 +3064,7 @@ async function runDiagnostics() {
       const hasFiles   = (lib.video_files_found || 0) > 0;
       const borderCol  = hasError ? 'rgba(248,113,113,.3)' : hasFiles ? 'rgba(52,211,153,.25)' : 'rgba(251,146,60,.3)';
       const bgCol      = hasError ? 'rgba(248,113,113,.06)' : hasFiles ? 'rgba(52,211,153,.05)' : 'rgba(251,146,60,.06)';
-      const icon       = hasError ? '✕' : hasFiles ? '✓' : '⚠';
+      const icon       = hasError ? ICONS.x : hasFiles ? ICONS.check : ICONS.warning;
       const iconColor  = hasError ? 'var(--danger)' : hasFiles ? 'var(--success)' : 'var(--orange)';
 
       html += `<div style="margin-bottom:10px;padding:12px 14px;background:${bgCol};border-radius:var(--rxs);border:1px solid ${borderCol}">`;
@@ -3045,8 +3080,8 @@ async function runDiagnostics() {
         const fileColor = hasFiles ? 'var(--success)' : 'var(--orange)';
         html += `<div style="font-size:11px;color:${fileColor};font-weight:600;margin-bottom:4px">`;
         html += hasFiles
-          ? `✓ ${lib.video_files_found} ${t('diag.found')}`
-          : `⚠ ${t('diag.noVideo')}`;
+          ? `${ICONS.check} ${lib.video_files_found} ${t('diag.found')}`
+          : `${ICONS.warning} ${t('diag.noVideo')}`;
         html += `</div>`;
 
         if (lib.top_level_count !== undefined) {
@@ -3063,7 +3098,7 @@ async function runDiagnostics() {
     const hasZeroNoError = d.libraries.some(l => !l.error && (l.video_files_found || 0) === 0);
     if (hasZeroNoError) {
       html += `<div style="padding:10px 12px;background:rgba(251,146,60,.07);border:1px solid rgba(251,146,60,.22);border-radius:var(--rxs);font-size:11px;color:var(--orange);line-height:1.6;margin-top:4px">
-        💡 ${t('diag.hint')}
+        ${ICONS.bulb} ${t('diag.hint')}
       </div>`;
     }
 
@@ -3101,7 +3136,7 @@ function formatDuration(s) {
 }
 function statusBadge(status, progress) {
   const map = { pending:'badge-pending', processing:'badge-processing', done:'badge-done', error:'badge-error', skipped:'badge-skipped' };
-  const lbl = { pending:'⋯ ' + t('misc.waiting'), processing:`⟳ ${progress}%`, done:'✓ ' + t('misc.done'), error:'✕ ' + t('misc.error') };
+  const lbl = { pending:ICONS.dot + ' ' + t('misc.waiting'), processing:`${ICONS.refresh} ${progress}%`, done:ICONS.check + ' ' + t('misc.done'), error:ICONS.x + ' ' + t('misc.error') };
   return `<span class="badge ${map[status]||'badge-pending'}">${lbl[status]||status}</span>`;
 }
 function toast(msg, type = '') {
