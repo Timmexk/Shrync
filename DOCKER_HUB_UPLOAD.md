@@ -1,4 +1,4 @@
-# Shrync v0.58 — Docker Hub upload instructie
+# Shrync v0.59 — Docker Hub upload instructie
 
 ## Vereisten
 
@@ -36,17 +36,17 @@ Gebruik het meegeleverde `build.sh` script:
 
 ```bash
 chmod +x build.sh
-./build.sh <jouw-dockerhub-gebruikersnaam> 0.58
+./build.sh <jouw-dockerhub-gebruikersnaam> 0.59
 ```
 
 **Voorbeeld:**
 ```bash
-./build.sh tijmen 0.58
+./build.sh tijmen 0.59
 ```
 
 Dit doet automatisch:
 1. Image bouwen voor `linux/amd64`
-2. Taggen als `tijmen/shrync:latest` én `tijmen/shrync:0.58`
+2. Taggen als `tijmen/shrync:latest` én `tijmen/shrync:0.59`
 3. Beide tags pushen naar Docker Hub
 
 ---
@@ -59,7 +59,7 @@ In Unraid:
 2. Klik op het icoontje → **Edit**
 3. Verander het **Repository** veld naar:
    ```
-   <jouw-gebruikersnaam>/shrync:0.58
+   <jouw-gebruikersnaam>/shrync:0.59
    ```
    Of gebruik `:latest` om altijd de nieuwste versie te trekken:
    ```
@@ -78,14 +78,14 @@ Als je het liever handmatig doet:
 # Bouwen
 docker build \
   --platform linux/amd64 \
-  --build-arg SHRYNC_VERSION="0.58" \
+  --build-arg SHRYNC_VERSION="0.59" \
   -t <gebruikersnaam>/shrync:latest \
-  -t <gebruikersnaam>/shrync:0.58 \
+  -t <gebruikersnaam>/shrync:0.59 \
   .
 
 # Pushen
 docker push <gebruikersnaam>/shrync:latest
-docker push <gebruikersnaam>/shrync:0.58
+docker push <gebruikersnaam>/shrync:0.59
 ```
 
 ---
@@ -95,7 +95,7 @@ docker push <gebruikersnaam>/shrync:0.58
 Na het pushen kun je controleren of de image beschikbaar is:
 
 ```bash
-docker pull <gebruikersnaam>/shrync:0.58
+docker pull <gebruikersnaam>/shrync:0.59
 ```
 
 Of bekijk het op https://hub.docker.com/r/<gebruikersnaam>/shrync
