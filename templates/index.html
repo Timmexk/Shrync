@@ -1189,7 +1189,7 @@ const T = {
              nvencWarn:'Nvidia GPUs have a default limit of 3 concurrent NVENC sessions. Install nvidia-patch to use >1 worker with NVENC.' },
     lib:   { add:'Add library', edit:'Edit library', addBtn:'Add library', name:'Name', path:'Path (folder)',
              cancel:'Cancel', save:'Save',
-             scan:'Scan', scanSubs:'Scan subtitles', forceScanSubs:'Force subtitles', forceScanSubsHint:'Also (re)generate subtitles for files that already have a Dutch subtitle (e.g. embedded, with incorrect timing). Existing subtitles are left untouched — a new file is created alongside them.', forceScanSubsConfirm:'Also process files that already have a Dutch subtitle? A new subtitle file is generated from the source-language track and placed next to the video — the existing Dutch subtitle is not touched or removed.', showSkipped:'Skipped files', edit:'Edit', delete:'Delete', lastScan:'Last scan', neverScanned:'Never scanned', skippedCount:'files skipped', profile:'Profile', noSkipped:'No skipped files', skipReasonCodec:'Already correct codec', skipReasonHistory:'Already converted', skipReasonQueued:'Already in queue' },
+             scan:'Scan', scanSubs:'Scan subtitles', showSkipped:'Skipped files', edit:'Edit', delete:'Delete', lastScan:'Last scan', neverScanned:'Never scanned', skippedCount:'files skipped', profile:'Profile', noSkipped:'No skipped files', skipReasonCodec:'Already correct codec', skipReasonHistory:'Already converted', skipReasonQueued:'Already in queue' },
     btn:   { pause:'Pause', resume:'Resume', scanAll:'Scan all' },
     gpu:   { util:'GPU usage', mem:'VRAM', temp:'Temperature', enc:'Encoder' },
     sub:   { pending:'In queue', processing:'Translating', done:'Done today',
@@ -1265,7 +1265,7 @@ const T = {
              nvencWarn:"Nvidia GPU's hebben standaard een limiet van 3 NVENC-sessies. Installeer de nvidia-patch voor meer dan 1 worker." },
     lib:   { add:'Bibliotheek toevoegen', edit:'Bibliotheek bewerken', addBtn:'Bibliotheek toevoegen',
              name:'Naam', path:'Pad (map)', cancel:'Annuleren', save:'Opslaan',
-             scan:'Scannen', scanSubs:'Ondertitels scannen', forceScanSubs:'Ondertitels forceren', forceScanSubsHint:'Genereer ook ondertiteling voor bestanden die al Nederlandse ondertiteling hebben (bijv. embedded, met verkeerde timing). Bestaande ondertiteling blijft ongewijzigd — er komt een nieuw bestand naast te staan.', forceScanSubsConfirm:'Ook bestanden verwerken die al Nederlandse ondertiteling hebben? Er wordt een nieuw ondertitelbestand gegenereerd op basis van het brontaal-spoor en naast de video geplaatst — de bestaande Nederlandse ondertiteling wordt niet aangeraakt of verwijderd.', showSkipped:'Overgeslagen', edit:'Bewerken', delete:'Verwijderen', lastScan:'Laatste scan', neverScanned:'Nog nooit gescand', skippedCount:'bestanden overgeslagen', profile:'Profiel', noSkipped:'Geen overgeslagen bestanden', skipReasonCodec:'Codec al correct', skipReasonHistory:'Al geconverteerd', skipReasonQueued:'Al in wachtrij' },
+             scan:'Scannen', scanSubs:'Ondertitels scannen', showSkipped:'Overgeslagen', edit:'Bewerken', delete:'Verwijderen', lastScan:'Laatste scan', neverScanned:'Nog nooit gescand', skippedCount:'bestanden overgeslagen', profile:'Profiel', noSkipped:'Geen overgeslagen bestanden', skipReasonCodec:'Codec al correct', skipReasonHistory:'Al geconverteerd', skipReasonQueued:'Al in wachtrij' },
     btn:   { pause:'Pauzeren', resume:'Hervatten', scanAll:'Alles scannen' },
     gpu:   { util:'GPU gebruik', mem:'VRAM', temp:'Temperatuur', enc:'Encoder' },
     sub:   { pending:'In wachtrij', processing:'Bezig', done:'Vandaag klaar',
@@ -1958,7 +1958,6 @@ async function loadLibraries() {
             <button class="btn btn-sm" onclick="scanLib('${l.id}')">${t('lib.scan')}</button>
             <button class="btn btn-sm" onclick="showSkipped('${l.id}','${l.name}')">${t('lib.showSkipped')}</button>
             <button class="btn btn-sm sub-scan-btn" data-lid="${l.id}" onclick="scanSubtitlesLib('${l.id}','${l.name}')" style="display:none">${t('lib.scanSubs')}</button>
-            <button class="btn btn-sm sub-scan-btn" data-lid="${l.id}" title="${t('lib.forceScanSubsHint')}" onclick="scanSubtitlesLib('${l.id}','${l.name}',true)" style="display:none">${t('lib.forceScanSubs')}</button>
             <button class="btn btn-sm" onclick="editLib(${JSON.stringify(l).replace(/"/g,'&quot;')})">${t('lib.edit')}</button>
             <button class="btn btn-sm btn-danger" onclick="deleteLib('${l.id}')">${t('lib.delete')}</button>
           </div>
@@ -2907,14 +2906,9 @@ function onSubtitleToggle(enabled) {
   updateSubScanBtns(enabled);
 }
 
-async function scanSubtitlesLib(lid, libName, force=false) {
-  if (force && !confirm(t('lib.forceScanSubsConfirm'))) return;
+async function scanSubtitlesLib(lid, libName) {
   try {
-    await fetch('/api/libraries/' + lid + '/scan-subtitles', {
-      method:'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ force })
-    });
+    await fetch('/api/libraries/' + lid + '/scan-subtitles', { method:'POST' });
     toast('⊶ ' + libName + ': ondertitel scan gestart', 'success');
   } catch(e) { toast('Fout bij starten scan', 'error'); }
 }
