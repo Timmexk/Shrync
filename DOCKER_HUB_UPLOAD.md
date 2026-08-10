@@ -1,4 +1,4 @@
-# Shrync v0.63 — Docker Hub upload instructie
+# Shrync v0.64 — Docker Hub upload instructie
 
 ## Vereisten
 
@@ -36,17 +36,17 @@ Gebruik het meegeleverde `build.sh` script:
 
 ```bash
 chmod +x build.sh
-./build.sh <jouw-dockerhub-gebruikersnaam> 0.63
+./build.sh <jouw-dockerhub-gebruikersnaam> 0.64
 ```
 
 **Voorbeeld:**
 ```bash
-./build.sh tijmen 0.63
+./build.sh tijmen 0.64
 ```
 
 Dit doet automatisch:
 1. Image bouwen voor `linux/amd64`
-2. Taggen als `tijmen/shrync:latest` én `tijmen/shrync:0.63`
+2. Taggen als `tijmen/shrync:latest` én `tijmen/shrync:0.64`
 3. Beide tags pushen naar Docker Hub
 
 ---
@@ -59,7 +59,7 @@ In Unraid:
 2. Klik op het icoontje → **Edit**
 3. Verander het **Repository** veld naar:
    ```
-   <jouw-gebruikersnaam>/shrync:0.63
+   <jouw-gebruikersnaam>/shrync:0.64
    ```
    Of gebruik `:latest` om altijd de nieuwste versie te trekken:
    ```
@@ -78,14 +78,14 @@ Als je het liever handmatig doet:
 # Bouwen
 docker build \
   --platform linux/amd64 \
-  --build-arg SHRYNC_VERSION="0.63" \
+  --build-arg SHRYNC_VERSION="0.64" \
   -t <gebruikersnaam>/shrync:latest \
-  -t <gebruikersnaam>/shrync:0.63 \
+  -t <gebruikersnaam>/shrync:0.64 \
   .
 
 # Pushen
 docker push <gebruikersnaam>/shrync:latest
-docker push <gebruikersnaam>/shrync:0.63
+docker push <gebruikersnaam>/shrync:0.64
 ```
 
 ---
@@ -95,7 +95,7 @@ docker push <gebruikersnaam>/shrync:0.63
 Na het pushen kun je controleren of de image beschikbaar is:
 
 ```bash
-docker pull <gebruikersnaam>/shrync:0.63
+docker pull <gebruikersnaam>/shrync:0.64
 ```
 
 Of bekijk het op https://hub.docker.com/r/<gebruikersnaam>/shrync
@@ -116,10 +116,10 @@ Los dit op door een oudere ffmpeg-build te kiezen via `FFMPEG_TAG`:
 ```bash
 docker build \
   --platform linux/amd64 \
-  --build-arg SHRYNC_VERSION="0.63" \
+  --build-arg SHRYNC_VERSION="0.64" \
   --build-arg FFMPEG_TAG="autobuild-2026-05-31-13-22" \
   -t <gebruikersnaam>/shrync:latest \
-  -t <gebruikersnaam>/shrync:0.63 \
+  -t <gebruikersnaam>/shrync:0.64 \
   .
 ```
 

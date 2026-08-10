@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.63")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.64")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -2790,13 +2790,14 @@ def api_subtitle_add(data: dict):
     """Voegt een bestand handmatig toe aan de ondertitelwachtrij."""
     file_path = data.get("file_path", "")
     library_id = data.get("library_id")
+    force = bool(data.get("force", False))
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(400, "Bestand niet gevonden")
     if Path(file_path).suffix.lower() not in VIDEO_EXTENSIONS:
         raise HTTPException(400, "Bestandstype niet ondersteund")
     if not path_within_library(file_path):
         raise HTTPException(400, "Bestand valt niet binnen een geconfigureerde bibliotheek")
-    if has_dutch_subtitle(file_path):
+    if not force and has_dutch_subtitle(file_path):
         raise HTTPException(400, "Nederlandse ondertitel al aanwezig")
     streams = detect_subtitle_streams(file_path)
     best = pick_best_english_stream(streams)
@@ -2824,11 +2825,21 @@ def api_subtitle_add(data: dict):
 # ── Handmatige ondertiteling scan per bibliotheek ─────────────────────────────
 
 @app.post("/api/libraries/{lid}/scan-subtitles")
-def api_scan_subtitles_library(lid: str):
+def api_scan_subtitles_library(lid: str, data: dict = {}):
     """
     Scant één bibliotheek op bestanden zonder ondertitel en
     voegt ze toe aan de ondertitelwachtrij.
+
+    force=True: neemt ook bestanden mee die al een Nederlandse ondertitel
+    hebben (embedded stream of extern bestand) en, als er al eerder
+    succesvol vertaald is, ook die bestanden opnieuw — handig als de
+    bestaande NL-ondertiteling (bijv. embedded, met verkeerde timing) niet
+    voldoet en de gebruiker zelf een nieuwe .xx.srt wil laten genereren op
+    basis van het brontaal-spoor. Het bestaande ondertitelbestand/-spoor
+    wordt niet aangeraakt; de nieuwe vertaling komt als apart .xx.srt bestand
+    naast het mediabestand te staan.
     """
+    force = bool((data or {}).get("force", False))
     conn = get_db()
     lib = conn.execute("SELECT * FROM libraries WHERE id=?", (lid,)).fetchone()
     conn.close()
@@ -2863,15 +2874,21 @@ def api_scan_subtitles_library(lid: str):
                     (fpath,)
                 ).fetchone()
                 c.close()
-                if existing or done or failed:
+                if existing:
                     continue
-                if has_dutch_subtitle(fpath):
+                if not force and (done or failed):
+                    continue
+                if not force and has_dutch_subtitle(fpath):
                     continue
                 streams = detect_subtitle_streams(fpath)
                 best = pick_best_source_stream(streams, source_lang)
                 if not best:
                     continue
                 c = get_db()
+                if force and (done or failed):
+                    # Oude geschiedenis opruimen zodat er geen dubbele/verouderde
+                    # entries voor hetzelfde bestand blijven staan na de herverwerking
+                    c.execute("DELETE FROM subtitle_history WHERE file_path=?", (fpath,))
                 jid = str(uuid.uuid4())
                 c.execute(
                     "INSERT INTO subtitle_queue (id,library_id,file_path,file_size,subtitle_track_index,status) "
@@ -2881,7 +2898,7 @@ def api_scan_subtitles_library(lid: str):
                 c.commit()
                 c.close()
                 added += 1
-        logger.info(f"Handmatige ondertitel scan bibliotheek {lib['name']}: {added} toegevoegd")
+        logger.info(f"Handmatige ondertitel scan bibliotheek {lib['name']}{' (forceer)' if force else ''}: {added} toegevoegd")
 
     threading.Thread(target=do_scan, daemon=True).start()
     return {"ok": True, "message": f"Scan gestart voor '{lib['name']}'"}
