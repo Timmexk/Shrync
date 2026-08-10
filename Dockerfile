@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# Shrync v0.62 — Universele image (één image voor CPU én Nvidia GPU)
+# Shrync v0.63 — Universele image (één image voor CPU én Nvidia GPU)
 # ══════════════════════════════════════════════════════════════════════════════
 #
 # Werking:
@@ -21,7 +21,7 @@ FROM ubuntu:24.04
 
 # ARG met build-time default — build.sh geeft --build-arg SHRYNC_VERSION=X.Y mee
 # zodat LABEL en ENV de daadwerkelijk gebouwde versie tonen ipv een hardcoded getal.
-ARG SHRYNC_VERSION=0.62
+ARG SHRYNC_VERSION=0.63
 
 LABEL org.opencontainers.image.title="Shrync"
 LABEL org.opencontainers.image.description="Zelf-gehoste H.265 media converter — automatische GPU-detectie"

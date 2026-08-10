@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.62")
+SHRYNC_VERSION = os.environ.get("SHRYNC_VERSION", "0.63")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -445,7 +445,8 @@ def build_nvenc_cmd(src, tmp_out, codec, preset, cq, audio_codec, hdr: dict = No
     cmd = [
         "ffmpeg", "-y",
         "-i", src,
-        "-map", "0:v:0?",     # alleen de eerste/primaire videostream (voorkomt problemen met attached-pic thumbnails)
+        "-map", "0:V:0?",     # hoofdletter V = video-sporen ZONDER attached pictures/cover art —
+                              # anders kan een ingebed albumhoesje als "video" gepakt worden i.p.v. de film
         "-map", "0:a?",       # alle audiosporen, optioneel (geen fout als er geen audio is)
         "-map", "0:s?",       # alle ondertitelsporen, optioneel
         "-c:v", codec,
@@ -480,7 +481,7 @@ def build_amf_cmd(src, tmp_out, codec, preset, qp, audio_codec, hdr: dict = None
     cmd = [
         "ffmpeg", "-y",
         "-i", src,
-        "-map", "0:v:0?",
+        "-map", "0:V:0?",
         "-map", "0:a?",
         "-map", "0:s?",
         "-c:v", codec,
@@ -515,7 +516,7 @@ def build_qsv_cmd(src, tmp_out, codec, preset, q, audio_codec, hdr: dict = None)
         "ffmpeg", "-y",
         "-hwaccel", "qsv",
         "-i", src,
-        "-map", "0:v:0?",
+        "-map", "0:V:0?",
         "-map", "0:a?",
         "-map", "0:s?",
         "-c:v", codec,
@@ -545,7 +546,7 @@ def build_cpu_cmd(src, tmp_out, codec, preset, crf, audio_codec, hdr: dict = Non
     cmd = [
         "ffmpeg", "-y",
         "-i", src,
-        "-map", "0:v:0?",
+        "-map", "0:V:0?",
         "-map", "0:a?",
         "-map", "0:s?",
         "-c:v", codec,
@@ -875,6 +876,40 @@ def run_conversion(job_id: str):
     if process.returncode == 0 and os.path.exists(tmp_out):
         new_size = os.path.getsize(tmp_out)
 
+        # Veiligheidscontrole: ffmpeg kan returncode 0 geven terwijl de uitvoer
+        # feitelijk kapot is (bijv. een verkeerd geselecteerde videostream die
+        # slechts een fractie van de originele duur oplevert — zoals een
+        # ingebed cover-art-plaatje i.p.v. de film). Zonder deze check zou het
+        # origineel vervangen worden door zo'n vrijwel lege uitvoer, met
+        # onherstelbaar dataverlies tot gevolg. Bij een grote afwijking wordt
+        # de conversie als mislukt gemarkeerd en blijft het origineel intact.
+        out_duration = 0.0
+        try:
+            dur_probe = subprocess.run(
+                ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+                 "-print_format", "json", tmp_out],
+                capture_output=True, text=True, timeout=15
+            )
+            out_duration = float(json.loads(dur_probe.stdout).get("format", {}).get("duration", 0) or 0)
+        except Exception as e:
+            logger.warning(f"Kon duur van geconverteerd bestand niet bepalen: {e}")
+
+        if duration > 5 and out_duration < duration * 0.9:
+            err_msg = (f"Geconverteerde duur ({out_duration:.0f}s) wijkt te veel af van "
+                       f"origineel ({duration:.0f}s) — origineel NIET overschreven")
+            logger.error(f"Veiligheidscontrole gefaald voor {src}: {err_msg}")
+            try: os.remove(tmp_out)
+            except: pass
+            conn.execute(
+                "INSERT INTO history (id,library_id,file_path,original_size,new_size,duration_seconds,status,error_msg,finished_at) "
+                "VALUES (?,?,?,?,0,?,'error',?,?)",
+                (str(uuid.uuid4()), job["library_id"], src, original_size, elapsed, err_msg, now)
+            )
+            conn.execute("DELETE FROM queue WHERE id=?", (job_id,))
+            conn.commit()
+            conn.close()
+            return
+
         # Als geconverteerd bestand groter is dan origineel:
         # - bij .mp4/.avi/.ts/.wmv/.flv/.mov: remux naar MKV zonder hercodering
         #   (alleen containerwijziging, geen kwaliteitsverlies, geen hercodering)
@@ -891,7 +926,7 @@ def run_conversion(job_id: str):
             logger.info(f"Geconverteerd groter dan origineel — remux {src_ext} → MKV: {Path(src).name}")
             remux_cmd = [
                 "ffmpeg", "-y", "-i", src,
-                "-map", "0:v:0?",
+                "-map", "0:V:0?",
                 "-map", "0:a?",
                 "-map", "0:s?",
                 "-c:v", "copy",
